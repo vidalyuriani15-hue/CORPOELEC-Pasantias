@@ -71,7 +71,7 @@
          </td>
          <td>{{ recon.Fecha_Reg|date:"d/m/Y" }}</td>
          <td class="actions-cell">
-           <button type="button" class="btn-icon btn-edit" title="Editar" onclick="abrirModalEditar({{ recon.Id_reconectador }}, '{{ recon.Marca }}', '{{ recon.Modelo }}', {{ recon.Id_Sub_est.Id_Sub_est }}, {{ recon.Id_Ten.Id_Ten }}, '{{ recon.Estado }}')">
+           <button type="button" class="btn-icon btn-edit" title="Editar" onclick="abrirModalEditar({{ recon.Id_reconectador }}, '{{ recon.Marca }}', '{{ recon.Modelo }}', {{ recon.Id_Sub_est.Id_Sub_est }}, {{ recon.Id_Ten.Id_Ten }}, '{{ recon.Estado }}', '{{ recon.Observaciones|escapejs }}')">
              <i class="fas fa-edit"></i>
            </button>
            <form method="post" style="display:inline;" onsubmit="return confirmarEliminacion(this);">
@@ -332,7 +332,7 @@ function cerrarModal() {
   document.getElementById('modalReconectador').classList.remove('active');
 }
 
-function abrirModalEditar(id, marca, modelo, subId, tenId, estado) {
+function abrirModalEditar(id, marca, modelo, subId, tenId, estado, observaciones) {
   const modal = document.getElementById('modalReconectador');
   const form = document.getElementById('formReconectador');
   
@@ -346,6 +346,7 @@ function abrirModalEditar(id, marca, modelo, subId, tenId, estado) {
   form.querySelector('input[name="marca"]').value = marca;
   form.querySelector('input[name="modelo"]').value = modelo;
   form.querySelector('select[name="estado"]').value = estado;
+  form.querySelector('textarea[name="observaciones"]').value = observaciones || '';
   
   modal.classList.add('active');
 }

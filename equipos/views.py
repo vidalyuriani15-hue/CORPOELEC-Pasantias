@@ -120,7 +120,7 @@ def subestaciones_view(request):
                 sub = Subestacion.objects.get(Id_Sub_est=sub_id)
                 sub.Nombre = nombre
                 sub.Id_Ten = NivelTension.objects.get(Id_Ten=id_ten_id)
-                sub.Ubicacion = ubicacion
+                sub.Ubicación = ubicacion
                 sub.Coordenadas = coordenadas
                 sub.save()
                 messages.success(request, 'Subestacion actualizada correctamente.')
@@ -141,7 +141,7 @@ def subestaciones_view(request):
                     Subestacion.objects.create(
                         Nombre=nombre,
                         Id_Ten=id_ten,
-                        Ubicacion=ubicacion,
+                        Ubicación=ubicacion,
                         Coordenadas=coordenadas,
                         creado_por=request.user
                     )
@@ -393,15 +393,60 @@ def reconectadores_view(request):
             except Reconectador.DoesNotExist:
                 messages.error(request, 'Reconectador no encontrado.')
             return redirect('reconectadores')
+        elif request.POST.get('editar'):
+            recon_id = request.POST.get('reconectador_id')
+            try:
+                recon = Reconectador.objects.get(Id_reconectador=recon_id)
+                recon.Id_Sub_est = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
+                recon.Id_Ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
+                recon.Marca = request.POST.get('marca')
+                recon.Modelo = request.POST.get('modelo')
+                recon.Estado = request.POST.get('estado')
+                recon.Observaciones = request.POST.get('observaciones', '')
+                
+                if request.FILES.get('imagen'):
+                    recon.Imagen = request.FILES.get('imagen')
+                
+                recon.save()
+                messages.success(request, 'Reconectador actualizado correctamente.')
+            except (Reconectador.DoesNotExist, Subestacion.DoesNotExist, NivelTension.DoesNotExist) as e:
+                messages.error(request, f'Error al actualizar: {str(e)}')
+            return redirect('reconectadores')
+        else:
+            # Crear nuevo reconectador
+            sub = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
+            ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
+            
+            recon = Reconectador.objects.create(
+                Id_Sub_est=sub,
+                Id_Ten=ten,
+                Marca=request.POST.get('marca'),
+                Modelo=request.POST.get('modelo'),
+                Estado=request.POST.get('estado'),
+                Observaciones=request.POST.get('observaciones', ''),
+                creado_por=request.user
+            )
+            
+            if request.FILES.get('imagen'):
+                recon.Imagen = request.FILES.get('imagen')
+                recon.save()
+            
+            messages.success(request, 'Reconectador creado correctamente.')
+            return redirect('reconectadores')
     
     reconectadores_list = Reconectador.objects.all().order_by('Id_reconectador')
     paginator = Paginator(reconectadores_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    subestaciones = Subestacion.objects.all().order_by('Nombre')
+    tensiones = NivelTension.objects.all().order_by('Nivel')
+    
     context = {
         'title': 'Reconectadores',
         'page_obj': page_obj,
+        'subestaciones': subestaciones,
+        'tensiones': tensiones,
         'is_admin': request.user.is_superuser
     }
     return render(request, 'reconectadores.html', context)
@@ -785,7 +830,7 @@ def exportar_subestaciones_pdf(request):
     subestaciones = Subestacion.objects.all().order_by('Nombre')
     data = [['Nombre', 'Nivel de Tensión', 'Ubicación']]
     for sub in subestaciones:
-        data.append([sub.Nombre, sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else '', sub.Ubicacion if hasattr(sub, 'Ubicacion') and sub.Ubicacion else ''])
+        data.append([sub.Nombre, sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else '', sub.Ubicación if hasattr(sub, 'Ubicación') and sub.Ubicación else ''])
 
     table = Table(data, colWidths=[2.0*inch, 2.0*inch, 2.0*inch])
     table.setStyle(TableStyle([

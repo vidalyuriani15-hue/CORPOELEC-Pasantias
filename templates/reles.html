@@ -711,8 +711,10 @@ function abrirModal() {
    imagePreview.style.display = 'none';
    document.getElementById('imagenInput').value = '';
    document.getElementById('esRemotoSelect').value = 'no';
-document.getElementById('remotaOptionsContainer').style.display = 'none';
- }
+   document.getElementById('remotaOptionsContainer').style.display = 'none';
+   // Cargar datos de remotas para el modal de agregar
+   loadRemotaDatos();
+  }
 
 function cerrarModal() {
   document.getElementById('modalReles').classList.remove('active');
@@ -862,7 +864,7 @@ function loadRemotaDatos() {
   marcaSelect.innerHTML = '<option value="">Cargando...</option>';
   modeloSelect.innerHTML = '<option value="">Seleccionar Modelo</option>';
 
-  fetch('/api/remotas/')
+  return fetch('/api/remotas/')
     .then(function(r) { return r.json(); })
     .then(function(data) {
       marcaSelect.innerHTML = '<option value="">Seleccionar Marca</option>';
