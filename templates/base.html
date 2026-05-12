@@ -15,7 +15,7 @@
   <!-- Archivo CSS global adicional -->
   <link rel="stylesheet" href="{% static 'css/global.css' %}">
   <style>
-    <!-- Variables CSS para tema de colores -->
+    /* Variables CSS para tema de colores */
     :root {
       --blue-dark: #0D2B4D;   /* Azul oscuro principal */
       --blue-accent: #4DA6FF; /* Azul claro para acentos */
@@ -173,8 +173,8 @@
       display: flex;
     }
 
-    .confirm-delete-modal .modal-dialog {
-      max-width: 500px;
+    .modal-dialog {
+      max-width: 450px;
       width: 90%;
       margin: 0;
     }
@@ -270,26 +270,17 @@
       margin-bottom: 20px;
     }
 
-.alert-success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
 
-.alert-error {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-.alert-deleted {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-  padding: 12px 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-}
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
 
     .no-data {
       text-align: center;
@@ -317,7 +308,7 @@
       min-height: 100vh;
     }
     
-    <!-- Sidebar de navegación -->
+    /* Sidebar de navegación */
     .sidebar {
       width: 260px;
       background: var(--blue-dark);
@@ -550,7 +541,7 @@
        display: none;
      }
  
-     <!-- Área de contenido principal -->
+     /* Área de contenido principal */
      .main-content {
        flex: 1;
        margin-left: 260px;
@@ -567,7 +558,7 @@
        margin-left: 80px;
      }
      
-     <!-- Barra de navegación superior -->
+     /* Barra de navegación superior */
      .navbar {
        background: var(--white);
        padding: 15px 30px;
@@ -720,7 +711,7 @@
        color: var(--blue-dark);
      }
 
-     <!-- Overlay para sidebar en mobile -->
+     /* Overlay para sidebar en mobile */
      .sidebar-backdrop {
        display: none;
        position: fixed;
@@ -736,13 +727,13 @@
        display: block;
      }
      
-     <!-- Área de contenido principal -->
+     /* Área de contenido principal */
      .content-area {
        flex: 1;
        padding: 30px;
      }
 
-     <!-- Sección de bienvenida -->
+     /* Sección de bienvenida */
      .welcome-text {
        text-align: center;
        margin-bottom: 30px;
@@ -754,7 +745,7 @@
        color: var(--blue-dark);
      }
 
-     <!-- Grid de tarjetas de resumen estadístico -->
+     /* Grid de tarjetas de resumen estadístico */
      .cards-grid {
        display: grid;
        grid-template-columns: repeat(4, 1fr);
@@ -833,7 +824,7 @@
      .card-item.brown { background: #8B0000; }
      .card-item.red { background: #E63946; }
 
-     <!-- Pie de página -->
+     /* Pie de página */
      .footer {
        background: var(--white);
        padding: 15px 30px;
@@ -862,7 +853,7 @@
        }
      }
 
-     <!-- Responsive: dispositivos móviles -->
+     /* Responsive: dispositivos móviles */
      @media (max-width: 768px) {
        .sidebar {
          width: 280px;
@@ -1167,26 +1158,17 @@
     margin-bottom: 20px;
   }
 
-     .alert-success {
-       background: #d4edda;
-       color: #155724;
-       border: 1px solid #c3e6cb;
-     }
+  .alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
 
-.alert-error {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-      }
-
-      .alert-deleted {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-        padding: 12px 15px;
-        border-radius: 6px;
-        margin-bottom: 20px;
-      }
+  .alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
 
   .no-data {
     text-align: center;
@@ -1807,7 +1789,7 @@
   {% block extra_css %}{% endblock %}
   
   <!-- Modal de confirmación de eliminación -->
-  <div id="confirmDeleteModal" class="modal confirm-delete-modal">
+  <div id="confirmDeleteModal" class="modal">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -1961,7 +1943,7 @@
     </main>
   </div>
   
-<script>
+   <script>
     // Sidebar
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -1973,80 +1955,13 @@
       } else {
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('expanded');
-        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+      }
+      // Close dropdowns when sidebar collapses/expands
+      if (!sidebar.classList.contains('collapsed') && window.innerWidth > 768) {
         closeAllDropdowns();
       }
     }
     
-    // Restore sidebar state on page load
-    function restoreSidebarState() {
-      const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-      if (sidebarCollapsed && window.innerWidth > 768) {
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        sidebar.classList.add('collapsed');
-        mainContent.classList.add('expanded');
-      }
-    }
-    
-    // Fullscreen toggle
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-        localStorage.setItem('fullscreen', 'true');
-      } else {
-        document.exitFullscreen().catch(() => {});
-        localStorage.setItem('fullscreen', 'false');
-      }
-    }
-    
-    // Restore fullscreen state
-    function restoreFullscreenState() {
-      if (localStorage.getItem('fullscreen') === 'true') {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    }
-    
-    // Restore fullscreen state - attempt but browser may block
-    function restoreFullscreenState() {
-      if (localStorage.getItem('fullscreen') === 'true' && !document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    }
-    
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-      restoreSidebarState();
-      // Restore dropdown state
-      const openDropdown = localStorage.getItem('openDropdown');
-      if (openDropdown) {
-        const dropdown = document.getElementById(openDropdown);
-        if (dropdown) {
-          dropdown.parentElement.classList.add('active');
-        }
-      }
-    });
-    
-    // Try to restore fullscreen after load (browser may block without user gesture)
-    window.addEventListener('load', function() {
-      if (localStorage.getItem('fullscreen') === 'true') {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    });
-    
-    // Auto-hide alerts after 5 seconds
-    setTimeout(function() {
-      document.querySelectorAll('.alert').forEach(function(alert) {
-        alert.style.transition = 'opacity 0.5s';
-        alert.style.opacity = '0';
-        setTimeout(function() {
-          if (alert.parentNode) {
-            alert.parentNode.removeChild(alert);
-          }
-        }, 500);
-      });
-    }, 5000);
-
     function toggleMobileSidebar() {
       const sidebar = document.getElementById('sidebar');
       const backdrop = document.getElementById('sidebarBackdrop');
@@ -2059,6 +1974,14 @@
       const backdrop = document.getElementById('sidebarBackdrop');
       sidebar.classList.remove('active');
       backdrop.classList.remove('active');
+    }
+    
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
     }
     
     // User Menu
@@ -2085,9 +2008,6 @@
       closeAllDropdowns();
       if (!isActive) {
         dropdown.parentElement.classList.add('active');
-        localStorage.setItem('openDropdown', menuId);
-      } else {
-        localStorage.removeItem('openDropdown');
       }
     }
     

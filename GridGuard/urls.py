@@ -8,7 +8,7 @@ from django.shortcuts import redirect, render
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
-from equipos.views import reconectadores_view, reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf
+from equipos.views import reconectadores_view, reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -59,6 +59,9 @@ urlpatterns = [
     path('cambiar-clave/', cambiar_clave_view, name='cambiar_clave'),
     path('admin/cambiar-clave/', cambiar_clave_view, name='admin_cambiar_clave'),
     path('admin/usuarios/', usuarios_view, name='admin_usuarios'),
+    path('admin/eventos/', admin_eventos_view, name='admin_eventos'),
+    path('admin/restaurar/', admin_restaurar_view, name='admin_restaurar'),
+    path('admin/backup/', admin_backup_view, name='admin_backup'),
     path('admin/inicio/', index_view, name='admin_index'),
     path('admin/', admin.site.urls),
     path('', index_view, name='index'),

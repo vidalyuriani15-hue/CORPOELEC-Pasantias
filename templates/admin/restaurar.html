@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Restaurar Sistema | CORPOELEC{% endblock %}
+
+{% block content %}
+<div class="welcome-text">
+  <h2>Restaurar Sistema</h2>
+</div>
+
+<div class="table-section">
+  <div class="table-header">
+    <h3>Opciones de Restauración</h3>
+  </div>
+  
+  {% if messages %}
+  <div class="messages">
+    {% for message in messages %}
+    {% if 'deleted' in message.tags %}
+    <div class="alert alert-deleted">{{ message }}</div>
+    {% else %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="form-section">
+    <h4>Restaurar Copia de Seguridad</h4>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>Seleccionar archivo de copia</label>
+        <input type="file" name="backup_file" accept=".sql,.json,.xml,.zip" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" name="confirmar" style="width:18px; height:18px;">
+          <span>Confirmo que deseo restaurar la base de datos y perderé todos los datos actuales</span>
+        </label>
+      </div>
+      <button type="submit" class="btn btn-primary">Restaurar Sistema</button>
+    </form>
+    
+    <div class="info-box">
+      <h5>Información:</h5>
+      <p>Esta función le permite restaurar el sistema desde una copia de seguridad previamente creada. 
+      Seleccione el archivo de copia y confirme que desea proceder. Todos los datos actuales serán reemplazados 
+      por los contenidos en la copia de seguridad.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

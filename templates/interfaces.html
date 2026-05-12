@@ -11,11 +11,7 @@
 {% if messages %}
 <div class="messages">
   {% for message in messages %}
-  {% if 'deleted' in message.tags %}
-  <div class="alert alert-deleted">{{ message }}</div>
-  {% else %}
   <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-  {% endif %}
   {% endfor %}
 </div>
 {% endif %}
@@ -34,12 +30,12 @@
        <input type="text" class="search-input" id="searchInput" placeholder="Buscar interfaces..." onkeyup="filterTable()">
      </div>
      <div style="display: flex; gap: 10px;">
-<button class="btn btn-primary btn-add-top" onclick="abrirModal()">
-          <i class="fas fa-plus"></i> Añadir
-        </button>
-        <a href="{% url 'exportar_interfaces_pdf' %}" class="btn btn-secondary btn-add-top">
-          <i class="fas fa-file-pdf"></i> Exportar
-        </a>
+       <button class="btn btn-primary btn-add-top" onclick="abrirModal()">
+         <i class="fas fa-plus"></i> Añadir
+       </button>
+       <button class="btn btn-secondary btn-add-top" onclick="window.print()">
+         <i class="fas fa-file-pdf"></i> Exportar
+       </button>
      </div>
    </div>
   
@@ -164,56 +160,46 @@
         <input type="hidden" name="crear" value="1">
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">Selecciona los Puertos de Comunicación</label>
-            <div class="checks-grid" id="puertos_checks">
-              <label class="check-card-elegant">
+            <label for="puertos_checks">Selecciona los Puertos de Comunicación</label>
+            <div class="checks-anchos" id="puertos_checks">
+              <label class="check-card">
                 <input type="checkbox" name="tipos_puerto" value="ETH">
-                <span class="check-icon-wrapper">
-                  <i class="fas fa-network-wired"></i>
-                </span>
-                <div class="check-content">
-                  <span class="check-title">Ethernet</span>
-                  <span class="check-description">Conexión de red estándar RJ45</span>
+                <span class="card-icon"><i class="fas fa-network-wired"></i></span>
+                <div class="card-text-content">
+                  <span class="card-title">Ethernet</span>
+                  <span class="card-sub">Conexión de red estándar</span>
                 </div>
               </label>
-              <label class="check-card-elegant">
+              <label class="check-card">
                 <input type="checkbox" name="tipos_puerto" value="RS232">
-                <span class="check-icon-wrapper">
-                  <i class="fas fa-plug"></i>
-                </span>
-                <div class="check-content">
-                  <span class="check-title">Serial RS232</span>
-                  <span class="check-description">Puerto serial punto a punto</span>
+                <span class="card-icon"><i class="fas fa-plug"></i></span>
+                <div class="card-text-content">
+                  <span class="card-title">Serial RS232</span>
+                  <span class="card-sub">Puerto serial estándar</span>
                 </div>
               </label>
-              <label class="check-card-elegant">
+              <label class="check-card">
                 <input type="checkbox" name="tipos_puerto" value="RS485">
-                <span class="check-icon-wrapper">
-                  <i class="fas fa-exchange-alt"></i>
-                </span>
-                <div class="check-content">
-                  <span class="check-title">RS485</span>
-                  <span class="check-description">Comunicación half-duplex multipunto</span>
+                <span class="card-icon"><i class="fas fa-exchange-alt"></i></span>
+                <div class="card-text-content">
+                  <span class="card-title">RS485</span>
+                  <span class="card-sub">Comunicación half-duplex</span>
                 </div>
               </label>
-              <label class="check-card-elegant">
+              <label class="check-card">
                 <input type="checkbox" name="tipos_puerto" value="USB">
-                <span class="check-icon-wrapper">
-                  <i class="fas fa-usb"></i>
-                </span>
-                <div class="check-content">
-                  <span class="check-title">USB</span>
-                  <span class="check-description">Puerto universal serial 2.0/3.0</span>
+                <span class="card-icon"><i class="fas fa-usb"></i></span>
+                <div class="card-text-content">
+                  <span class="card-title">USB</span>
+                  <span class="card-sub">Puerto universal serial</span>
                 </div>
               </label>
-              <label class="check-card-elegant">
+              <label class="check-card">
                 <input type="checkbox" name="tipos_puerto" value="FIBRA">
-                <span class="check-icon-wrapper">
-                  <i class="fas fa-bolt"></i>
-                </span>
-                <div class="check-content">
-                  <span class="check-title">Fibra Óptica</span>
-                  <span class="check-description">Transmisión por fibra óptica SC/ST</span>
+                <span class="card-icon"><i class="fas fa-bolt"></i></span>
+                <div class="card-text-content">
+                  <span class="card-title">Fibra Óptica</span>
+                  <span class="card-sub">Transmisión por fibra óptica</span>
                 </div>
               </label>
             </div>
@@ -241,8 +227,8 @@
         <input type="hidden" name="interfaz_id" id="edit_interfaz_id" value="">
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">Selecciona los Puertos de Comunicación</label>
-            <div class="checks-grid" id="edit_checks_container"></div>
+            <label for="edit_puertos_checks">Selecciona los Puertos de Comunicación</label>
+            <div class="checks-anchos" id="edit_checks_container"></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -296,10 +282,30 @@
     .no-data { text-align:center; color:#8c8c8c; padding:30px; font-size:1rem; }
     .actions-cell { white-space:nowrap; text-align: right; }
     /* === MODAL === - Compacto */
-     .modal { display:none; position:fixed; z-index:1000; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
-     .modal.active { display:flex; }
-     .modal-dialog { max-width:500px; width:90%; margin:0; }
-     .modal-content { background:#fff; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.2); overflow:hidden; }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 520px;
+      width: 100%;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
     .modal-header {
       display: flex;
       justify-content: space-between;
@@ -337,92 +343,81 @@
       color: #262626;
       font-size: 0.9rem;
     }
-    /* === CHECKBOXES ELEGANTES === */
-    .form-label {
-      display: block;
-      margin-bottom: 16px;
-      font-weight: 600;
-      color: #0D2B4D;
-      font-size: 0.95rem;
-      letter-spacing: 0.3px;
-    }
-    .checks-grid {
+    /* Tarjetas de puerto - checkbox azul */
+    .checks-anchos {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
     }
-    .check-card-elegant {
+    .check-card {
       position: relative;
       display: flex;
-      align-items: flex-start;
-      gap: 14px;
-      padding: 18px 20px;
-      background: #fff;
-      border: 2px solid #e8eaf6;
-      border-radius: 12px;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 12px;
+      background: #fafafa;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 10px;
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden;
+      transition: all 0.2s ease;
+      text-align: center;
     }
-    .check-card-elegant:hover {
-      border-color: #4DA6FF;
-      background: linear-gradient(135deg, #f0f9ff 0%, #e8f4fd 100%);
+    .check-card:hover {
+      border-color: #4a90e2;
+      background: #f5f9ff;
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(77, 166, 255, 0.12);
+      box-shadow: 0 4px 12px rgba(74,144,226,0.15);
     }
-    .check-card-elegant input[type="checkbox"] {
+    .check-card input[type="checkbox"] {
       position: absolute;
-      opacity: 0;
-      pointer-events: none;
+      top: 8px;
+      right: 8px;
+      width: 18px;
+      height: 18px;
+      accent-color: #1890ff;
+      cursor: pointer;
     }
-    .check-card-elegant input[type="checkbox"]:checked + .check-icon-wrapper {
-      background: #4DA6FF;
-      border-color: #4DA6FF;
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(77, 166, 255, 0.35);
+    .check-card input[type="checkbox"]:checked + .card-icon-wrapper {
+      border-color: #1890ff;
+      background: #e6f2ff;
     }
-    .check-card-elegant input[type="checkbox"]:checked ~ .check-content .check-title {
-      color: #1a56db;
+    .check-card input[type="checkbox"]:checked ~ .card-text-content {
+      color: #262626;
     }
-    .check-card-elegant input[type="checkbox"]:checked ~ .check-content .check-description {
-      color: #4B5563;
+    .check-card input[type="checkbox"]:checked ~ .card-text-content .card-title {
+      color: #1890ff;
     }
-    .check-icon-wrapper {
+    .card-icon-wrapper {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      background: #f8fafc;
-      border: 2px solid #e5e7eb;
+      width: 48px;
+      height: 48px;
+      background: #fff;
+      border: 2px solid #d0d7de;
       border-radius: 10px;
-      font-size: 16px;
-      color: #6B7280;
-      transition: all 0.25s ease;
+      transition: all 0.2s;
     }
-    .check-content {
+    .check-card:hover .card-icon-wrapper {
+      border-color: #1890ff;
+    }
+    .card-icon { font-size: 20px; color: #595959; }
+    .card-text-content {
       display: flex;
       flex-direction: column;
       gap: 4px;
+      width: 100%;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #262626;
+    }
+    .card-sub {
+      font-size: 11px;
+      color: #8c8c8c;
       line-height: 1.3;
-    }
-    .check-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #1F2937;
-      transition: color 0.2s ease;
-    }
-    .check-description {
-      font-size: 0.8rem;
-      color: #6B7280;
-      line-height: 1.4;
-    }
-    /* Responsive para móvil */
-    @media (max-width: 768px) {
-      .checks-grid {
-        grid-template-columns: 1fr;
-      }
     }
     .modal-footer {
       padding: 16px 20px;
@@ -431,95 +426,11 @@
       justify-content: flex-end;
       gap: 10px;
     }
-     .btn { padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 400; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn { padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
     .btn-primary { background: #4DA6FF; color: #fff; }
     .btn-primary:hover { background: #3d8fe0; }
     .btn-secondary { background: #fff; color: #595959; border: 1px solid #d9d9d9; }
     .btn-secondary:hover { background: #f5f5f5; }
-    /* === CHECKBOXES ELEGANTES === */
-    .form-label {
-      display: block;
-      margin-bottom: 16px;
-      font-weight: 600;
-      color: #0D2B4D;
-      font-size: 0.95rem;
-      letter-spacing: 0.3px;
-    }
-    .checks-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
-    .check-card-elegant {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 16px 18px;
-      background: #fff;
-      border: 2px solid #e8eaf6;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden;
-    }
-    .check-card-elegant:hover {
-      border-color: #4DA6FF;
-      background: linear-gradient(135deg, #f0f9ff 0%, #e8f4fd 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(77, 166, 255, 0.12);
-    }
-    .check-card-elegant input[type="checkbox"] {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-    .check-card-elegant input[type="checkbox"]:checked + .check-icon-wrapper {
-      background: #4DA6FF;
-      border-color: #4DA6FF;
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(77, 166, 255, 0.35);
-    }
-    .check-card-elegant input[type="checkbox"]:checked ~ .check-content .check-title {
-      color: #1a56db;
-    }
-    .check-icon-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      min-width: 40px;
-      background: #f8fafc;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      font-size: 15px;
-      color: #6B7280;
-      transition: all 0.25s ease;
-    }
-    .check-content {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      line-height: 1.4;
-    }
-    .check-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #1F2937;
-      transition: color 0.2s ease;
-    }
-    .check-description {
-      font-size: 0.78rem;
-      color: #6B7280;
-      line-height: 1.4;
-    }
-    /* Responsive para móvil */
-    @media (max-width: 768px) {
-      .checks-grid {
-        grid-template-columns: 1fr;
-      }
-    }
     /* === PUERTOS BADGES === */
     .puertos-container {
       display: flex;
@@ -541,17 +452,15 @@
       font-weight: 600;
       white-space: nowrap;
     }
-     .puerto-icon {
-       display: inline-flex;
-       align-items: center;
-       justify-content: center;
-       width: 14px;
-       height: 14px;
-       font-size: 12px;
-       line-height: 1;
-       vertical-align: middle;
-       color: #4DA6FF;
-     }
+    .puerto-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      font-size: 10px;
+      color: #4DA6FF;
+    }
     .puerto-text { color: #262626; line-height: 1; }
     /* === ESTILOS DE IMPRESIÓN === */
     @media print {
@@ -575,13 +484,13 @@
 
 {% block extra_js %}
 <script>
-   const OPCIONES_PUERTOS = [
-     { value: 'ETH', icon: 'fas fa-network-wired', title: 'Ethernet', sub: 'Conexión de red estándar RJ45' },
-     { value: 'RS232', icon: 'fas fa-plug', title: 'Serial RS232', sub: 'Puerto serial punto a punto' },
-     { value: 'RS485', icon: 'fas fa-exchange-alt', title: 'RS485', sub: 'Comunicación half-duplex multipunto' },
-     { value: 'USB', icon: 'fas fa-usb', title: 'USB', sub: 'Puerto universal serial 2.0/3.0' },
-     { value: 'FIBRA', icon: 'fas fa-bolt', title: 'Fibra Óptica', sub: 'Transmisión por fibra óptica SC/ST' }
-   ];
+  const OPCIONES_PUERTOS = [
+    { value: 'ETH', icon: 'fas fa-network-wired', title: 'Ethernet', sub: 'Conexión de red estándar' },
+    { value: 'RS232', icon: 'fas fa-plug', title: 'Serial RS232', sub: 'Puerto serial estándar' },
+    { value: 'RS485', icon: 'fas fa-exchange-alt', title: 'RS485', sub: 'Comunicación half-duplex' },
+    { value: 'USB', icon: 'fas fa-usb', title: 'USB', sub: 'Puerto universal serial' },
+    { value: 'FIBRA', icon: 'fas fa-bolt', title: 'Fibra Óptica', sub: 'Transmisión por fibra óptica' }
+  ];
 
   function abrirModal() {
     document.getElementById('modalAgregar').classList.add('active');
@@ -589,29 +498,29 @@
   function cerrarModal() {
     document.getElementById('modalAgregar').classList.remove('active');
   }
-   function abrirModalEditar(interfazId, puertosStr) {
-     const modal = document.getElementById('modalEditar');
-     const container = document.getElementById('edit_checks_container');
-     const inputId = document.getElementById('edit_interfaz_id');
-     inputId.value = interfazId;
-     container.innerHTML = '';
-     const puertosExistentes = puertosStr ? puertosStr.split(',') : [];
-     OPCIONES_PUERTOS.forEach(opcion => {
-       const label = document.createElement('label');
-       label.className = 'check-card-elegant';
-       const checked = puertosExistentes.includes(opcion.value) ? 'checked' : '';
-       label.innerHTML = `
-         <input type="checkbox" name="tipos_puerto" value="${opcion.value}" ${checked}>
-         <span class="check-icon-wrapper"><i class="${opcion.icon}"></i></span>
-         <div class="check-content">
-           <span class="check-title">${opcion.title}</span>
-           <span class="check-description">${opcion.sub}</span>
-         </div>
-       `;
-       container.appendChild(label);
-     });
-     modal.classList.add('active');
-   }
+  function abrirModalEditar(interfazId, puertosStr) {
+    const modal = document.getElementById('modalEditar');
+    const container = document.getElementById('edit_checks_container');
+    const inputId = document.getElementById('edit_interfaz_id');
+    inputId.value = interfazId;
+    container.innerHTML = '';
+    const puertosExistentes = puertosStr ? puertosStr.split(',') : [];
+    OPCIONES_PUERTOS.forEach(opcion => {
+      const label = document.createElement('label');
+      label.className = 'check-card';
+      const checked = puertosExistentes.includes(opcion.value) ? 'checked' : '';
+      label.innerHTML = `
+        <input type="checkbox" name="tipos_puerto" value="${opcion.value}" ${checked}>
+        <span class="card-icon-wrapper"><i class="${opcion.icon}"></i></span>
+        <div class="card-text-content">
+          <span class="card-title">${opcion.title}</span>
+          <span class="card-sub">${opcion.sub}</span>
+        </div>
+      `;
+      container.appendChild(label);
+    });
+    modal.classList.add('active');
+  }
   function cerrarModalEditar() {
     document.getElementById('modalEditar').classList.remove('active');
   }

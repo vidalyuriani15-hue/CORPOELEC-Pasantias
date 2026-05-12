@@ -95,7 +95,7 @@ def usuarios_view(request):
         'title': 'Gestion de Usuarios',
         'usuarios': usuarios
     }
-    return render(request, 'usuarios.html', context)
+    return render(request, 'admin/usuarios.html', context)
 
 @login_required(login_url='/login/')
 def subestaciones_view(request):
@@ -265,12 +265,16 @@ def interfaces_view(request):
                 messages.success(request, 'Interfaz creada correctamente.')
                 return redirect('interfaces')
     
-    interfaces = InterfazDeComunicacion.objects.all().order_by('Id_Interfaz')
+    interfaces_list = InterfazDeComunicacion.objects.all().order_by('Id_Interfaz')
+    paginator = Paginator(interfaces_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     puertos_tipos = PuertoComunicacion.TIPO_CHOICES
     
     context = {
         'title': 'Interfaces',
-        'interfaces': interfaces,
+        'page_obj': page_obj,
         'puertos_tipos': puertos_tipos,
         'is_admin': request.user.is_superuser
     }
@@ -361,12 +365,16 @@ def remotas_view(request):
                 messages.success(request, 'Remota creada correctamente.')
                 return redirect('remotas')
     
-    remotas = Remota.objects.all().order_by('Id_Remota')
+    remotas_list = Remota.objects.all().order_by('Id_Remota')
+    paginator = Paginator(remotas_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     tensiones = NivelTension.objects.all().order_by('Nivel')
     
     context = {
         'title': 'Remotas',
-        'remotas': remotas,
+        'page_obj': page_obj,
         'tensiones': tensiones,
         'is_admin': request.user.is_superuser
     }
@@ -386,11 +394,14 @@ def reconectadores_view(request):
                 messages.error(request, 'Reconectador no encontrado.')
             return redirect('reconectadores')
     
-    reconectadores = Reconectador.objects.all().order_by('Id_reconectador')
+    reconectadores_list = Reconectador.objects.all().order_by('Id_reconectador')
+    paginator = Paginator(reconectadores_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     context = {
         'title': 'Reconectadores',
-        'reconectadores': reconectadores,
+        'page_obj': page_obj,
         'is_admin': request.user.is_superuser
     }
     return render(request, 'reconectadores.html', context)
@@ -927,3 +938,42 @@ def exportar_reles_pdf(request):
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="reles.pdf"'
     return response
+
+
+@login_required(login_url='/login/')
+def admin_eventos_view(request):
+    """Vista de registro de eventos"""
+    if not request.user.is_superuser:
+        messages.error(request, 'No tiene permisos para acceder a esta seccion.')
+        return redirect('index')
+    
+    context = {
+        'title': 'Registro de Eventos'
+    }
+    return render(request, 'admin/eventos.html', context)
+
+
+@login_required(login_url='/login/')
+def admin_restaurar_view(request):
+    """Vista de restaurar sistema"""
+    if not request.user.is_superuser:
+        messages.error(request, 'No tiene permisos para acceder a esta seccion.')
+        return redirect('index')
+    
+    context = {
+        'title': 'Restaurar Sistema'
+    }
+    return render(request, 'admin/restaurar.html', context)
+
+
+@login_required(login_url='/login/')
+def admin_backup_view(request):
+    """Vista de copia de seguridad"""
+    if not request.user.is_superuser:
+        messages.error(request, 'No tiene permisos para acceder a esta seccion.')
+        return redirect('index')
+    
+    context = {
+        'title': 'Copia de Seguridad'
+    }
+    return render(request, 'admin/backup.html', context)
