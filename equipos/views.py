@@ -102,13 +102,32 @@ def subestaciones_view(request):
     """Vista de subestaciones"""
     if request.method == 'POST':
         if request.POST.get('eliminar'):
-            sub_id = request.POST.get('subestacion_id')
+            sub_id = request.POST.get('sub_id')
             try:
                 sub = Subestacion.objects.get(Id_Sub_est=sub_id)
                 sub.delete()
                 messages.success(request, 'Subestacion eliminada correctamente.')
             except Subestacion.DoesNotExist:
                 messages.error(request, 'Subestacion no encontrada.')
+            return redirect('subestaciones')
+        elif request.POST.get('editar'):
+            sub_id = request.POST.get('sub_id')
+            nombre = request.POST.get('nombre')
+            id_ten_id = request.POST.get('id_ten')
+            ubicacion = request.POST.get('ubicacion')
+            coordenadas = request.POST.get('coordenadas')
+            try:
+                sub = Subestacion.objects.get(Id_Sub_est=sub_id)
+                sub.Nombre = nombre
+                sub.Id_Ten = NivelTension.objects.get(Id_Ten=id_ten_id)
+                sub.Ubicacion = ubicacion
+                sub.Coordenadas = coordenadas
+                sub.save()
+                messages.success(request, 'Subestacion actualizada correctamente.')
+            except Subestacion.DoesNotExist:
+                messages.error(request, 'Subestacion no encontrada.')
+            except NivelTension.DoesNotExist:
+                messages.error(request, 'Nivel de tension no valido.')
             return redirect('subestaciones')
         else:
             nombre = request.POST.get('nombre')

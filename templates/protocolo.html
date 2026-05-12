@@ -26,11 +26,11 @@
 
 <div class="table-section">
    <div class="table-header">
-     <h3>PROTOCOLOS DE TELECONTROL Y ENERGÍA REGISTRADOS</h3>
-     <div class="search-container">
-       <i class="fas fa-search search-icon"></i>
-       <input type="text" class="search-input" id="searchInput" placeholder="Buscar protocolos..." onkeyup="filterTable()">
-     </div>
+      <h3>PROTOCOLOS DE TELECONTROL Y ENERGÍA REGISTRADOS</h3>
+      <div class="search-container">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" class="search-input" id="searchInput" placeholder="Buscar protocolos..." onkeyup="filterTable()">
+      </div>
 <div style="display: flex; gap: 10px;">
         <button class="btn btn-primary btn-add-top" onclick="abrirModal()">
           <i class="fas fa-plus"></i> Añadir
@@ -41,14 +41,15 @@
       </div>
    </div>
 
-   {% if page_obj.paginator.count > 0 %}
-   <table class="data-table">
+   <div class="table-container">
+    {% if page_obj.paginator.count > 0 %}
+    <table class="data-table">
 <thead>
           <tr>
-            <th width="50%">Protocolo</th>
-            {% if is_admin %}<th width="25%">Creado Por</th>{% endif %}
-            <th width="25%">Fecha de Registro</th>
-            <th width="15%">Acciones</th>
+            <th>Protocolos</th>
+            {% if is_admin %}<th>Creado Por</th>{% endif %}
+            <th>Fecha Registro</th>
+            <th>Acciones</th>
           </tr>
       </thead>
      <tbody>
@@ -89,13 +90,14 @@
          </td>
        </tr>
        {% endfor %}
-     </tbody>
-   </table>
-   {% else %}
-   <p class="no-data">No hay protocolos registrados.</p>
-   {% endif %}
+</tbody>
+    </table>
+    {% else %}
+    <p class="no-data">No hay protocolos registrados.</p>
+    {% endif %}
+   </div>
 
-   {% if page_obj.paginator.num_pages > 1 %}
+    {% if page_obj.paginator.num_pages > 1 %}
    <div class="pagination-container">
      <div class="pagination-info-left">
        <span class="pagination-text">
@@ -253,38 +255,56 @@
    </div>
 
 <style>
-/* === FONDO GENERAL === */
-    .table-section { background:#f4f7f6; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
-    .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:15px; }
-    .table-header h3 { margin:0; color:#0D2B4D; width:280px; }
-    .search-container { position:relative; display:flex; align-items:center; }
-    .search-icon { position:absolute; left:12px; color:#8c8c8c; font-size:14px; pointer-events:none; }
-    .search-input { width:350px; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
-    .search-input:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
-    .search-input::placeholder { color:#adb5bd; }
-    .btn-icon { background:none; border:none; cursor:pointer; font-size:1.1rem; padding:6px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; transition:all 0.2s; color:#6c757d; margin:0 4px; }
-    .btn-icon:hover { background:rgba(0,0,0,0.05); }
-    .btn-icon.btn-edit:hover { color:#4DA6FF; background:rgba(77,166,255,0.1); }
-    .btn-icon.btn-delete:hover { color:#E63946; background:rgba(230,57,70,0.1); }
-    @media (max-width:768px){ .data-table{display:block;overflow-x:auto;} }
-    .pagination-container { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:15px 20px; background:#fff; border-radius:8px; border:1px solid #e8e8e8; }
-    .pagination-info-left { display:flex; align-items:center; }
-    .pagination-text { font-size:0.9rem; color:#595959; font-weight:500; }
-    .pagination-controls-right { display:flex; align-items:center; }
-    .pagination-nav { display:flex; }
-    .pagination-list { display:flex; list-style:none; margin:0; padding:0; gap:5px; align-items:center; }
-    .pagination-item { display:flex; }
-    .pagination-link { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; font-size:0.9rem; font-weight:500; color:#1890ff; background:#fff; border:1.5px solid #d0d7de; border-radius:6px; text-decoration:none; transition:all 0.2s ease; min-width:40px; }
-    .pagination-link:hover:not(.disabled) { background:#f0f9ff; border-color:#1890ff; color:#1890ff; }
-    .pagination-link.disabled { color:#d9d9d9; background:#f5f5f5; border-color:#e8e8e8; cursor:not-allowed; pointer-events:none; }
-    .pagination-item.active .pagination-link { background:#1890ff; color:#fff; border-color:#1890ff; font-weight:600; }
-    .pagination-prev, .pagination-next { gap:6px; }
-    .pagination-prev i, .pagination-next i { font-size:0.8rem; }
-    @media (max-width:768px){
-      .pagination-container{flex-direction:column;gap:15px;}
-      .pagination-info-left,.pagination-controls-right{justify-content:center;}
-      .pagination-list{flex-wrap:wrap;gap:5px;}
-    }
+/* === TABLE CONTAINER WITH SCROLL === */
+     .table-section { background:#f4f7f6; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
+     .table-container { max-height:500px; overflow-y:auto; overflow-x:hidden; border:1px solid #e8e8e8; border-radius:8px; background:#fff; }
+     .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:15px; }
+     .table-header h3 { margin:0; color:#0D2B4D; width:280px; }
+     .search-container { position:relative; display:flex; align-items:center; }
+     .search-icon { position:absolute; left:12px; color:#8c8c8c; font-size:14px; pointer-events:none; }
+     .search-input { width:350px; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
+     .search-input:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
+     .search-input::placeholder { color:#adb5bd; }
+     .btn-icon { background:none; border:none; cursor:pointer; font-size:1.1rem; padding:6px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; transition:all 0.2s; color:#6c757d; margin:0 4px; }
+     .btn-icon:hover { background:rgba(0,0,0,0.05); }
+     .btn-icon.btn-edit:hover { color:#4DA6FF; background:rgba(77,166,255,0.1); }
+     .btn-icon.btn-delete:hover { color:#E63946; background:rgba(230,57,70,0.1); }
+     @media (max-width:768px){ .data-table{display:block;overflow-x:auto;} }
+     .pagination-container { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:15px 20px; background:#fff; border-radius:8px; border:1px solid #e8e8e8; }
+     .pagination-info-left { display:flex; align-items:center; }
+     .pagination-text { font-size:0.9rem; color:#595959; font-weight:500; }
+     .pagination-controls-right { display:flex; align-items:center; }
+     .pagination-nav { display:flex; }
+     .pagination-list { display:flex; list-style:none; margin:0; padding:0; gap:5px; align-items:center; }
+     .pagination-item { display:flex; }
+     .pagination-link { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; font-size:0.9rem; font-weight:500; color:#1890ff; background:#fff; border:1.5px solid #d0d7de; border-radius:6px; text-decoration:none; transition:all 0.2s ease; min-width:40px; }
+     .pagination-link:hover:not(.disabled) { background:#f0f9ff; border-color:#1890ff; color:#1890ff; }
+     .pagination-link.disabled { color:#d9d9d9; background:#f5f5f5; border-color:#e8e8e8; cursor:not-allowed; pointer-events:none; }
+     .pagination-item.active .pagination-link { background:#1890ff; color:#fff; border-color:#1890ff; font-weight:600; }
+     .pagination-prev, .pagination-next { gap:6px; }
+     .pagination-prev i, .pagination-next i { font-size:0.8rem; }
+     @media (max-width:768px){
+       .pagination-container{flex-direction:column;gap:15px;}
+       .pagination-info-left,.pagination-controls-right{justify-content:center;}
+       .pagination-list{flex-wrap:wrap;gap:5px;}
+     }
+     /* === TABLE === */
+     .data-table { width:100%; border-collapse:collapse; }
+     .data-table th, .data-table td { padding:10px 12px; text-align:left; border-bottom:1px solid #dee2e6; font-size:0.9rem; }
+     .data-table th { font-weight:600; color:#0D2B4D; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.3px; background:#f8f9fa; }
+     .data-table tr:hover { background:#f9fafb; }
+     .no-data { text-align:center; color:#8c8c8c; padding:30px; font-size:1rem; }
+      .actions-cell { white-space:nowrap; text-align:right; }
+     /* === PROTOCOLOS BADGES === */
+     .protocolos-container { display:flex; flex-wrap:wrap; gap:5px; max-width:400px; align-items:center; }
+     .protocolo-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:#fff; border:1px solid #d0d7de; border-radius:4px; font-size:11px; font-weight:500; white-space:nowrap; line-height:1; }
+     .protocolo-icon { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; font-size:11px; line-height:1; vertical-align:middle; color:#4DA6FF; }
+     .protocolo-text { color:#262626; line-height:1; }
+     /* Custom scrollbar for table container */
+     .table-container::-webkit-scrollbar { width:8px; }
+     .table-container::-webkit-scrollbar-track { background:#f1f1f1; border-radius:4px; }
+     .table-container::-webkit-scrollbar-thumb { background:#c1c1c1; border-radius:4px; }
+     .table-container::-webkit-scrollbar-thumb:hover { background:#a8a8a8; }
     /* === TABLE === */
     .data-table { width:100%; border-collapse:collapse; }
     .data-table th, .data-table td { padding:12px 15px; text-align:left; border-bottom:1px solid #dee2e6; }
@@ -515,18 +535,12 @@
       color: #6B7280;
       line-height: 1.4;
     }
-    /* Responsive para móvil */
-    @media (max-width: 768px) {
-      .checks-grid {
-        grid-template-columns: 1fr;
-      }
-    }
     /* === PROTOCOLOS BADGES === */
-    .protocolos-container { display:flex; flex-wrap:nowrap; gap:6px; overflow-x:auto; padding:4px 0; align-items:center; }
-    .protocolo-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; background:#fff; border:1.5px solid #d0d7de; border-radius:5px; font-size:11px; font-weight:600; white-space:nowrap; line-height:1; }
-    .protocolo-icon { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; font-size:12px; line-height:1; vertical-align:middle; color:#4DA6FF; }
-    .protocolo-text { color:#262626; line-height:1; }
-    /* === ESTILOS DE IMPRESIÓN === */
+     .protocolos-container { display:flex; flex-wrap:wrap; gap:5px; max-width:400px; align-items:center; }
+     .protocolo-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:#fff; border:1px solid #d0d7de; border-radius:4px; font-size:11px; font-weight:500; white-space:nowrap; line-height:1; }
+     .protocolo-icon { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; font-size:11px; line-height:1; vertical-align:middle; color:#4DA6FF; }
+     .protocolo-text { color:#262626; line-height:1; }
+     /* === ESTILOS DE IMPRESIÓN === */
     @media print {
       @page { margin:1cm; size:A4 landscape; }
       body * { visibility:hidden; }
