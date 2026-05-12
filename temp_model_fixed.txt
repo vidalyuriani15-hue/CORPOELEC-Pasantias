@@ -1,0 +1,22 @@
+class Protocolo(models.Model): 
+    TIPO_PROTOCOLO_CHOICES = [ 
+        \('104', 'IEC 60870-5-104'\), 
+        \('DNP', 'DNP3'\), 
+        \('GOOSE', 'GOOSE'\), 
+        \('101', 'IEC 60870-5-101'\), 
+        \('MODBUS', 'Modbus'\), 
+    ] 
+    Id_Protocolo = models.AutoField(primary_key=True) 
+    Id_Puerto = models.ForeignKey(PuertoComunicacion, on_delete=models.CASCADE, related_name='protocolos') 
+    TipoProtocolo = models.CharField(max_length=10, choices=TIPO_PROTOCOLO_CHOICES, default='104', verbose_name='Tipo de Protocolo') 
+    Habilitado = models.BooleanField(default=True, verbose_name='Habilitado') 
+    Fecha_Reg = models.DateField(auto_now_add=True) 
+  
+  
+    class Meta: 
+        verbose_name = 'Protocolo de Telecontrol y Energia'  
+         verbose_name_plural = 'Protocolos de Telecontrol y Energia'  
+        ordering = ['Id_Protocolo'] 
+  
+    def __str__(self):  
+        return str(self.TipoProtocolo) + ' - Puerto ' + str(self.Id_Puerto.Tipo) 

@@ -1,0 +1,440 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- Configuración base HTML5 -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Desactiva caché para página de login -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Iniciar Sesión - CORPOELEC</title>
+  <!-- Bootstrap CSS para componentes base -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <!-- Iconos FontAwesome para UI -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+
+    :root {
+      --blue-dark: #0D2B4D;   /* Azul corporativo oscuro */
+      --blue-light: #244E7E;  /* Azul intermedio */
+      --blue-accent: #4DA6FF; /* Azul claro para acentos */
+      --red-accent: #E63946;  /* Rojo para alertas */
+      --white: #ffffff;
+      --gray-100: #F1F4F8;    /* Gris muy claro */
+      --gray-500: #6c757d;    /* Gris medio */
+    }
+    
+    /* Reset CSS básico */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    /* Página de login con fondo de imagen */
+    body.login-page {
+      flex-direction: column;
+      /* Fondo de paisaje eléctrico/industrial */
+      background-image: url('https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px 20px;
+      position: relative;
+    }
+    
+    /* Overlay oscuro sobre la imagen de fondo para mejorar contraste */
+    body.login-page::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse at center, rgba(36, 78, 126, 0.6) 0%, rgba(13, 43, 77, 0.8) 100%);
+      z-index: 1;
+    }
+    
+    /* Sección de marca corporativa visible antes del login */
+    .corpoelec-brand {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .corpoelec-brand h1 {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: 10px;  /* Espaciado amplio para efecto corporativo */
+      text-transform: uppercase;
+      margin: 0;
+      text-shadow: 0 2px 15px rgba(0, 0, 0, 0.4);
+    }
+  
+    /* Contenedor principal del formulario de autenticación */
+    .login-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 400px;  /* Ancho máximo optimizado para login */
+    }
+
+    /* Tarjeta que contiene todo el formulario */
+    .login-card {
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);  /* Sombra profunda para elevación */
+      overflow: hidden;
+    }
+
+    /* Cabecera con logo y título */
+    .login-header {
+      background: var(--blue-dark);
+      padding: 30px 30px 25px;
+      text-align: center;
+      border-radius: 12px 12px 0 0;
+    }
+
+    /* Badge circular con logo */
+    .logo-badge {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: var(--white);
+      margin: 0 auto 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border: 3px solid rgba(255, 255, 255, 0.3);  /* Borde sutil */
+    }
+
+    .logo-badge img {
+      width: 90px;
+      height: auto;
+    }
+
+    .login-header h1 {
+      color: var(--white);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 4px;
+      margin: 0;
+      text-transform: uppercase;
+    }
+
+    /* Separador decorativo */
+    .divider {
+      height: 3px;
+      background: linear-gradient(90deg, var(--blue-dark), var(--red-accent), var(--blue-dark));
+    }
+  
+    /* Cuerpo del formulario con campos de entrada */
+    .login-body {
+      padding: 35px 30px;
+    }
+
+    /* Grupo de formulario (label + input) */
+    .form-group {
+      margin-bottom: 22px;
+    }
+
+    .form-group label {
+      display: block;
+      color: #333;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .form-group label i {
+      color: var(--blue-light);
+      margin-right: 6px;
+    }
+
+    /* Estilos para campos de texto */
+    .form-control {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--gray-100);
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: var(--gray-100);
+    }
+
+    /* Estado focus (cuando el usuario hace clic) */
+    .form-control:focus {
+      outline: none;
+      border-color: #4DA6FF;
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(77, 166, 255, 0.25);
+    }
+
+    .form-control::placeholder {
+      color: var(--gray-500);
+    }
+  
+    /* Botón de envío */
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--blue-light) 0%, var(--blue-dark) 100%);
+      border: none;
+      border-radius: 8px;
+      color: var(--white);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);  /* Efecto de elevación */
+      box-shadow: 0 10px 30px rgba(13, 43, 77, 0.4);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+  
+    /* Mensaje de error de autenticación */
+    .error-message {
+      background: #fde8e8;
+      color: var(--red-accent);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      border-left: 4px solid var(--red-accent);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+  
+    /* Pie con mensaje de acceso restringido */
+    .login-footer {
+      text-align: center;
+      padding: 15px 30px 20px;
+      color: var(--gray-500);
+      font-size: 0.85rem;
+    }
+  
+    /* Nota para acceso de administrador (enlace opcional) */
+    .admin-question {
+      text-align: center;
+      padding: 0 30px 20px;
+    }
+
+    .admin-question a {
+      color: var(--blue-light);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .admin-question a:hover {
+      text-decoration: underline;
+    }
+
+    .admin-question a i {
+      font-size: 0.8rem;
+    }
+
+    /* Overlay de carga durante autenticación */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: -10px;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      backdrop-filter: blur(0px);
+    }
+
+    .loading-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Estado loading: desactiva elementos del formulario */
+    .login-body.loading .form-group,
+    .login-body.loading .submit-btn,
+    .login-body.loading .error-message {
+      opacity: 0.3;
+      filter: grayscale(80%);
+      pointer-events: none;
+      transition: opacity 0.4s ease, filter 0.4s ease;
+    }
+
+    .login-body.loading .form-group label,
+    .login-body.loading .form-group input {
+      opacity: 0.35;
+    }
+
+    .login-body.loading .submit-btn {
+      opacity: 0.4;
+    }
+
+    /* Spinner animado de carga */
+    .vibrant-spinner {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 5px solid rgba(77, 166, 255, 0.2);
+      border-top-color: #4DA6FF;
+      border-right-color: #4DA6FF;
+      box-shadow: 
+        0 0 20px rgba(77, 166, 255, 0.6),
+        0 0 40px rgba(77, 166, 255, 0.4),
+        0 0 60px rgba(77, 166, 255, 0.2);
+      animation: spin 0.8s linear infinite, pulse-glow 1.5s ease-in-out infinite;
+    }
+
+    /* Animación de rotación del spinner */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Animación de pulso brillante */
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 
+          0 0 20px rgba(77, 166, 255, 0.6),
+          0 0 40px rgba(77, 166, 255, 0.4),
+          0 0 60px rgba(77, 166, 255, 0.2);
+      }
+      50% {
+        box-shadow: 
+          0 0 30px rgba(77, 166, 255, 0.8),
+          0 0 60px rgba(77, 166, 255, 0.6),
+          0 0 90px rgba(77, 166, 255, 0.4);
+      }
+    }
+
+    /* Estado de salida del overlay */
+    .loading-overlay.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+  </style>
+</head>
+<body class="login-page">
+  <!-- Sección de marca corporativa visible antes del login -->
+  <div class="corpoelec-brand">
+    <h1>CORPOELEC</h1>
+  </div>
+  
+  <!-- Contenedor principal del formulario de autenticación -->
+  <div class="login-container">
+    <div class="login-card">
+      <!-- Cabecera con logo y título -->
+      <div class="login-header">
+        <div class="logo-badge">
+          <img src="{% static 'img/logo.jpg' %}" alt="CORPOELEC">
+        </div>
+        <h1>SUBESTACIONES ELÉCTRICAS</h1>
+      </div>
+      
+      <!-- Separador decorativo -->
+      <div class="divider"></div>
+      
+      <!-- Cuerpo del formulario con campos de entrada -->
+      <div class="login-body" id="loginBody">
+        {% if error %}
+        <!-- Mensaje de error de autenticación -->
+        <div class="error-message">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ error }}
+        </div>
+        {% endif %}
+        
+        <!-- Formulario de login POST a /login/ -->
+        <form method="post" action="/login/" id="loginForm">
+          {% csrf_token %}
+          
+          <!-- Grupo: Usuario -->
+          <div class="form-group">
+            <label for="id_username"><i class="fas fa-user"></i> Usuario</label>
+            <input type="text" name="username" id="id_username" class="form-control" placeholder="Ingresa tu usuario" required autofocus>
+          </div>
+          
+          <!-- Grupo: Contraseña -->
+          <div class="form-group">
+            <label for="id_password"><i class="fas fa-lock"></i> Contraseña</label>
+            <input type="password" name="password" id="id_password" class="form-control" placeholder="Ingresa tu contraseña" required>
+          </div>
+          
+          <!-- Botón de envío -->
+          <button type="submit" class="submit-btn">
+            <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+          </button>
+        </form>
+        
+        <!-- Overlay de carga durante autenticación -->
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="vibrant-spinner"></div>
+        </div>
+      </div>
+      
+      <!-- Pie con mensaje de acceso restringido -->
+      <div class="login-footer">
+        <i class="fas fa-shield-alt"></i> Acceso restringido
+      </div>
+    </div>
+    
+    <!-- Nota para acceso de administrador (enlace opcional) -->
+    <div class="admin-question">
+      <a href="/admin/" target="_blank">
+        <i class="fas fa-user-shield"></i> Acceso administrador
+      </a>
+    </div>
+  </div>
+
+  <!-- Script de comportamiento del formulario -->
+  <script>
+    // Maneja el evento submit del formulario de login
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      const loginBody = document.getElementById('loginBody');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      
+      // Añade clase loading para atenuar el formulario
+      loginBody.classList.add('loading');
+      // Muestra el overlay de carga
+      loadingOverlay.classList.add('active');
+      
+      // Simula tiempo de autenticación (3 segundos)
+      setTimeout(function() {
+        // Aplica efecto de desvanecimiento
+        loadingOverlay.classList.add('fade-out');
+        // Redirige al panel de admin después del fade
+        setTimeout(function() {
+          window.location.href = '/admin/';
+        }, 500);
+      }, 3000);
+    });
+  </script>
+</body>
+</html>

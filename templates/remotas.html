@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CORPOELEC - Remotas{% endblock %}
+
+{% block content %}
+<div class="welcome-text">
+  <h2>Gestión de Remotas</h2>
+</div>
+
+{% if messages %}
+<div class="messages">
+  {% for message in messages %}
+  {% if 'deleted' in message.tags %}
+  <div class="alert alert-deleted">{{ message }}</div>
+  {% else %}
+  <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Header para impresión con logo -->
+<div class="print-header" style="display: none;">
+  <img src="{% static 'img/logo.jpg' %}" alt="CORPOELEC" style="height: 50px;">
+  <h3>Remotas</h3>
+</div>
+
+<div class="table-section">
+  <div class="table-header">
+    <h3>Remotas Registradas</h3>
+    <div class="header-actions">
+      <div class="search-container">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" class="search-input" id="searchInput" placeholder="Buscar remotas..." onkeyup="filterTable()">
+      </div>
+      <div class="action-buttons">
+        <button type="button" class="btn btn-primary btn-add-top" onclick="document.getElementById('addModal').classList.add('active')">
+          <i class="fas fa-plus"></i> Añadir
+        </button>
+        <a href="{% url 'exportar_remotas_pdf' %}" class="btn btn-secondary btn-add-top">
+          <i class="fas fa-file-pdf"></i> Exportar
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  {% if page_obj.paginator.count > 0 %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Marca</th>
+        <th>Modelo</th>
+        <th>Nivel de Tensión</th>
+        {% if is_admin %}<th>Creado Por</th>{% endif %}
+        <th>Fecha de Registro</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for remota in page_obj %}
+      <tr>
+        <td>{{ remota.Marca }}</td>
+        <td>{{ remota.Modelo }}</td>
+          <td>{{ remota.Id_Ten.get_Tipo_ten_display }} - {{ remota.Id_Ten.get_Nivel_display }}</td>
+        {% if is_admin %}<td>{{ remota.creado_por.username|default:"Sistema" }}</td>{% endif %}
+        <td>{{ remota.Fecha_Reg|date:"d/m/Y" }}</td>
+        <td class="actions-cell">
+          <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ remota.Id_Remota }}, '{{ remota.Marca }}', '{{ remota.Modelo }}', {{ remota.Id_Ten.Id_Ten }})">
+            <i class="fas fa-edit"></i>
+          </button>
+            <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
+              {% csrf_token %}
+              <input type="hidden" name="eliminar" value="1">
+              <input type="hidden" name="remota_id" value="{{ remota.Id_Remota }}">
+              <button type="submit" class="btn-icon btn-delete" title="Eliminar">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="no-data">No hay remotas registradas.</p>
+  {% endif %}
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="pagination-container">
+  <div class="pagination-info-left">
+    <span class="pagination-text">
+      Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
+      | Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </span>
+  </div>
+  <div class="pagination-controls-right">
+    <nav class="pagination-nav">
+      <ul class="pagination-list">
+        {% if page_obj.has_previous %}
+        <li class="pagination-item">
+          <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link pagination-prev" title="Página anterior">
+            <i class="fas fa-chevron-left"></i> Anterior
+          </a>
+        </li>
+        {% else %}
+        <li class="pagination-item disabled">
+          <span class="pagination-link disabled" title="No hay página anterior"><i class="fas fa-chevron-left"></i> Anterior</span>
+        </li>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <li class="pagination-item active">
+          <span class="pagination-link">{{ num }}</span>
+        </li>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="pagination-item">
+          <a href="?page={{ num }}" class="pagination-link">{{ num }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+        <li class="pagination-item">
+          <a href="?page={{ page_obj.next_page_number }}" class="pagination-link pagination-next" title="Página siguiente">
+            Siguiente <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+        {% else %}
+        <li class="pagination-item disabled">
+          <span class="pagination-link disabled" title="No hay página siguiente">Siguiente <i class="fas fa-chevron-right"></i></span>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal Agregar -->
+<div id="addModal" class="modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Agregar Nueva Remota</h5>
+        <button type="button" class="close" data-modal="addModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form method="post" id="addRemotaForm">
+          {% csrf_token %}
+          <input type="hidden" name="crear" value="1">
+          <div class="form-group">
+            <label>Marca</label>
+            <input type="text" name="marca" class="form-control" required placeholder="Marca de la remota">
+          </div>
+          <div class="form-group">
+            <label>Modelo</label>
+            <input type="text" name="modelo" class="form-control" required placeholder="Modelo de la remota">
+          </div>
+          <div class="form-group">
+            <label>Nivel de Tensión</label>
+             <select name="id_ten" class="form-control" required>
+              <option value="">Seleccionar</option>
+              {% for tension in tensiones %}
+               <option value="{{ tension.Id_Ten }}">{{ tension.get_Tipo_ten_display }} - {{ tension.get_Nivel_display }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-action="close" data-modal="addModal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('addRemotaForm').submit()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar -->
+<div id="editModal" class="modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Remota</h5>
+        <button type="button" class="close" data-modal="editModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form method="post" id="editRemotaForm">
+          {% csrf_token %}
+          <input type="hidden" name="editar" value="1">
+          <input type="hidden" name="remota_id" id="edit_remota_id">
+          <div class="form-group">
+            <label>Marca</label>
+            <input type="text" name="marca" id="edit_marca" class="form-control" required placeholder="Marca de la remota">
+          </div>
+          <div class="form-group">
+            <label>Modelo</label>
+            <input type="text" name="modelo" id="edit_modelo" class="form-control" required placeholder="Modelo de la remota">
+          </div>
+           <div class="form-group">
+             <label>Nivel de Tensión</label>
+             <select name="id_ten" id="edit_id_ten" class="form-control" required>
+               <option value="">Seleccionar</option>
+               {% for tension in tensiones %}
+               <option value="{{ tension.Id_Ten }}">{{ tension.get_Tipo_ten_display }} - {{ tension.get_Nivel_display }}</option>
+               {% endfor %}
+             </select>
+           </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-action="close" data-modal="editModal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('editRemotaForm').submit()">Guardar Cambios</button>
+      </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.table-section { background:#f4f7f6; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
+ .table-header h3 { margin:0; color:#0D2B4D; width:280px; }
+ .header-actions { display:flex; align-items:center; gap:15px; }
+ .search-container { position:relative; display:flex; align-items:center; }
+ .search-icon { position:absolute; left:12px; color:#8c8c8c; font-size:14px; pointer-events:none; }
+ .search-input { width:350px; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
+ .search-input:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
+ .search-input::placeholder { color:#adb5bd; }
+ .action-buttons { display:flex; gap:10px; }
+ .data-table { width:100%; border-collapse:collapse; }
+ .data-table th, .data-table td { padding:12px 15px; text-align:left; border-bottom:1px solid #dee2e6; }
+ .data-table th { font-weight:600; color:#0D2B4D; font-size:0.9rem; }
+ .data-table tr:hover { background:#f9fafb; }
+ .actions-cell { white-space:nowrap; text-align: right; }
+ .btn-icon { background:none; border:none; cursor:pointer; font-size:1.1rem; padding:6px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; transition:all 0.2s; color:#6c757d; margin:0 4px; }
+.btn-icon:hover { background:rgba(0,0,0,0.05); }
+.btn-icon.btn-edit:hover { color:#4DA6FF; background:rgba(77,166,255,0.1); }
+.btn-icon.btn-delete:hover { color:#E63946; background:rgba(230,57,70,0.1); }
+ .modal { display:none; position:fixed; z-index:1000; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; }
+ .modal.active { display:flex; }
+    .modal-dialog { max-width:500px; width:90%; margin:0; }
+ .modal-content { background:#fff; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.2); overflow:hidden; max-height:90vh; display:flex; flex-direction:column; }
+.modal-header { padding:20px 25px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+.modal-header h5 { margin:0; color:#0D2B4D; font-weight:600; }
+.modal-body { padding:25px; overflow-y:auto; flex:1; }
+.modal-footer { padding:15px 25px; background:#f8f9fa; display:flex; justify-content:flex-end; gap:10px; }
+.close { background:none; border:none; font-size:1.5rem; cursor:pointer; color:#6c757d; line-height:1; }
+.close:hover { color:#333; }
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; margin-bottom:6px; font-weight:600; color:#0D2B4D; font-size:0.9rem; }
+.form-control { width:100%; padding:10px 12px; border:1px solid #dee2e6; border-radius:6px; font-size:0.95rem; transition:border-color 0.2s; }
+.form-control:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
+ .btn { padding:10px 20px; border-radius:6px; text-decoration:none; font-size:0.95rem; font-weight:400; cursor:pointer; border:none; transition:background 0.2s; }
+.btn-primary { background:#4DA6FF; color:#fff; }
+.btn-primary:hover { background:#3d8fe0; }
+.btn-secondary { background:#fff; color:#595959; border:1px solid #d9d9d9; }
+.btn-secondary:hover { background:#f5f5f5; }
+
+.pagination-container { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:15px 20px; background:#fff; border-radius:8px; border:1px solid #e8e8e8; }
+.pagination-info-left { display:flex; align-items:center; }
+.pagination-text { font-size:0.9rem; color:#595959; font-weight:500; }
+.pagination-controls-right { display:flex; align-items:center; }
+.pagination-nav { display:flex; }
+.pagination-list { display:flex; list-style:none; margin:0; padding:0; gap:5px; align-items:center; }
+.pagination-item { display:flex; }
+.pagination-link { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; font-size:0.9rem; font-weight:500; color:#1890ff; background:#fff; border:1.5px solid #d0d7de; border-radius:6px; text-decoration:none; transition:all 0.2s ease; min-width:40px; }
+.pagination-link:hover:not(.disabled) { background:#f0f9ff; border-color:#1890ff; color:#1890ff; }
+.pagination-link.disabled { color:#d9d9d9; background:#f5f5f5; border-color:#e8e8e8; cursor:not-allowed; pointer-events:none; }
+.pagination-item.active .pagination-link { background:#1890ff; color:#fff; border-color:#1890ff; font-weight:600; }
+.pagination-prev, .pagination-next { gap:6px; }
+@media(max-width:768px){ .pagination-container{flex-direction:column;gap:15px;} .pagination-info-left,.pagination-controls-right{justify-content:center;} .pagination-list{flex-wrap:wrap;gap:5px;} }
+
+@media print {
+  @page { margin:1cm; size:A4 landscape; }
+  body * { visibility:hidden; }
+  .print-header,.print-header *,.table-section,.table-section * { visibility:visible; }
+  .print-header { display:flex!important; align-items:center; justify-content:center; gap:20px; margin-bottom:20px; padding-bottom:15px; border-bottom:3px solid #0D2B4D; position:absolute; top:0; left:0; width:100%; }
+  .print-header img { height:50px; width:auto; }
+  .print-header h3 { margin:0; color:#0D2B4D; font-size:1.5rem; font-weight:700; }
+  .table-section { position:absolute; top:90px; left:0; width:100%; margin:0; padding:0; background:white!important; box-shadow:none!important; }
+  .table-header,.pagination-container,.no-data,.messages,.btn-icon,.search-container,.header-actions,.actions-cell,.modal,.close,.btn-add-top,.welcome-text,.btn-secondary { display:none!important; }
+  .data-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+  .data-table th,.data-table td { padding:8px 10px; border:1.5px solid #0D2B4D; text-align:left; }
+  .data-table th { background:#0D2B4D!important; color:#ffffff!important; font-weight:700; text-transform:uppercase; font-size:0.75rem; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .data-table tr { page-break-inside:avoid; }
+  .data-table tr:nth-child(even) { background:#e6f2ff!important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .data-table tr:nth-child(odd) { background:#ffffff!important; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openEditModal(id, marca, modelo, id_ten) {
+  document.getElementById('edit_remota_id').value = id;
+  document.getElementById('edit_marca').value = marca;
+  document.getElementById('edit_modelo').value = modelo;
+  document.getElementById('edit_id_ten').value = id_ten;
+  document.getElementById('editModal').classList.add('active');
+}
+
+document.querySelectorAll('[data-modal]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var modalId = this.getAttribute('data-modal');
+    document.getElementById(modalId).classList.remove('active');
+  });
+});
+
+document.querySelectorAll('[data-action="close"]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var modalId = this.getAttribute('data-modal');
+    if (modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+  });
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('addModal').classList.remove('active');
+    document.getElementById('editModal').classList.remove('active');
+  }
+});
+
+document.querySelectorAll('.modal').forEach(function(modal) {
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.classList.remove('active');
+  });
+});
+
+function filterTable() {
+  const input = document.getElementById('searchInput');
+  const filter = input.value.toLowerCase();
+  const table = document.querySelector('.data-table tbody');
+  const rows = table.getElementsByTagName('tr');
+  
+  for (let i = 0; i < rows.length; i++) {
+    const cells = rows[i].getElementsByTagName('td');
+    let match = false;
+    for (let j = 0; j < cells.length - 1; j++) {
+      if (cells[j].textContent.toLowerCase().indexOf(filter) > -1) {
+        match = true;
+        break;
+      }
+    }
+    rows[i].style.display = match ? '' : 'none';
+  }
+}
+</script>
+{% endblock %}

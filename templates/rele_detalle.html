@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalle del Relé - CORPOELEC</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f4f6f9;
+  color:#333;
+  min-height:100vh;
+  padding:20px;
+  overflow-x:hidden;
+}
+.card {
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 6px 24px rgba(0,0,0,0.1);
+  width:100%;
+  max-width:640px;
+  display:flex;
+  flex-direction:column;
+}
+.card-header {
+  background:#0D2B4D;
+  color:#fff;
+  padding:20px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-shrink:0;
+}
+.card-header h2 { margin:0; font-size:1.25rem; font-weight:600; }
+.card-header a {
+  color:#fff;
+  opacity:0.7;
+  text-decoration:none;
+  font-size:1.5rem;
+}
+.card-header a:hover { opacity:1; }
+.card-body {
+  padding:24px;
+  flex:1 1 auto;
+  overflow:hidden;
+  position:relative;
+}
+.scrollable-content {
+  height:100%;
+  overflow-y:auto;
+  padding-right: 10px; /* Space for scrollbar */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #6c757d #f8f9fa; /* Firefox */
+}
+.scrollable-content::-webkit-scrollbar {
+  width: 12px;
+}
+.scrollable-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+}
+.scrollable-content::-webkit-scrollbar-thumb {
+  background-color: #6c757d;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+}
+.scrollable-content::-webkit-scrollbar-thumb:hover {
+  background-color: #5a6268;
+}
+.form-row { display:flex; flex-wrap:wrap; gap:16px; margin-bottom:8px; }
+.form-group { flex:1 1 200px; }
+.form-group label {
+  display:block;
+  margin-bottom:6px;
+  font-weight:600;
+  color:#0D2B4D;
+  font-size:0.85rem;
+  text-transform:uppercase;
+  letter-spacing:0.3px;
+}
+.form-group input, .form-group textarea {
+  width:100%;
+  padding:10px 12px;
+  border:1px solid #dee2e6;
+  border-radius:8px;
+  font-size:0.95rem;
+  background:#f8f9fa;
+  color:#495057;
+}
+.form-group textarea { resize:vertical; min-height:60px; }
+.chips-row {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:6px;
+}
+.chip {
+  display:inline-block;
+  padding:5px 10px;
+  border-radius:20px;
+  font-size:0.78rem;
+  font-weight:600;
+  background:#e9ecef;
+  color:#495057;
+}
+.chip.blue { background:#d0e8ff; color:#083d8a; }
+.card-footer {
+  padding:16px 24px;
+  background:#f8f9fa;
+  border-top:1px solid #e9ecef;
+  text-align:center;
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.btn {
+  display:inline-block;
+  padding:10px 24px;
+  border-radius:8px;
+  text-decoration:none;
+  font-size:0.9rem;
+  font-weight:600;
+  cursor:pointer;
+  border:none;
+  transition:all 0.2s;
+}
+.btn-secondary {
+  background:#6c757d;
+  color:#fff;
+}
+.btn-secondary:hover { background:#5a6268; }
+@media(max-width:480px) {
+  body { padding:10px; }
+  .card-body { padding:16px; }
+  .form-group { flex-basis:100%; }
+}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-microchip" style="margin-right:8px;"></i> Detalle del Relé</h2>
+      <a href="/reles/" style="color:#fff; font-size:1.5rem; text-decoration:none;"><i class="fas fa-times"></i></a>
+    </div>
+<div class="card-body">
+   <div class="scrollable-content">
+    <div class="form-row">
+       <div class="form-group">
+         <label>Subestación</label>
+         <input type="text" value="{{ rele.Id_Sub_est.Nombre }}" readonly>
+         <small style="color:#6c757d; font-size:0.8rem;">{{ rele.Id_Sub_est.Ubicación }}</small>
+       </div>
+     </div>
+     <div class="form-row">
+       <div class="form-group">
+         <label>Nivel de tensión</label>
+         <input type="text" value="{{ rele.Id_Ten.get_Tipo_ten_display }} - {{ rele.Id_Ten.get_Nivel_display }}" readonly>
+       </div>
+     </div>
+     <div class="form-row">
+       <div class="form-group">
+         <label>Marca</label>
+         <input type="text" value="{{ rele.Marca }}" readonly>
+       </div>
+     </div>
+     <div class="form-row">
+       <div class="form-group">
+         <label>Modelo</label>
+         <input type="text" value="{{ rele.Modelo }}" readonly>
+       </div>
+     </div>
+     <div class="form-row">
+       <div class="form-group">
+         <label>Estado</label>
+         <input type="text" value="{{ rele.Estado }}" readonly>
+       </div>
+     </div>
+     <div class="form-row">
+       <div class="form-group" style="flex-basis:100%;">
+         <label>Remota</label>
+         {% if rele.EsRemoto and rele.Remota %}
+           <div class="form-row">
+             <div class="form-group">
+               <label>Nivel de tensión de la remota</label>
+               <input type="text" value="{{ rele.Remota.Id_Ten.get_Tipo_ten_display }} - {{ rele.Remota.Id_Ten.get_Nivel_display }}" readonly>
+             </div>
+           </div>
+           <div class="form-row">
+             <div class="form-group">
+               <label>Marca de la remota</label>
+               <input type="text" value="{{ rele.Remota.Marca }}" readonly>
+             </div>
+             <div class="form-group">
+               <label>Modelo de la remota</label>
+               <input type="text" value="{{ rele.Remota.Modelo }}" readonly>
+             </div>
+           </div>
+         {% else %}
+           <input type="text" value="No tiene" readonly style="text-align:center; color:#6c757d; font-weight:600;">
+         {% endif %}
+       </div>
+     </div>
+     <div class="form-row">
+       <div class="form-group" style="flex-basis:100%;">
+         <label>Observaciones</label>
+         <textarea readonly>{{ rele.Observaciones|default:"Sin observaciones" }}</textarea>
+       </div>
+     </div>
+     <div class="form-row">
+       <div class="form-group">
+         <label>Fecha de registro</label>
+         <input type="text" value="{{ rele.Fecha_Reg|date:'d/m/Y' }}" readonly>
+       </div>
+     </div>
+   </div>
+ </div>
+<div class="card-footer">
+  <button class="btn btn-secondary" href="/reles/">
+    <i class="fas fa-arrow-left" style="margin-right:6px;"></i> Volver
+  </button>
+  <button class="btn btn-secondary">
+    <i class="fas fa-trash" style="margin-right:6px;"></i> Cancelar
+  </button>
+  <button class="btn btn-secondary">
+    <i class="fas fa-plus" style="margin-right:6px;"></i> Agregar
+  </button>
+</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<div class="rele-detalle-grid">
+  <div class="rele-detalle-seccion">
+    <h4>Información General</h4>
+    <div class="rele-detalle-grid-cols">
+      <div class="rele-detalle-item">
+        <label>Subestación</label>
+        <span>{{ rele.Id_Sub_est.Nombre }}</span>
+        <small>{{ rele.Id_Sub_est.Ubicación }}</small>
+      </div>
+      <div class="rele-detalle-item">
+        <label>Nivel de Tensión</label>
+         <span>{{ rele.Id_Ten.get_Tipo_ten_display }} - {{ rele.Id_Ten.get_Nivel_display }}</span>
+      </div>
+      <div class="rele-detalle-item">
+        <label>Marca</label>
+        <span><strong>{{ rele.Marca }}</strong></span>
+      </div>
+      <div class="rele-detalle-item">
+        <label>Modelo</label>
+        <span>{{ rele.Modelo }}</span>
+      </div>
+      <div class="rele-detalle-item">
+        <label>Estado</label>
+        <span class="badge {% if rele.Estado == 'Activo' %}badge-success{% elif rele.Estado == 'Inactivo' %}badge-secondary{% elif rele.Estado == 'Mantenimiento' %}badge-info{% else %}badge-warning{% endif %}">
+          {{ rele.Estado }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+   <div class="rele-detalle-seccion">
+     <h4>Imagen</h4>
+     {% if rele.Imagen and rele.Imagen.name %}
+     <div class="rele-detalle-image-container" style="text-align:center; margin-bottom:15px;">
+       <img src="{{ rele.Imagen.url }}" alt="Imagen del relé" style="max-width:180px; max-height:180px; border-radius:8px; border:1px solid #dee2e6; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+     </div>
+     {% else %}
+     <div class="rele-no-data" style="text-align:center; color:#8c8c8c; font-style:italic;">No hay imagen disponible</div>
+     {% endif %}
+   </div>
+
+  <div class="rele-detalle-seccion">
+    <h4>Protocolos</h4>
+    <div class="rele-detalle-chips">
+      {% for p in rele.Protocolos.all %}
+      <span class="chip blue">{{ p.Tipo }} — {{ p.get_Tipo_display }}</span>
+      {% empty %}
+      <span class="rele-no-data">— Ninguno —</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="rele-detalle-seccion">
+    <h4>Puertos</h4>
+    <div class="rele-detalle-chips">
+      {% for pt in rele.Puertos.all %}
+      <span class="chip">{{ pt.Tipo }}</span>
+      {% empty %}
+      <span class="rele-no-data">— Ninguno —</span>
+      {% endfor %}
+    </div>
+  </div>
+
+<div class="rele-detalle-seccion">
+      <h4>Remota</h4>
+      {% if rele.EsRemoto and rele.Remota %}
+        <div class="rele-detalle-grid-cols">
+          <div class="rele-detalle-item">
+            <label>Nivel de Tensión</label>
+            <span>{{ rele.Remota.Id_Ten.get_Tipo_ten_display }} - {{ rele.Remota.Id_Ten.get_Nivel_display }}</span>
+          </div>
+          <div class="rele-detalle-item">
+            <label>Marca</label>
+            <span>{{ rele.Remota.Marca }}</span>
+          </div>
+          <div class="rele-detalle-item">
+            <label>Modelo</label>
+            <span>{{ rele.Remota.Modelo }}</span>
+          </div>
+        </div>
+      {% else %}
+        <div class="rele-detalle-item">
+          <span style="color:#6c757d; font-style:italic;">No tiene</span>
+        </div>
+      {% endif %}
+    </div>
+
+   <div class="rele-detalle-seccion">
+     <h4>Observaciones</h4>
+     <div class="rele-detalle-obs">{{ rele.Observaciones|default:"Sin observaciones" }}</div>
+   </div>
+
+   <div class="rele-detalle-footer">
+     Registrado el {{ rele.Fecha_Reg|date:"d/m/Y" }}
+   </div>
+</div>
+
+
+
+<style>
+.rele-detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  max-height: 540px;
+  overflow-y: auto;
+  padding-right: 12px; /* Increased for better scrollbar visibility */
+}
+.rele-detalle-grid::-webkit-scrollbar {
+  width: 10px;
+}
+.rele-detalle-grid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 5px;
+}
+.rele-detalle-grid::-webkit-scrollbar-thumb {
+  background-color: #6c757d;
+  border-radius: 5px;
+  border: 2px solid #f1f1f1;
+}
+.rele-detalle-grid::-webkit-scrollbar-thumb:hover {
+  background-color: #5a6268;
+}
+.rele-detalle-seccion {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+}
+.rele-detalle-seccion h4 {
+  margin: 0 0 12px 0;
+  color: #0D2B4D;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rele-detalle-grid-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.rele-detalle-item {
+  background: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #eef2f5;
+}
+.rele-detalle-item label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8c8c8c;
+  margin-bottom: 4px;
+}
+.rele-detalle-item span {
+  display: block;
+  font-size: 0.88rem;
+  color: #1a1a2e;
+  font-weight: 500;
+}
+.rele-detalle-item small {
+  color: #6c757d;
+  font-size: 0.78rem;
+}
+.rele-detalle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rele-detalle-obs {
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #eef2f5;
+  color: #495057;
+  line-height: 1.5;
+  font-size: 0.9rem;
+  min-height: 48px;
+}
+.rele-detalle-footer {
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 0.8rem;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+</style>

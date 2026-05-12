@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}CORPOELEC - Subestaciones{% endblock %}
+
+{% block content %}
+<div class="welcome-text">
+  <h2>Subestaciones</h2>
+</div>
+
+<div class="section-content">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Gestión de Subestaciones</h3>
+    </div>
+    <div class="card-body">
+      <p>Módulo de gestión y monitoreo de subestaciones.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .section-content .card {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+  
+  .section-content .card-header {
+    background: var(--blue-dark);
+    color: var(--white);
+    padding: 15px 20px;
+  }
+  
+  .section-content .card-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  
+  .section-content .card-body {
+    padding: 20px;
+    color: #333;
+  }
+</style>
+{% endblock %}

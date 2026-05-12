@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel de Administración | CORPOELEC{% endblock %}
+
+{% block content %}
+<div class="welcome-text" style="text-align: left; margin-bottom: 20px;">
+  <h2>Bienvenido, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}</h2>
+</div>
+
+<div class="dashboard-cards" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 30px;">
+  <div class="dash-card blue" style="background:#1E88E5; border-radius:12px; padding:25px; color:#fff; text-align:center;">
+    <div class="dash-card-icon" style="font-size:2.5rem; margin-bottom:15px;">
+      <i class="fas fa-bolt"></i>
+    </div>
+    <div class="dash-card-number" style="font-size:2rem; font-weight:700;">{{ total_subestaciones }}</div>
+    <div class="dash-card-label" style="font-size:0.9rem; opacity:0.9;">Subestaciones</div>
+  </div>
+  
+  <div class="dash-card purple" style="background:#7B1FA2; border-radius:12px; padding:25px; color:#fff; text-align:center;">
+    <div class="dash-card-icon" style="font-size:2.5rem; margin-bottom:15px;">
+      <i class="fas fa-network-wired"></i>
+    </div>
+    <div class="dash-card-number" style="font-size:2rem; font-weight:700;">{{ total_tensiones }}</div>
+    <div class="dash-card-label" style="font-size:0.9rem; opacity:0.9;">Niveles de Tensión</div>
+  </div>
+  
+  <div class="dash-card green" style="background:#2E7D32; border-radius:12px; padding:25px; color:#fff; text-align:center;">
+    <div class="dash-card-icon" style="font-size:2.5rem; margin-bottom:15px;">
+      <i class="fas fa-microchip"></i>
+    </div>
+    <div class="dash-card-number" style="font-size:2rem; font-weight:700;">{{ total_reles }}</div>
+    <div class="dash-card-label" style="font-size:0.9rem; opacity:0.9;">Relés</div>
+  </div>
+
+  <div class="dash-card red" style="background:#E63946; border-radius:12px; padding:25px; color:#fff; text-align:center;">
+    <div class="dash-card-icon" style="font-size:2.5rem; margin-bottom:15px;">
+      <i class="fas fa-heartbeat"></i>
+    </div>
+    <div class="dash-card-number" style="font-size:2rem; font-weight:700;">{{ reles_activos }}</div>
+    <div class="dash-card-label" style="font-size:0.9rem; opacity:0.9;">Relés Activos</div>
+  </div>
+</div>
+
+<div class="table-section" style="max-width:none;">
+  <div class="table-header">
+    <h3>Lista Completa de Niveles de Tensión</h3>
+  </div>
+  
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tipo</th>
+        <th>Nivel</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tension in tensiones_list %}
+      <tr>
+        <td>{{ tension.Id_Ten }}</td>
+        <td>{{ tension.get_Tipo_ten_display }}</td>
+        <td>{{ tension.Nivel }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="no-data">No hay niveles de tensión registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  @media (max-width: 768px) {
+    .dashboard-cards {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+  @media (max-width: 480px) {
+    .dashboard-cards {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>
+{% endblock %}
