@@ -751,8 +751,26 @@ function abrirModal() {
    loadRemotaDatos();
   }
 
-function cerrarModal() {
-  document.getElementById('modalReles').classList.remove('active');
+ function cerrarModal() {
+   // Resetear formulario completo al cerrar
+   document.getElementById('formReles').reset();
+   document.getElementById('remotaOptionsContainer').style.display = 'none';
+   document.getElementById('esRemotoSelect').value = 'no';
+   const imagePreview = document.getElementById('imagePreview');
+   const previewImg = imagePreview.querySelector('img');
+   previewImg.src = '';
+   imagePreview.style.display = 'none';
+   document.getElementById('imagenInput').value = '';
+   // Limpiar contenedores de checkboxes dinámicos
+   const protocolosContainer = document.getElementById('protocolosContainer');
+   const puertosContainer = document.getElementById('puertosContainer');
+   if (protocolosContainer) {
+     // Los checkboxes de protocolos son estáticos, el reset ya los limpió
+   }
+   if (puertosContainer) {
+     // Los checkboxes de puertos son estáticos, el reset ya los limpió
+   }
+   document.getElementById('modalReles').classList.remove('active');
  }
 
 function cerrarViewModal() {
@@ -791,10 +809,12 @@ function marcarCheckboxesRemota(data) {
   }
 }
 
-function openReleEditModal(id) {
-  fetch('/reles/?detalle=1&id=' + id)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+ function openReleEditModal(id) {
+   // Resetear formulario primero
+   document.getElementById('formReles').reset();
+   fetch('/reles/?detalle=1&id=' + id)
+     .then(function(r) { return r.json(); })
+     .then(function(data) {
       document.getElementById('modalTitle').innerText = 'Editar Relé';
       document.getElementById('inputCrear').name = 'editar';
       document.getElementById('inputCrear').value = '1';
@@ -889,21 +909,32 @@ function openReleEditModal(id) {
     });
 }
 
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    cerrarModal();
-    cerrarViewModal();
-    document.getElementById('confirmDeleteModal').classList.remove('active');
-  }
-});
+ document.addEventListener('keydown', function(e) {
+   if (e.key === 'Escape') {
+     cerrarModal();
+     cerrarViewModal();
+     document.getElementById('confirmDeleteModal').classList.remove('active');
+   }
+ });
 
-document.querySelectorAll('.modal').forEach(function(modal) {
-  modal.addEventListener('click', function(e) {
-    if (e.target === modal) {
-      modal.classList.remove('active');
-    }
-  });
-});
+ document.querySelectorAll('.modal').forEach(function(modal) {
+   modal.addEventListener('click', function(e) {
+     if (e.target === modal) {
+       // Solo cerrar modalReles con reset, los otros modales (viewModal, confirmDeleteModal) no necesitan reset
+       if (modal.id === 'modalReles') {
+         cerrarModal();
+       } else {
+         modal.classList.remove('active');
+       }
+     }
+   });
+ });
+
+ document.querySelectorAll('#modalReles .close').forEach(btn => {
+   btn.addEventListener('click', function() {
+     cerrarModal();
+   });
+ });
 
 function toggleRemotaFields() {
    var select = document.getElementById('esRemotoSelect');
