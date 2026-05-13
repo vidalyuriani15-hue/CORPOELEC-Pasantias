@@ -21,8 +21,9 @@ def index_view(request):
     total_reles = Rele.objects.count() or 0
     total_subestaciones = Subestacion.objects.count() or 0
     total_remotas = Remota.objects.count() or 0
-    total_interfaces = InterfazDeComunicacion.objects.count() or 0
-    total_protocolos = Protocolo.objects.count() or 0
+    total_interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS').count() or 0
+    # Contar las interfaces de tipo PROTOCOLOS como "registros de protocolos"
+    total_protocolos = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS').count() or 0
     total_tensiones = NivelTension.objects.count() or 0
 
     ultimos_reconectadores = list(Reconectador.objects.all().order_by('-Fecha_Reg')[:5]) if total_reconectadores > 0 else []
@@ -42,6 +43,7 @@ def index_view(request):
     }
     return render(request, 'index.html', context)
 
+@no_cache
 @login_required(login_url='/login/')
 def perfil_view(request):
     """Vista de perfil de usuario"""
@@ -60,6 +62,7 @@ def perfil_view(request):
     }
     return render(request, 'perfil.html', context)
 
+@no_cache
 @login_required(login_url='/login/')
 def cambiar_clave_view(request):
     """Vista para cambiar contrasenia"""
@@ -85,6 +88,7 @@ def cambiar_clave_view(request):
     }
     return render(request, 'cambiar_clave.html', context)
 
+@no_cache
 @login_required(login_url='/login/')
 def usuarios_view(request):
     """Vista de gestion de usuarios"""
@@ -100,6 +104,7 @@ def usuarios_view(request):
     }
     return render(request, 'admin/usuarios.html', context)
 
+@no_cache
 @login_required(login_url='/login/')
 def subestaciones_view(request):
     """Vista de subestaciones"""
@@ -168,6 +173,7 @@ def subestaciones_view(request):
     }
     return render(request, 'subestaciones.html', context)
 
+@no_cache
 @login_required(login_url='/login/')
 def tensiones_view(request):
     """Vista de niveles de tensión"""
@@ -452,78 +458,6 @@ def remotas_view(request):
     return render(request, 'remotas.html', context)
 
 @login_required(login_url='/login/')
-def reconectadores_view(request):
-    """Vista de reconectadores"""
-    if request.method == 'POST':
-        if request.POST.get('eliminar'):
-            recon_id = request.POST.get('reconectador_id')
-            try:
-                recon = Reconectador.objects.get(Id_reconectador=recon_id)
-                recon.delete()
-                messages.success(request, 'Reconectador eliminado correctamente.')
-            except Reconectador.DoesNotExist:
-                messages.error(request, 'Reconectador no encontrado.')
-            return redirect('reconectadores')
-        elif request.POST.get('editar'):
-            recon_id = request.POST.get('reconectador_id')
-            try:
-                recon = Reconectador.objects.get(Id_reconectador=recon_id)
-                recon.Id_Sub_est = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
-                recon.Id_Ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
-                recon.Marca = request.POST.get('marca')
-                recon.Modelo = request.POST.get('modelo')
-                recon.Estado = request.POST.get('estado')
-                recon.Observaciones = request.POST.get('observaciones', '')
-                
-                if request.FILES.get('imagen'):
-                    recon.Imagen = request.FILES.get('imagen')
-                
-                recon.save()
-                messages.success(request, 'Reconectador actualizado correctamente.')
-            except (Reconectador.DoesNotExist, Subestacion.DoesNotExist, NivelTension.DoesNotExist) as e:
-                messages.error(request, f'Error al actualizar: {str(e)}')
-            return redirect('reconectadores')
-        else:
-            # Crear nuevo reconectador
-            sub = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
-            ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
-            
-            recon = Reconectador.objects.create(
-                Id_Sub_est=sub,
-                Id_Ten=ten,
-                Marca=request.POST.get('marca'),
-                Modelo=request.POST.get('modelo'),
-                Estado=request.POST.get('estado'),
-                Observaciones=request.POST.get('observaciones', ''),
-                creado_por=request.user
-            )
-            
-            if request.FILES.get('imagen'):
-                recon.Imagen = request.FILES.get('imagen')
-                recon.save()
-            
-            messages.success(request, 'Reconectador creado correctamente.')
-            return redirect('reconectadores')
-    
-    reconectadores_list = Reconectador.objects.all().order_by('Id_reconectador')
-    paginator = Paginator(reconectadores_list, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    subestaciones = Subestacion.objects.all().order_by('Nombre')
-    tensiones = NivelTension.objects.all().order_by('Nivel')
-    
-    context = {
-        'title': 'Reconectadores',
-        'page_obj': page_obj,
-        'subestaciones': subestaciones,
-        'tensiones': tensiones,
-        'is_admin': request.user.is_superuser
-    }
-    return render(request, 'reconectadores.html', context)
-
-@login_required(login_url='/login/')
-@no_cache
 def reles_view(request):
     """Vista de relés"""
     # API: obtener detalle de un relé para edición

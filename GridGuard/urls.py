@@ -8,7 +8,7 @@ from django.shortcuts import redirect, render
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
-from equipos.views import reconectadores_view, reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view
+from equipos.views import reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -75,8 +75,6 @@ urlpatterns = [
     path('subestaciones/exportar-pdf/', exportar_subestaciones_pdf, name='exportar_subestaciones_pdf'),
     path('remotas/', remotas_view, name='remotas'),
     path('remotas/exportar-pdf/', exportar_remotas_pdf, name='exportar_remotas_pdf'),
-    path('reconectadores/', reconectadores_view, name='reconectadores'),
-    path('subestaciones/', subestaciones_view, name='subestaciones'),
     path('reles/<int:pk>/detalle/', rele_detalle_view, name='rele_detalle'),
     path('reles/', reles_view, name='reles'),
     path('reles/exportar-pdf/', exportar_reles_pdf, name='exportar_reles_pdf'),

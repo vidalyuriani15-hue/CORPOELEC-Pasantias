@@ -318,11 +318,10 @@
                      <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
                      <div class="check-content">
                        <span class="check-title">
-                         Interfaz {{ iface.Id_Interfaz }} 
-                         ({% for p in iface.puertos.all %}{{ p.get_Tipo_display }}{% if not forloop.last %}, {% endif %}{% empty %}Sin puertos{% endfor %})
+                         {% for p in iface.puertos.all %}{{ p.get_Tipo_display }}{% if not forloop.last %}, {% endif %}{% empty %}Sin puertos{% endfor %}
                        </span>
                        <span class="check-description">
-                         {{ iface.Puertos_C }} puerto{% if iface.Puertos_C != 1 %}s{% endif %} • {{ iface.Fecha_Reg|date:"d/m/Y" }}
+                         Interfaz #{{ iface.Id_Interfaz }} • {{ iface.Fecha_Reg|date:"d/m/Y" }}
                        </span>
                      </div>
                    </label>
@@ -364,7 +363,7 @@
 
 <!-- Modal Confirmar Eliminación -->
 <div id="confirmDeleteModal" class="modal">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" style="color: var(--red-accent);">

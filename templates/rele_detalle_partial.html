@@ -39,27 +39,31 @@
      {% endif %}
    </div>
 
-  <div class="rele-detalle-seccion">
-    <h4>Protocolos</h4>
-    <div class="rele-detalle-chips">
-      {% for p in rele.Protocolos.all %}
-      <span class="chip blue">{{ p.Tipo }} — {{ p.get_Tipo_display }}</span>
-      {% empty %}
-      <span class="rele-no-data">— Ninguno —</span>
-      {% endfor %}
-    </div>
-  </div>
+   <div class="rele-detalle-seccion">
+     <h4>Protocolos</h4>
+     <div class="rele-detalle-chips">
+       {% with rele.Protocolos.all|first as proto %}
+       {% if proto %}
+         <span class="chip blue">{{ proto.Tipo }} — {{ proto.get_Tipo_display }}</span>
+       {% else %}
+         <span class="rele-no-data">— Ninguno —</span>
+       {% endif %}
+       {% endwith %}
+     </div>
+   </div>
 
-  <div class="rele-detalle-seccion">
-    <h4>Puertos</h4>
-    <div class="rele-detalle-chips">
-      {% for pt in rele.Puertos.all %}
-      <span class="chip">{{ pt.Tipo }}</span>
-      {% empty %}
-      <span class="rele-no-data">— Ninguno —</span>
-      {% endfor %}
-    </div>
-  </div>
+   <div class="rele-detalle-seccion">
+     <h4>Puertos</h4>
+     <div class="rele-detalle-chips">
+       {% with rele.Puertos.all|first as puerto %}
+       {% if puerto %}
+         <span class="chip">{{ puerto.Tipo }}</span>
+       {% else %}
+         <span class="rele-no-data">— Ninguno —</span>
+       {% endif %}
+       {% endwith %}
+     </div>
+   </div>
 
 <div class="rele-detalle-seccion">
       <h4>Remota</h4>
