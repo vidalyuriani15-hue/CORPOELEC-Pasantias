@@ -312,16 +312,21 @@
               <div class="form-group" style="grid-column: 1 / -1;">
                 <label class="form-label">Interfaces de Comunicación</label>
                 <div id="remotaInterfacesContainer" class="checks-grid">
-                  {% for iface in interfaces_disponibles %}
-                  <label class="check-card-elegant" data-puertos="{{ iface.Puertos_C }}">
-                    <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}">
-                    <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
-                    <div class="check-content">
-                      <span class="check-title">Interfaz {{ iface.Id_Interfaz }}</span>
-                      <span class="check-description">{{ iface.Puertos_C }} puertos</span>
-                    </div>
-                  </label>
-                  {% endfor %}
+                   {% for iface in interfaces_disponibles %}
+                   <label class="check-card-elegant" data-puertos="{{ iface.Puertos_C }}">
+                     <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}">
+                     <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
+                     <div class="check-content">
+                       <span class="check-title">
+                         Interfaz {{ iface.Id_Interfaz }} 
+                         ({% for p in iface.puertos.all %}{{ p.get_Tipo_display }}{% if not forloop.last %}, {% endif %}{% empty %}Sin puertos{% endfor %})
+                       </span>
+                       <span class="check-description">
+                         {{ iface.Puertos_C }} puerto{% if iface.Puertos_C != 1 %}s{% endif %} • {{ iface.Fecha_Reg|date:"d/m/Y" }}
+                       </span>
+                     </div>
+                   </label>
+                   {% endfor %}
                 </div>
               </div>
             </div>

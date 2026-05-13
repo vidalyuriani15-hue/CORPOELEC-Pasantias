@@ -406,6 +406,7 @@ def protocolo_view(request):
     }
     return render(request, 'protocolo.html', context)
 
+@no_cache
 @login_required(login_url='/login/')
 def remotas_view(request):
     """Vista de remotas"""
@@ -707,7 +708,10 @@ def reles_view(request):
         protocolos = Protocolo.objects.all().order_by('Id_Protocolo')
         puertos = PuertoComunicacion.objects.all().order_by('Id_Puerto')
         remotas = Remota.objects.all().order_by('Id_Remota')
-        interfaces_disponibles = InterfazDeComunicacion.objects.all().order_by('Id_Interfaz')
+        # Solo interfaces de tipo PUERTOS pueden asignarse a remotas
+        interfaces_disponibles = InterfazDeComunicacion.objects.filter(
+            Tipo_Interfaz='PUERTOS'
+        ).prefetch_related('puertos').order_by('Id_Interfaz')
         
         context = {
             'title': 'Relés',
@@ -745,7 +749,10 @@ def api_remotas(request):
         marcas = list(remotas.values_list('Marca', flat=True).distinct())
         modelos_por_marca = {}
         interfaces_por_remota = {}
-        interfaces_disponibles = list(InterfazDeComunicacion.objects.values_list('Id_Interfaz', flat=True))
+        # Solo interfaces de tipo PUERTOS están disponibles para asignar a remotas
+        interfaces_disponibles = list(InterfazDeComunicacion.objects.filter(
+            Tipo_Interfaz='PUERTOS'
+        ).values_list('Id_Interfaz', flat=True))
         
         for remota in remotas:
             if remota.Marca not in modelos_por_marca:
