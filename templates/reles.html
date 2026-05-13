@@ -360,13 +360,28 @@
 <!-- Modal Confirmar Eliminación -->
 <div id="confirmDeleteModal" class="modal">
   <div class="modal-dialog">
-    <div class="modal-content" style="text-align:center; padding:30px;">
-      <h3 style="margin-bottom:15px; color:#E63946;"><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h3>
-      <p style="color:#595959; margin-bottom:20px;">¿Está seguro de que desea eliminar este relé? Esta acción no se puede deshacer.</p>
-      <div style="display:flex; justify-content:center; gap:15px;">
-        <button type="button" class="btn btn-secondary" onclick="cerrarConfirmDelete()">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="confirmDeleteBtn" style="background:#E63946;">
-          <i class="fas fa-trash-alt"></i> Eliminar
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" style="color: var(--red-accent);">
+          <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+          Confirmar Eliminación
+        </h5>
+        <button type="button" class="close" onclick="cerrarModalConfirmar()">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding: 30px 25px;">
+        <div style="font-size: 3.5rem; color: var(--red-accent); margin-bottom: 20px;">
+          <i class="fas fa-trash-alt"></i>
+        </div>
+        <h4 style="margin-bottom: 8px; color: var(--blue-dark);">¿Está seguro?</h4>
+        <p id="confirmDeleteText" style="color: var(--gray-600); font-size: 1.05rem; margin-bottom: 25px;">
+          Esta acción eliminará el relé seleccionado. Esta acción no se puede deshacer.
+        </p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 15px;">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalConfirmar()">Cancelar</button>
+        <button type="button" class="btn" onclick="confirmarEliminar()" style="background: var(--red-accent); color: white; padding: 10px 24px; border: none;">
+          <i class="fas fa-trash-alt" style="margin-right: 6px;"></i>
+          Sí, Eliminar
         </button>
       </div>
     </div>

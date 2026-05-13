@@ -11,6 +11,7 @@ from django.core.paginator import Paginator
 from .models import *
 from .decorators import no_cache
 import json
+import sys
 from datetime import datetime
 
 @login_required(login_url='/login/')
@@ -575,7 +576,6 @@ def reles_view(request):
             rele_id = request.POST.get('rele_id')
             
             # DEBUG: Log POST data
-            import sys
             print("=" * 80, file=sys.stderr)
             print(f"DEBUG EDIT Rele {rele_id} - POST DATA:", file=sys.stderr)
             for key, value in request.POST.items():
