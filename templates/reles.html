@@ -736,6 +736,26 @@ function openViewModal(id) {
     });
 }
 
+function marcarCheckboxesRemota(data) {
+  // Niveles de tensión
+  var nivelesChecks = document.querySelectorAll('input[name="remota_nivel_tension"]');
+  for (var i = 0; i < nivelesChecks.length; i++) {
+    nivelesChecks[i].checked = (data.remota_niveles || []).includes(parseInt(nivelesChecks[i].value));
+  }
+  
+  // Protocolos
+  var protoChecks = document.querySelectorAll('input[name="remota_protocolos"]');
+  for (var i = 0; i < protoChecks.length; i++) {
+    protoChecks[i].checked = (data.remota_protocolos || []).includes(parseInt(protoChecks[i].value));
+  }
+  
+  // Interfaces
+  var ifaceChecks = document.querySelectorAll('input[name="remota_interfaces"]');
+  for (var i = 0; i < ifaceChecks.length; i++) {
+    ifaceChecks[i].checked = (data.remota_interfaces || []).includes(parseInt(ifaceChecks[i].value));
+  }
+}
+
 function openReleEditModal(id) {
   fetch('/reles/?detalle=1&id=' + id)
     .then(function(r) { return r.json(); })
@@ -774,55 +794,59 @@ function openReleEditModal(id) {
       document.getElementById('imagenInput').value = '';
       imagePreview.style.display = 'none';
       
-var esRemotoSelect = document.getElementById('esRemotoSelect');
-          var remotaContainer = document.getElementById('remotaOptionsContainer');
-          esRemotoSelect.value = data.es_remoto ? 'si' : 'no';
-          if (data.es_remoto) {
-            remotaContainer.style.display = 'block';
-            loadRemotaDatos();
-            setTimeout(function() {
-              document.getElementById('remota_id_hidden').value = data.remota_id || '';
-              var marcaSelect = document.getElementById('remota_marca_select');
-              if (data.remota_marca) {
-                for (var i = 0; i < marcaSelect.options.length; i++) {
-                  if (marcaSelect.options[i].text === data.remota_marca) {
-                    marcaSelect.value = data.remota_marca;
-                    loadModelosByMarca();
-                    setTimeout(function() {
-                      var modeloSelect = document.getElementById('remota_modelo_select');
-                      for (var j = 0; j < modeloSelect.options.length; j++) {
-                        if (modeloSelect.options[j].value == data.remota_id) {
-                          modeloSelect.value = data.remota_id;
-                        }
-                      }
-                      // Marcar niveles de tensión seleccionados
-                      var nivelesChecks = document.querySelectorAll('input[name="remota_nivel_tension"]');
-                      for (var k = 0; k < nivelesChecks.length; k++) {
-                        nivelesChecks[k].checked = (data.remota_niveles || []).includes(parseInt(nivelesChecks[k].value));
-                      }
-                      // Marcar protocolos seleccionados
-                      var protoChecks = document.querySelectorAll('input[name="remota_protocolos"]');
-                      for (var k = 0; k < protoChecks.length; k++) {
-                        protoChecks[k].checked = (data.remota_protocolos || []).includes(parseInt(protoChecks[k].value));
-                      }
-// Marcar interfaces seleccionadas
-                       var ifaceChecks = document.querySelectorAll('input[name="remota_interfaces"]');
-                       for (var k = 0; k < ifaceChecks.length; k++) {
-                         ifaceChecks[k].checked = (data.remota_interfaces || []).includes(parseInt(ifaceChecks[k].value));
-                       }
-                       // Filtrar interfaces según la remota seleccionada
-                       filtrarInterfacesPorRemota(data.remota_id);
-                     }, 300);
-                    break;
-                  }
-                }
-              }
-            }, 300);
-          } else {
-            remotaContainer.style.display = 'none';
-          }
+      var esRemotoSelect = document.getElementById('esRemotoSelect');
+      var remotaContainer = document.getElementById('remotaOptionsContainer');
+      esRemotoSelect.value = data.es_remoto ? 'si' : 'no';
+      
+      if (data.es_remoto) {
+        remotaContainer.style.display = 'block';
         
+        // Cargar datos de remotas y luego restaurar selección
+        loadRemotaDatos().then(function() {
+          var marcaSelect = document.getElementById('remota_marca_select');
+          
+          // Buscar y seleccionar la marca correcta
+          if (data.remota_marca) {
+            var marcaEncontrada = false;
+            for (var i = 0; i < marcaSelect.options.length; i++) {
+              if (marcaSelect.options[i].text === data.remota_marca) {
+                marcaSelect.value = marcaSelect.options[i].value;
+                marcaEncontrada = true;
+                break;
+              }
+            }
+            
+            if (marcaEncontrada) {
+              // Cargar modelos para la marca seleccionada
+              return loadModelosByMarca();
+            }
+          }
+          return Promise.resolve();
+        }).then(function() {
+          // Seleccionar el modelo correcto
+          if (data.remota_id) {
+            var modeloSelect = document.getElementById('remota_modelo_select');
+            for (var j = 0; j < modeloSelect.options.length; j++) {
+              if (modeloSelect.options[j].value == data.remota_id) {
+                modeloSelect.value = data.remota_id;
+                break;
+              }
+            }
+          }
+          
+           // Marcar checkboxes de niveles, protocolos e interfaces
+           marcarCheckboxesRemota(data);
+           
+           // Filtrar interfaces según remota seleccionada
+           filtrarInterfacesPorRemota(data.remota_id);
+           
+           // Mostrar modal después de restaurar toda la selección
+           document.getElementById('modalReles').classList.add('active');
+         });
+      } else {
+        remotaContainer.style.display = 'none';
         document.getElementById('modalReles').classList.add('active');
+      }
     })
     .catch(function(err) {
       console.error('Error al cargar datos:', err);
@@ -889,32 +913,33 @@ function loadRemotaDatos() {
 }
 
 function loadModelosByMarca() {
-   var marcaSelect = document.getElementById('remota_marca_select');
-   var modeloSelect = document.getElementById('remota_modelo_select');
-   var marca = marcaSelect.value;
+  var marcaSelect = document.getElementById('remota_marca_select');
+  var modeloSelect = document.getElementById('remota_modelo_select');
+  var marca = marcaSelect.value;
 
-   modeloSelect.innerHTML = '<option value="">Cargando...</option>';
+  modeloSelect.innerHTML = '<option value="">Cargando...</option>';
 
-   if (!marca || !window.remotasData || !window.remotasData[marca]) {
-     modeloSelect.innerHTML = '<option value="">Seleccionar Modelo</option>';
-     document.getElementById('remota_id_hidden').value = '';
-     limpiarInterfaces();
-     return;
-   }
+  if (!marca || !window.remotasData || !window.remotasData[marca]) {
+    modeloSelect.innerHTML = '<option value="">Seleccionar Modelo</option>';
+    document.getElementById('remota_id_hidden').value = '';
+    limpiarInterfaces();
+    return Promise.resolve();
+  }
 
-   var modelos = window.remotasData[marca];
-   modeloSelect.innerHTML = '<option value="">Seleccionar Modelo</option>';
+  var modelos = window.remotasData[marca];
+  modeloSelect.innerHTML = '<option value="">Seleccionar Modelo</option>';
 
-   Object.entries(modelos).forEach(function([modelo, info]) {
-     var option = document.createElement('option');
-     option.value = info.id;
-     option.textContent = modelo + ' (Niv: ' + info.nivel + ')';
-     option.setAttribute('data-id', info.id);
-     modeloSelect.appendChild(option);
-   });
+  Object.entries(modelos).forEach(function([modelo, info]) {
+    var option = document.createElement('option');
+    option.value = info.id;
+    option.textContent = modelo;  // Solo el nombre del modelo, sin nivel
+    option.setAttribute('data-id', info.id);
+    modeloSelect.appendChild(option);
+  });
 
-   limpiarInterfaces();
- }
+  limpiarInterfaces();
+  return Promise.resolve();
+}
 
  function onModeloChange() {
    var modeloSelect = document.getElementById('remota_modelo_select');

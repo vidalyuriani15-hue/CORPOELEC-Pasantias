@@ -94,20 +94,36 @@ class Usuario(models.Model):
         return self.Nombre
 
 class InterfazDeComunicacion(models.Model):
-    """Modelo para gestionar interfaces de comunicación que agrupan puertos/protocolos"""
-    Id_Interfaz = models.AutoField(primary_key=True)  # Identificador único
+    """Modelo para gestionar interfaces de comunicación (puertos físicos o protocolos)"""
+    TIPO_INTERFAZ_CHOICES = [
+        ('PUERTOS', 'Puertos de Comunicación'),
+        ('PROTOCOLOS', 'Protocolos de Comunicación'),
+    ]
+    
+    Id_Interfaz = models.AutoField(primary_key=True, serialize=False)  # Identificador único (PK)
+    Puertos_C = models.IntegerField(default=0, verbose_name='Cantidad de Puertos')  # Contador de puertos
     Fecha_Reg = models.DateField(auto_now_add=True)  # Fecha de registro automática
-    Puertos_C = models.IntegerField(default=0, verbose_name='Puertos de Comunicación')  # Contador de puertos asociados
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='interfaces_creadas')  # Usuario que creó el registro
+    Tipo_Interfaz = models.CharField(max_length=20, choices=TIPO_INTERFAZ_CHOICES, default='PUERTOS', verbose_name='Tipo de Interfaz')  # Tipo de interfaz
     
     class Meta:
         verbose_name = 'Interfaz de Comunicación'
         verbose_name_plural = 'Interfaces de Comunicación'
-        ordering = ['Id_Interfaz']  # Orden por ID descendente (más recientes primero)
+        ordering = ['Id_Interfaz']  # Orden por ID ascendente
     
     def __str__(self):
-        """Representación legible: 'Interfaz X'"""
-        return f"Interfaz {self.Id_Interfaz}"
+        """Representación legible: 'Interfaz X - Tipo'"""
+        return f"Interfaz {self.Id_Interfaz} - {self.get_Tipo_Interfaz_display()}"
+    
+    def clean(self):
+        """Validación: una interfaz no puede tener ambos tipos simultáneamente"""
+        from django.core.exceptions import ValidationError
+        if self.pk:
+            # Check counts without causing recursion
+            puertos_count = self.puertos.count()
+            protocolos_count = self.protocolos.count()
+            if puertos_count > 0 and protocolos_count > 0:
+                raise ValidationError('Una interfaz no puede tener puertos y protocolos simultáneamente.')
 
 class PuertoComunicacion(models.Model):
     """Modelo para gestionar puertos de comunicación individuales"""

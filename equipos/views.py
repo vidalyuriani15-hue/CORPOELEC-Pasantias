@@ -5,9 +5,11 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.db.models import Q
 from django.core.paginator import Paginator
 from .models import *
+from .decorators import no_cache
 import json
 from datetime import datetime
 
@@ -221,6 +223,7 @@ def tensiones_view(request):
     return render(request, 'tensiones.html', context)
 
 @login_required(login_url='/login/')
+@no_cache
 def interfaces_view(request):
     """Vista de interfaces de comunicacion"""
     if request.method == 'POST':
@@ -228,7 +231,21 @@ def interfaces_view(request):
             iface_id = request.POST.get('interfaz_id')
             try:
                 iface = InterfazDeComunicacion.objects.get(Id_Interfaz=iface_id)
-                iface.delete()
+                # Verificar dependencias antes de eliminar (D4)
+                reles_afectados = Rele.objects.filter(
+                    Q(Puertos__Id_Interfaz=iface_id)
+                ).distinct()
+                remotas_afectadas = Remota.objects.filter(Interfaces=iface).distinct()
+
+                if reles_afectados.exists() or remotas_afectadas.exists():
+                    messages.error(request,
+                        f'No se puede eliminar la interfaz: {reles_afectados.count()} rel(s) y '
+                        f'{remotas_afectadas.count()} remota(s) dependen de ella. '
+                        f'Reasigne o elimine las dependencias primero.')
+                    return redirect('interfaces')
+
+                with transaction.atomic():
+                    iface.delete()
                 messages.success(request, 'Interfaz eliminada correctamente.')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
@@ -237,14 +254,24 @@ def interfaces_view(request):
             iface_id = request.POST.get('interfaz_id')
             tipos_puerto = request.POST.getlist('tipos_puerto')
             try:
-                iface = InterfazDeComunicacion.objects.get(Id_Interfaz=iface_id)
-                iface.puertos.all().delete()
-                for tipo in tipos_puerto:
-                    PuertoComunicacion.objects.create(
-                        Id_Interfaz=iface,
-                        Tipo=tipo,
-                        creado_por=request.user
-                    )
+                with transaction.atomic():
+                    iface = InterfazDeComunicacion.objects.select_for_update().get(Id_Interfaz=iface_id)
+                    iface.puertos.all().delete()
+                    for tipo in tipos_puerto:
+                        PuertoComunicacion.objects.create(
+                            Id_Interfaz=iface,
+                            Tipo=tipo,
+                            creado_por=request.user
+                        )
+                    iface.Puertos_C = len(tipos_puerto)
+                    iface.Tipo_Interfaz = 'PUERTOS'
+                    iface.save()
+                    # Validar
+                    try:
+                        iface.full_clean()
+                    except Exception as e:
+                        messages.error(request, f'Error de validación: {str(e)}')
+                        raise  # Rollback via transaction.atomic()
                 messages.success(request, 'Interfaz actualizada correctamente.')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
@@ -254,6 +281,7 @@ def interfaces_view(request):
             if tipos_puerto:
                 iface = InterfazDeComunicacion.objects.create(
                     Puertos_C=len(tipos_puerto),
+                    Tipo_Interfaz='PUERTOS',
                     creado_por=request.user
                 )
                 for tipo in tipos_puerto:
@@ -262,10 +290,17 @@ def interfaces_view(request):
                         Tipo=tipo,
                         creado_por=request.user
                     )
+                # Validar consistencia
+                try:
+                    iface.full_clean()
+                except Exception as e:
+                    messages.error(request, f'Error de validación: {str(e)}')
+                    iface.delete()
+                    return redirect('interfaces')
                 messages.success(request, 'Interfaz creada correctamente.')
                 return redirect('interfaces')
     
-    interfaces_list = InterfazDeComunicacion.objects.all().order_by('Id_Interfaz')
+    interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS').prefetch_related('puertos').order_by('Id_Interfaz')
     paginator = Paginator(interfaces_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -281,50 +316,84 @@ def interfaces_view(request):
     return render(request, 'interfaces.html', context)
 
 @login_required(login_url='/login/')
+@no_cache
 def protocolo_view(request):
     """Vista de protocolos e interfaces"""
     if request.method == 'POST':
         # Crear interfaz con protocolos
         if request.POST.get('crear'):
-            interfaz = InterfazDeComunicacion.objects.create(
-                creado_por=request.user
-            )
             tipos_protocolo = request.POST.getlist('tipos_protocolo')
-            for tipo in tipos_protocolo:
-                Protocolo.objects.create(
-                    Id_Interfaz=interfaz,
-                    Tipo=tipo,
+            with transaction.atomic():
+                interfaz = InterfazDeComunicacion.objects.create(
+                    Puertos_C=0,
+                    Tipo_Interfaz='PROTOCOLOS',
                     creado_por=request.user
                 )
-            messages.success(request, 'Interfaz creada correctamente')
-            
-        # Editar interfaz/protocolos
-        elif request.POST.get('editar'):
-            interfaz_id = request.POST.get('interfaz_id')
-            try:
-                interfaz = InterfazDeComunicacion.objects.get(Id_Interfaz=interfaz_id)
-                Protocolo.objects.filter(Id_Interfaz=interfaz).delete()
-                tipos_protocolo = request.POST.getlist('tipos_protocolo')
                 for tipo in tipos_protocolo:
                     Protocolo.objects.create(
                         Id_Interfaz=interfaz,
                         Tipo=tipo,
                         creado_por=request.user
                     )
+                # Validar consistencia
+                try:
+                    interfaz.full_clean()
+                except Exception as e:
+                    messages.error(request, f'Error de validación: {str(e)}')
+                    raise  # Rollback
+            messages.success(request, 'Interfaz creada correctamente')
+        
+        # Editar interfaz/protocolos
+        elif request.POST.get('editar'):
+            interfaz_id = request.POST.get('interfaz_id')
+            try:
+                with transaction.atomic():
+                    interfaz = InterfazDeComunicacion.objects.select_for_update().get(Id_Interfaz=interfaz_id)
+                    Protocolo.objects.filter(Id_Interfaz=interfaz).delete()
+                    tipos_protocolo = request.POST.getlist('tipos_protocolo')
+                    for tipo in tipos_protocolo:
+                        Protocolo.objects.create(
+                            Id_Interfaz=interfaz,
+                            Tipo=tipo,
+                            creado_por=request.user
+                        )
+                    interfaz.Puertos_C = 0
+                    interfaz.Tipo_Interfaz = 'PROTOCOLOS'
+                    interfaz.save()
+                    # Validar
+                    try:
+                        interfaz.full_clean()
+                    except Exception as e:
+                        messages.error(request, f'Error de validación: {str(e)}')
+                        raise
                 messages.success(request, 'Interfaz actualizada correctamente')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
-                
-        # Eliminar interfaz
+        
+        # Eliminar interfaz con verificación de dependencias
         elif request.POST.get('eliminar'):
             interfaz_id = request.POST.get('interfaz_id')
             try:
-                InterfazDeComunicacion.objects.get(Id_Interfaz=interfaz_id).delete()
+                interfaz = InterfazDeComunicacion.objects.get(Id_Interfaz=interfaz_id)
+                reles_afectados = Rele.objects.filter(
+                    Q(Protocolos__Id_Interfaz=interfaz_id) | Q(Puertos__Id_Interfaz=interfaz_id)
+                ).distinct()
+                remotas_afectadas = Remota.objects.filter(Interfaces=interfaz).distinct()
+
+                if reles_afectados.exists() or remotas_afectadas.exists():
+                    messages.error(request,
+                        f'No se puede eliminar la interfaz: {reles_afectados.count()} relé(s) y '
+                        f'{remotas_afectadas.count()} remota(s) dependen de ella. '
+                        f'Reasigne o elimine las dependencias primero.')
+                    return redirect('protocolo')
+
+                with transaction.atomic():
+                    interfaz.delete()
                 messages.success(request, 'Interfaz eliminada correctamente')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
     
-    interfaces = InterfazDeComunicacion.objects.all().order_by('Id_Interfaz')
+    interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS').prefetch_related('protocolos').all().order_by('Id_Interfaz')
     paginator = Paginator(interfaces, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -452,120 +521,206 @@ def reconectadores_view(request):
     return render(request, 'reconectadores.html', context)
 
 @login_required(login_url='/login/')
+@no_cache
 def reles_view(request):
     """Vista de relés"""
+    # API: obtener detalle de un relé para edición
+    if request.GET.get('detalle') == '1' and request.GET.get('id'):
+        rele = get_object_or_404(Rele, Id_relé=request.GET.get('id'))
+        
+        # Datos de remota asociada (si existe)
+        remota_data = {}
+        if rele.Remota:
+            remota = rele.Remota
+            remota_data = {
+                'remota_id': remota.Id_Remota,
+                'remota_marca': remota.Marca,
+                'remota_modelo': remota.Modelo,
+                'remota_niveles': list(remota.Niveles_Ten.values_list('Id_Ten', flat=True)),
+                'remota_protocolos': list(remota.Protocolos.values_list('Id_Protocolo', flat=True)),
+                'remota_interfaces': list(remota.Interfaces.values_list('Id_Interfaz', flat=True))
+            }
+        
+        # Validar IDs contra la BD para evitar referencias huérfanas (D6)
+        valid_protocolo_ids = set(Protocolo.objects.values_list('Id_Protocolo', flat=True))
+        valid_puerto_ids = set(PuertoComunicacion.objects.values_list('Id_Puerto', flat=True))
+        
+        data = {
+            'id_sub_est': rele.Id_Sub_est.Id_Sub_est,
+            'id_ten': rele.Id_Ten.Id_Ten,
+            'marca': rele.Marca,
+            'modelo': rele.Modelo,
+            'estado': rele.Estado,
+            'observaciones': rele.Observaciones or '',
+            'es_remoto': rele.EsRemoto,
+            'imagen_url': rele.Imagen.url if rele.Imagen else None,
+            'protocolos': [pid for pid in rele.Protocolos.values_list('Id_Protocolo', flat=True) if pid in valid_protocolo_ids],
+            'puertos': [pid for pid in rele.Puertos.values_list('Id_Puerto', flat=True) if pid in valid_puerto_ids],
+        }
+        data.update(remota_data)
+        return JsonResponse(data)
+    
     if request.method == 'POST':
         if request.POST.get('eliminar'):
             rele_id = request.POST.get('rele_id')
             try:
-                rele = Rele.objects.get(Id_relé=rele_id)
-                rele.delete()
-                messages.success(request, 'Relé eliminado correctamente.')
+                with transaction.atomic():
+                    rele = Rele.objects.select_for_update().get(Id_relé=rele_id)
+                    rele.delete()
+                    messages.success(request, 'Relé eliminado correctamente.')
             except Rele.DoesNotExist:
                 messages.error(request, 'Relé no encontrado.')
             return redirect('reles')
         elif request.POST.get('editar'):
             rele_id = request.POST.get('rele_id')
+            
+            # DEBUG: Log POST data
+            import sys
+            print("=" * 80, file=sys.stderr)
+            print(f"DEBUG EDIT Rele {rele_id} - POST DATA:", file=sys.stderr)
+            for key, value in request.POST.items():
+                print(f"  {key}: {value}", file=sys.stderr)
+            print(f"  protocolos getlist: {request.POST.getlist('protocolos')}", file=sys.stderr)
+            print(f"  puertos getlist: {request.POST.getlist('puertos')}", file=sys.stderr)
+            print(f"  remota_nivel_tension: {request.POST.getlist('remota_nivel_tension')}", file=sys.stderr)
+            print(f"  remota_protocolos: {request.POST.getlist('remota_protocolos')}", file=sys.stderr)
+            print(f"  remota_interfaces: {request.POST.getlist('remota_interfaces')}", file=sys.stderr)
+            print("=" * 80, file=sys.stderr)
+            
             try:
-                rele = Rele.objects.get(Id_relé=rele_id)
-                rele.Id_Sub_est = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
-                rele.Id_Ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
-                rele.Marca = request.POST.get('marca')
-                rele.Modelo = request.POST.get('modelo')
-                rele.Estado = request.POST.get('estado')
-                rele.Observaciones = request.POST.get('observaciones', '')
-                
-                if request.FILES.get('imagen'):
-                    rele.Imagen = request.FILES.get('imagen')
-                
-                rele.Protocolos.set(request.POST.getlist('protocolos'))
-                rele.Puertos.set(request.POST.getlist('puertos'))
-                
-                es_remoto = request.POST.get('es_remoto') == 'si'
-                rele.EsRemoto = es_remoto
-                if es_remoto and request.POST.get('remota_id'):
-                    rele.Remota = Remota.objects.get(Id_Remota=request.POST.get('remota_id'))
-                
-                rele.save()
-                messages.success(request, 'Relé actualizado correctamente.')
+                with transaction.atomic():
+                    rele = Rele.objects.select_for_update().get(Id_relé=rele_id)
+                    rele.Id_Sub_est = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
+                    rele.Id_Ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
+                    rele.Marca = request.POST.get('marca')
+                    rele.Modelo = request.POST.get('modelo')
+                    rele.Estado = request.POST.get('estado')
+                    rele.Observaciones = request.POST.get('observaciones', '')
+                    
+                    if request.FILES.get('imagen'):
+                        rele.Imagen = request.FILES.get('imagen')
+                    
+                    # M2M assignments on Rele
+                    protocolos_list = request.POST.getlist('protocolos')
+                    puertos_list = request.POST.getlist('puertos')
+                    print(f"DEBUG: Assigning Protocolos to Rele: {protocolos_list}", file=sys.stderr)
+                    print(f"DEBUG: Assigning Puertos to Rele: {puertos_list}", file=sys.stderr)
+                    rele.Protocolos.set(protocolos_list)
+                    rele.Puertos.set(puertos_list)
+                    
+                    # Handle remote association and remote M2M
+                    es_remoto = request.POST.get('es_remoto') == 'si'
+                    rele.EsRemoto = es_remoto
+                    
+                    if es_remoto and request.POST.get('remota_id'):
+                        remota = Remota.objects.get(Id_Remota=request.POST.get('remota_id'))
+                        rele.Remota = remota
+                        
+                        # Update Remota's M2M fields
+                        remota_niveles = request.POST.getlist('remota_nivel_tension')
+                        remota_protocolos = request.POST.getlist('remota_protocolos')
+                        remota_interfaces = request.POST.getlist('remota_interfaces')
+                        
+                        print(f"DEBUG: Updating Remota {remota.Id_Remota} - Niveles: {remota_niveles}, Protocolos: {remota_protocolos}, Interfaces: {remota_interfaces}", file=sys.stderr)
+                        
+                        remota.Niveles_Ten.set(remota_niveles)
+                        remota.Protocolos.set(remota_protocolos)
+                        remota.Interfaces.set(remota_interfaces)
+                        remota.save()
+                    else:
+                        # Clear remote association if unchecked
+                        rele.Remota = None
+                    
+                    rele.save()
+                    print(f"DEBUG: Rele {rele_id} saved successfully. EsRemoto={es_remoto}", file=sys.stderr)
+                    messages.success(request, 'Relé actualizado correctamente.')
             except (Rele.DoesNotExist, Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
+                print(f"DEBUG ERROR: {str(e)}", file=sys.stderr)
                 messages.error(request, f'Error al actualizar: {str(e)}')
             return redirect('reles')
         else:
-            sub = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
-            ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
-            
-            rele = Rele.objects.create(
-                Id_Sub_est=sub,
-                Id_Ten=ten,
-                Marca=request.POST.get('marca'),
-                Modelo=request.POST.get('modelo'),
-                Estado=request.POST.get('estado'),
-                Observaciones=request.POST.get('observaciones', ''),
-                creado_por=request.user
-            )
-            
-            if request.FILES.get('imagen'):
-                rele.Imagen = request.FILES.get('imagen')
-                rele.save()
-            
-            rele.Protocolos.set(request.POST.getlist('protocolos'))
-            rele.Puertos.set(request.POST.getlist('puertos'))
-            
-            es_remoto = request.POST.get('es_remoto') == 'si'
-            rele.EsRemoto = es_remoto
-            if es_remoto and request.POST.get('remota_id'):
-                rele.Remota = Remota.objects.get(Id_Remota=request.POST.get('remota_id'))
-                rele.save()
-            
-            messages.success(request, 'Relé creado correctamente.')
-            return redirect('reles')
-    elif request.method == 'GET' and request.GET.get('detalle'):
-        rele_id = request.GET.get('id')
-        try:
-            rele = Rele.objects.get(Id_relé=rele_id)
-            data = {
-                'id_sub_est': rele.Id_Sub_est.Id_Sub_est if rele.Id_Sub_est else '',
-                'id_ten': rele.Id_Ten.Id_Ten if rele.Id_Ten else '',
-                'marca': rele.Marca or '',
-                'modelo': rele.Modelo or '',
-                'estado': rele.Estado or '',
-                'observaciones': rele.Observaciones or '',
-                'imagen_url': rele.Imagen.url if rele.Imagen else '',
-                'protocolos': list(rele.Protocolos.values_list('Id_Protocolo', flat=True)),
-                'puertos': list(rele.Puertos.values_list('Id_Puerto', flat=True)),
-                'es_remoto': rele.EsRemoto,
-                'remota_id': rele.Remota.Id_Remota if rele.Remota else '',
-                'remota_marca': rele.Remota.Marca if rele.Remota else '',
-            }
-            return JsonResponse(data)
-        except Rele.DoesNotExist:
-            return JsonResponse({'error': 'Relé no encontrado'}, status=404)
-    
-    reles_list = Rele.objects.all().order_by('-Id_relé')
-    paginator = Paginator(reles_list, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    subestaciones = Subestacion.objects.all().order_by('Nombre')
-    tensiones = NivelTension.objects.all().order_by('Nivel')
-    protocolos = Protocolo.objects.all().order_by('Tipo')
-    puertos = PuertoComunicacion.objects.all().order_by('Id_Puerto')
-    remotas = Remota.objects.all().order_by('Id_Remota')
-    interfaces_disponibles = InterfazDeComunicacion.objects.all().order_by('Id_Interfaz')
-    
-    context = {
-        'title': 'Relés',
-        'page_obj': page_obj,
-        'subestaciones': subestaciones,
-        'tensiones': tensiones,
-        'protocolos': protocolos,
-        'puertos': puertos,
-        'remotas': remotas,
-        'interfaces_disponibles': interfaces_disponibles,
-        'is_admin': request.user.is_superuser
-    }
-    return render(request, 'reles.html', context)
+            try:
+                sub = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
+                ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
+                
+                with transaction.atomic():
+                    rele = Rele.objects.create(
+                        Id_Sub_est=sub,
+                        Id_Ten=ten,
+                        Marca=request.POST.get('marca'),
+                        Modelo=request.POST.get('modelo'),
+                        Estado=request.POST.get('estado'),
+                        Observaciones=request.POST.get('observaciones', ''),
+                        creado_por=request.user
+                    )
+                    
+                    if request.FILES.get('imagen'):
+                        rele.Imagen = request.FILES.get('imagen')
+                        rele.save()
+                    
+                    # M2M assignments on Rele
+                    protocolos_list = request.POST.getlist('protocolos')
+                    puertos_list = request.POST.getlist('puertos')
+                    print(f"DEBUG: Assigning Protocolos to Rele: {protocolos_list}", file=sys.stderr)
+                    print(f"DEBUG: Assigning Puertos to Rele: {puertos_list}", file=sys.stderr)
+                    rele.Protocolos.set(protocolos_list)
+                    rele.Puertos.set(puertos_list)
+                    
+                    # Handle remote association and remote M2M
+                    es_remoto = request.POST.get('es_remoto') == 'si'
+                    rele.EsRemoto = es_remoto
+                    
+                    if es_remoto and request.POST.get('remota_id'):
+                        remota = Remota.objects.get(Id_Remota=request.POST.get('remota_id'))
+                        rele.Remota = remota
+                        
+                        # Update Remota's M2M fields
+                        remota_niveles = request.POST.getlist('remota_nivel_tension')
+                        remota_protocolos = request.POST.getlist('remota_protocolos')
+                        remota_interfaces = request.POST.getlist('remota_interfaces')
+                        
+                        print(f"DEBUG: Updating Remota {remota.Id_Remota} - Niveles: {remota_niveles}, Protocolos: {remota_protocolos}, Interfaces: {remota_interfaces}", file=sys.stderr)
+                        
+                        remota.Niveles_Ten.set(remota_niveles)
+                        remota.Protocolos.set(remota_protocolos)
+                        remota.Interfaces.set(remota_interfaces)
+                        remota.save()
+                    
+                    rele.save()
+                    print(f"DEBUG: Rele created. EsRemoto={es_remoto}, Remota_id={request.POST.get('remota_id')}", file=sys.stderr)
+                    
+                    messages.success(request, 'Relé creado correctamente.')
+                    return redirect('reles')
+            except (Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
+                print(f"DEBUG CREATE ERROR: {str(e)}", file=sys.stderr)
+                messages.error(request, f'Error al crear: {str(e)}')
+                return redirect('reles')
+    elif request.method == 'GET':
+        # GET: mostrar lista
+        rele_list = Rele.objects.all().order_by('Id_relé')
+        paginator = Paginator(rele_list, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        subestaciones = Subestacion.objects.all().order_by('Nombre')
+        tensiones = NivelTension.objects.all().order_by('Nivel')
+        protocolos = Protocolo.objects.all().order_by('Id_Protocolo')
+        puertos = PuertoComunicacion.objects.all().order_by('Id_Puerto')
+        remotas = Remota.objects.all().order_by('Id_Remota')
+        interfaces_disponibles = InterfazDeComunicacion.objects.all().order_by('Id_Interfaz')
+        
+        context = {
+            'title': 'Relés',
+            'page_obj': page_obj,
+            'subestaciones': subestaciones,
+            'tensiones': tensiones,
+            'protocolos': protocolos,
+            'puertos': puertos,
+            'remotas': remotas,
+            'interfaces_disponibles': interfaces_disponibles,
+            'is_admin': request.user.is_superuser
+        }
+        return render(request, 'reles.html', context)
 
 @login_required(login_url='/login/')
 def rele_detalle_view(request, pk):
