@@ -637,11 +637,32 @@ def reles_view(request):
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         
+        # Obtener valores únicos para evitar duplicados en los formularios
         subestaciones = Subestacion.objects.all().order_by('Nombre')
-        tensiones = NivelTension.objects.all().order_by('Nivel')
-        protocolos = Protocolo.objects.all().order_by('Id_Protocolo')
-        puertos = PuertoComunicacion.objects.all().order_by('Id_Puerto')
-        remotas = Remota.objects.all().order_by('Id_Remota')
+        tensiones = list(NivelTension.objects.all().order_by('Nivel'))
+        
+        # Protocolos únicos por tipo (evita duplicados con mismo Tipo)
+        protocolos_dict = {}
+        for p in Protocolo.objects.all().order_by('Tipo'):
+            if p.Tipo not in protocolos_dict:
+                protocolos_dict[p.Tipo] = p
+        protocolos = list(protocolos_dict.values())
+        
+        # Puertos únicos por tipo (evita duplicados con mismo Tipo)
+        puertos_dict = {}
+        for pt in PuertoComunicacion.objects.all().order_by('Tipo'):
+            if pt.Tipo not in puertos_dict:
+                puertos_dict[pt.Tipo] = pt
+        puertos = list(puertos_dict.values())
+        
+        # Remotas únicas por marca+modelo (evita duplicados)
+        remotas_dict = {}
+        for r in Remota.objects.all().order_by('Marca', 'Modelo'):
+            key = f"{r.Marca}|{r.Modelo}"
+            if key not in remotas_dict:
+                remotas_dict[key] = r
+        remotas = list(remotas_dict.values())
+        
         # Solo interfaces de tipo PUERTOS pueden asignarse a remotas
         interfaces_disponibles = InterfazDeComunicacion.objects.filter(
             Tipo_Interfaz='PUERTOS'
@@ -680,22 +701,36 @@ def api_remotas(request):
     if request.method == 'GET':
         remotas = Remota.objects.all().prefetch_related('Niveles_Ten')
         
+        # Obtener marcas únicas
         marcas = list(remotas.values_list('Marca', flat=True).distinct())
+        
+        # Modelos únicos por marca (evita duplicados modelo+marca)
         modelos_por_marca = {}
+        modelos_vistos = set()
         interfaces_por_remota = {}
+        
+        for remota in remotas:
+            marca = remota.Marca
+            modelo = remota.Modelo
+            key = f"{marca}|{modelo}"
+            
+            if marca not in modelos_por_marca:
+                modelos_por_marca[marca] = {}
+            
+            # Solo agregar modelo si no se ha visto antes para esta marca
+            if key not in modelos_vistos:
+                modelos_por_marca[marca][modelo] = {
+                    'id': remota.Id_Remota,
+                    'nivel': remota.Id_Ten.get_Nivel_display() if remota.Id_Ten else ''
+                }
+                modelos_vistos.add(key)
+            
+            interfaces_por_remota[remota.Id_Remota] = list(remota.Interfaces.values_list('Id_Interfaz', flat=True))
+        
         # Solo interfaces de tipo PUERTOS están disponibles para asignar a remotas
         interfaces_disponibles = list(InterfazDeComunicacion.objects.filter(
             Tipo_Interfaz='PUERTOS'
-        ).values_list('Id_Interfaz', flat=True))
-        
-        for remota in remotas:
-            if remota.Marca not in modelos_por_marca:
-                modelos_por_marca[remota.Marca] = {}
-            modelos_por_marca[remota.Marca][remota.Modelo] = {
-                'id': remota.Id_Remota,
-                'nivel': remota.Id_Ten.get_Nivel_display() if remota.Id_Ten else ''
-            }
-            interfaces_por_remota[remota.Id_Remota] = list(remota.Interfaces.values_list('Id_Interfaz', flat=True))
+        ).values_list('Id_Interfaz', flat=True).distinct())
         
         return JsonResponse({
             'marcas': marcas,

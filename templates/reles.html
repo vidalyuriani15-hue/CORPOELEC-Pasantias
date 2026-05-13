@@ -220,7 +220,7 @@
             </div>
 
             <div class="form-group" style="grid-column: 1 / -1;">
-                <label>Protocolos de Comunicación</label>
+                <label>Protocolos de TeleControl y Energía</label>
                 <div id="protocolosContainer" class="checks-grid">
                     {% for p in protocolos %}
                     <label class="check-card-elegant">
@@ -236,7 +236,7 @@
             </div>
 
             <div class="form-group" style="grid-column: 1 / -1;">
-                <label>Puertos de Comunicación</label>
+                <label>Interfaces de Comunicación</label>
                 <div id="puertosContainer" class="checks-grid">
                     {% for pt in puertos %}
                     <label class="check-card-elegant">
@@ -294,7 +294,7 @@
               </div>
 
               <div class="form-group" style="grid-column: 1 / -1;">
-                <label class="form-label">Protocolos de Comunicación</label>
+                <label class="form-label">Protocolos de TeleControl y Energía</label>
                 <div id="remotaProtocolosContainer" class="checks-grid">
                   {% for p in protocolos %}
                   <label class="check-card-elegant">
@@ -309,25 +309,23 @@
                 </div>
               </div>
 
-              <div class="form-group" style="grid-column: 1 / -1;">
-                <label class="form-label">Interfaces de Comunicación</label>
-                <div id="remotaInterfacesContainer" class="checks-grid">
-                   {% for iface in interfaces_disponibles %}
-                   <label class="check-card-elegant" data-puertos="{{ iface.Puertos_C }}">
-                     <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}">
-                     <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
-                     <div class="check-content">
-                       <span class="check-title">
-                         {% for p in iface.puertos.all %}{{ p.get_Tipo_display }}{% if not forloop.last %}, {% endif %}{% empty %}Sin puertos{% endfor %}
-                       </span>
-                       <span class="check-description">
-                         Interfaz #{{ iface.Id_Interfaz }} • {{ iface.Fecha_Reg|date:"d/m/Y" }}
-                       </span>
-                     </div>
-                   </label>
-                   {% endfor %}
-                </div>
-              </div>
+<div class="form-group" style="grid-column: 1 / -1;">
+                 <label class="form-label">Interfaces de Comunicación</label>
+                 <div id="remotaInterfacesContainer" class="checks-grid">
+                    {% for iface in interfaces_disponibles %}
+                    <label class="check-card-elegant" data-puertos="{{ iface.Puertos_C }}">
+                      <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}">
+                      <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
+                      <div class="check-content">
+                        <span class="check-title">Interfaz #{{ iface.Id_Interfaz }}</span>
+                        <span class="check-description">
+                          {% for p in iface.puertos.all %}{{ p.get_Tipo_display }}{% if not forloop.last %}, {% endif %}{% empty %}Sin puertos{% endfor %}
+                        </span>
+                      </div>
+                    </label>
+                    {% endfor %}
+                 </div>
+               </div>
             </div>
 
             <div class="form-group" style="grid-column: 1 / -1;">
