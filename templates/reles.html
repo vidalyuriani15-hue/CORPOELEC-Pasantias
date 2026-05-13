@@ -724,11 +724,22 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .data-table tr:nth-child(odd) {
-      background: #ffffff !important;
-    }
-  }
-</style>
+     .data-table tr:nth-child(odd) {
+       background: #ffffff !important;
+     }
+   }
+
+   /* Ajuste para modal de visualización: eliminar scroll anidado */
+   #viewModal .modal-body {
+     max-height: none;
+     overflow: visible;
+   }
+   #viewModal .scrollable-content {
+     height: auto !important;
+     overflow: visible !important;
+     padding-right: 0 !important;
+   }
+ </style>
 {% endblock %}
 
 {% block extra_js %}
