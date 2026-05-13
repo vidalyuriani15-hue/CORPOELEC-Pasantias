@@ -692,27 +692,12 @@
        color: var(--blue-dark);
      }
 
-     .navbar-toggle-wrapper {
-       display: none;
-     }
+      .navbar-toggle-wrapper {
+        display: none;
+      }
 
-     /* Botón fullscreen */
-     .navbar-fullscreen {
-       background: none;
-       border: none;
-       color: var(--gray-600);
-       cursor: pointer;
-       font-size: 1.2rem;
-       padding: 8px;
-       transition: color 0.3s;
-     }
-
-     .navbar-fullscreen:hover {
-       color: var(--blue-dark);
-     }
-
-     /* Overlay para sidebar en mobile */
-     .sidebar-backdrop {
+      /* Overlay para sidebar en mobile */
+      .sidebar-backdrop {
        display: none;
        position: fixed;
        top: 0;
@@ -1584,26 +1569,12 @@
         display: flex;
         margin-right: auto;
       }
-      .navbar-toggle {
-        display: block;
-      }
-    }
-    
-    .navbar-fullscreen {
-      background: none;
-      border: none;
-      color: var(--gray-600);
-      cursor: pointer;
-      font-size: 1.2rem;
-      padding: 8px;
-      transition: color 0.3s;
-    }
-    
-    .navbar-fullscreen:hover {
-      color: var(--blue-dark);
-    }
-    
-    /* Content Area */
+       .navbar-toggle {
+         display: block;
+       }
+     }
+
+     /* Content Area */
     .content-area {
       flex: 1;
       padding: 30px;
@@ -1920,13 +1891,10 @@
               <i class="fas fa-sign-out-alt"></i>
               <span>Cerrar Sesión</span>
             </a>
-            {% endif %}
-          </div>
-          <button class="navbar-fullscreen" onclick="toggleFullscreen()">
-            <i class="fas fa-expand-arrows-alt"></i>
-          </button>
-        </div>
-      </nav>
+             {% endif %}
+           </div>
+         </div>
+       </nav>
       
       <!-- Content Area -->
       <div class="content-area">
@@ -1973,18 +1941,10 @@
       const sidebar = document.getElementById('sidebar');
       const backdrop = document.getElementById('sidebarBackdrop');
       sidebar.classList.remove('active');
-      backdrop.classList.remove('active');
-    }
-    
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else {
-        document.exitFullscreen();
-      }
-    }
-    
-    // User Menu
+       backdrop.classList.remove('active');
+     }
+
+     // User Menu
     function toggleUserMenu(e) {
       if (e) {
         e.preventDefault();
