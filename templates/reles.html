@@ -228,7 +228,6 @@
                         <span class="check-icon-wrapper"><i class="fas fa-microchip"></i></span>
                         <div class="check-content">
                             <span class="check-title">{{ p.get_Tipo_display }}</span>
-                            <span class="check-description">{{ p.Tipo }}</span>
                         </div>
                     </label>
                     {% endfor %}
@@ -244,7 +243,6 @@
                         <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
                         <div class="check-content">
                             <span class="check-title">{{ pt.get_Tipo_display }}</span>
-                            <span class="check-description">{{ pt.Tipo }}</span>
                         </div>
                     </label>
                     {% endfor %}
@@ -277,21 +275,20 @@
 
               <input type="hidden" id="remota_id_hidden" name="remota_id" value="">
 
-              <div class="form-group" style="grid-column: 1 / -1;">
-                <label class="form-label">Nivel de Tensión</label>
-                <div class="checks-grid">
-                  {% for ten in tensiones %}
-                  <label class="check-card-elegant">
-                    <input type="checkbox" name="remota_nivel_tension" value="{{ ten.Id_Ten }}">
-                    <span class="check-icon-wrapper"><i class="fas fa-bolt"></i></span>
-                    <div class="check-content">
-                      <span class="check-title">{{ ten.get_Tipo_ten_display }} - {{ ten.get_Nivel_display }}</span>
-                      <span class="check-description">{{ ten.get_Nivel_display }}</span>
-                    </div>
-                  </label>
-                  {% endfor %}
+                <div class="form-group" style="grid-column: 1 / -1;">
+                  <label class="form-label">Nivel de Tensión</label>
+                  <div class="checks-grid">
+                    {% for ten in tensiones %}
+                    <label class="check-card-elegant">
+                      <input type="checkbox" name="remota_nivel_tension" value="{{ ten.Id_Ten }}">
+                      <span class="check-icon-wrapper"><i class="fas fa-bolt"></i></span>
+                      <div class="check-content">
+                        <span class="check-title">{{ ten.get_Tipo_ten_display }} - {{ ten.get_Nivel_display }}</span>
+                      </div>
+                    </label>
+                    {% endfor %}
+                  </div>
                 </div>
-              </div>
 
               <div class="form-group" style="grid-column: 1 / -1;">
                 <label class="form-label">Protocolos de TeleControl y Energía</label>
@@ -302,30 +299,42 @@
                     <span class="check-icon-wrapper"><i class="fas fa-microchip"></i></span>
                     <div class="check-content">
                       <span class="check-title">{{ p.get_Tipo_display }}</span>
-                      <span class="check-description">{{ p.Tipo }}</span>
                     </div>
                   </label>
                   {% endfor %}
                 </div>
               </div>
 
-<div class="form-group" style="grid-column: 1 / -1;">
-                 <label class="form-label">Interfaces de Comunicación</label>
-                 <div id="remotaInterfacesContainer" class="checks-grid">
+                <div class="form-group" style="grid-column: 1 / -1;">
+                  <label class="form-label">Interfaces de Comunicación</label>
+                  <div id="remotaInterfacesContainer" class="checks-grid">
                     {% for iface in interfaces_disponibles %}
-                    <label class="check-card-elegant" data-puertos="{{ iface.Puertos_C }}">
-                      <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}">
-                      <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
-                      <div class="check-content">
-                        <span class="check-title">Interfaz #{{ iface.Id_Interfaz }}</span>
-                        <span class="check-description">
-                          {% for p in iface.puertos.all %}{{ p.get_Tipo_display }}{% if not forloop.last %}, {% endif %}{% empty %}Sin puertos{% endfor %}
-                        </span>
-                      </div>
-                    </label>
+                      {% for puerto in iface.puertos.all %}
+                        <label class="check-card-elegant">
+                          <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}">
+                          <span class="check-icon-wrapper">
+                            {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
+                            {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
+                            {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
+                            {% if puerto.Tipo == 'USB' %}<i class="fas fa-usb"></i>{% endif %}
+                            {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
+                          </span>
+                          <div class="check-content">
+                            <span class="check-title">{{ puerto.get_Tipo_display }}</span>
+                          </div>
+                        </label>
+                      {% empty %}
+                        <label class="check-card-elegant disabled">
+                          <input type="checkbox" disabled>
+                          <span class="check-icon-wrapper"><i class="fas fa-times"></i></span>
+                          <div class="check-content">
+                            <span class="check-title">Sin puertos</span>
+                          </div>
+                        </label>
+                      {% endfor %}
                     {% endfor %}
-                 </div>
-               </div>
+                  </div>
+                </div>
             </div>
 
             <div class="form-group" style="grid-column: 1 / -1;">
@@ -430,152 +439,161 @@
   .form-group input[type="file"]:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
   .form-text { display:block; margin-top:4px; font-size:0.75rem; color:#6c757d; }
    .checks-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
-   .check-card-elegant {
-     position: relative;
-     display: flex;
-     align-items: center;
-     gap: 14px;
-     padding: 16px 18px;
-     background: #fff;
-     border: 2px solid #e8eaf6;
-     border-radius: 10px;
-     cursor: pointer;
-     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-     overflow: hidden;
-   }
-   .check-card-elegant:hover {
-     border-color: #4DA6FF;
-     background: linear-gradient(135deg, #f0f9ff 0%, #e8f4fd 100%);
-     transform: translateY(-2px);
-     box-shadow: 0 6px 20px rgba(77, 166, 255, 0.12);
-   }
-   .check-card-elegant input[type="checkbox"] {
-     position: absolute;
-     opacity: 0;
-     pointer-events: none;
-   }
-   .check-card-elegant input[type="checkbox"]:checked + .check-icon-wrapper {
-     background: #4DA6FF;
-     border-color: #4DA6FF;
-     color: #fff;
-     box-shadow: 0 2px 8px rgba(77, 166, 255, 0.35);
-   }
-   .check-card-elegant input[type="checkbox"]:checked ~ .check-content .check-title {
-     color: #1a56db;
-   }
-   .check-icon-wrapper {
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     width: 40px;
-     height: 40px;
-     min-width: 40px;
-     background: #f8fafc;
-     border: 2px solid #e5e7eb;
-     border-radius: 8px;
-     font-size: 15px;
-     color: #6B7280;
-     transition: all 0.25s ease;
-   }
-   .check-content {
-     display: flex;
-     flex-direction: column;
-     gap: 3px;
-     line-height: 1.4;
-   }
-   .check-title {
-     font-size: 0.9rem;
-     font-weight: 600;
-     color: #1F2937;
-     transition: color 0.2s ease;
-   }
-   .check-description {
-     font-size: 0.78rem;
-     color: #6B7280;
-     line-height: 1.4;
-   }
-   /* Responsive para móvil */
-@media (max-width: 768px) {
-      .checks-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    /* === CHECKS COMPACTOS PARA REMOTAS === */
-    .checks-grid.compact {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 6px;
-    }
-    .check-card-compact {
+    .check-card-elegant {
       position: relative;
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 8px;
+      gap: 8px;
+      padding: 8px 10px;
       background: #fff;
-      border: 1.5px solid #e8eaf6;
-      border-radius: 5px;
+      border: 2px solid #e8eaf6;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
     }
-    .check-card-compact:hover {
+    .check-card-elegant:hover {
       border-color: #4DA6FF;
-      background: #f0f9ff;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e8f4fd 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(77, 166, 255, 0.12);
     }
-    .check-card-compact input[type="radio"] {
+    .check-card-elegant input[type="checkbox"] {
       position: absolute;
       opacity: 0;
       pointer-events: none;
     }
-    .check-card-compact input[type="radio"]:checked + .check-icon-wrapper {
+    .check-card-elegant input[type="checkbox"]:checked + .check-icon-wrapper {
       background: #4DA6FF;
       border-color: #4DA6FF;
       color: #fff;
+      box-shadow: 0 2px 6px rgba(77, 166, 255, 0.35);
     }
-    .check-card-compact input[type="checkbox"] {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-    .check-card-compact input[type="checkbox"]:checked + .check-icon-wrapper {
-      background: #4DA6FF;
-      border-color: #4DA6FF;
-      color: #fff;
+    .check-card-elegant input[type="checkbox"]:checked ~ .check-content .check-title {
+      color: #1a56db;
     }
     .check-icon-wrapper {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 20px;
-      height: 20px;
-      min-width: 20px;
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
       background: #f8fafc;
-      border: 1.5px solid #e5e7eb;
-      border-radius: 4px;
-      font-size: 10px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 12px;
       color: #6B7280;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
     }
     .check-content {
       display: flex;
       flex-direction: column;
-      gap: 0;
-      line-height: 1.2;
+      gap: 1px;
+      line-height: 1.3;
+      flex: 1;
     }
     .check-title {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 600;
       color: #1F2937;
+      transition: color 0.2s ease;
+    }
+    .check-card-elegant:hover {
+      border-color: #4DA6FF;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e8f4fd 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(77, 166, 255, 0.12);
+    }
+    .check-card-elegant input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .check-card-elegant input[type="checkbox"]:checked + .check-icon-wrapper {
+      background: #4DA6FF;
+      border-color: #4DA6FF;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(77, 166, 255, 0.35);
+    }
+    .check-card-elegant input[type="checkbox"]:checked ~ .check-content .check-title {
+      color: #1a56db;
+    }
+    .check-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      background: #f8fafc;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #6B7280;
+      transition: all 0.25s ease;
+    }
+    .check-content {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      line-height: 1.4;
+      flex: 1;
+    }
+    .check-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #1F2937;
+      transition: color 0.2s ease;
     }
     .check-description {
-      font-size: 0.6rem;
+      font-size: 0.7rem;
       color: #6B7280;
+      line-height: 1.4;
     }
-    @media (max-width: 768px) {
-      .checks-grid.compact {
-        grid-template-columns: 1fr;
-      }
-}
+    /* Badges de puertos dentro de interfaces de remota */
+    .interfaces-con-puertos .check-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .puertos-lista {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 2px;
+    }
+    .puerto-badge-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .puerto-icon-mini {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 10px;
+      height: 10px;
+      font-size: 0.6rem;
+      color: #4DA6FF;
+    }
+    .puerto-text-mini {
+      color: #1F2937;
+      line-height: 1;
+    }
+    .no-puertos {
+      font-size: 0.7rem;
+      color: #9CA3AF;
+      font-style: italic;
+    }
     /* === SECCIÓN DE REMOTA === */
     .remota-config-section {
       background: #f8fafc;
