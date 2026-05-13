@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*- 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
@@ -21,14 +21,13 @@ def index_view(request):
     total_reles = Rele.objects.count() or 0
     total_subestaciones = Subestacion.objects.count() or 0
     total_remotas = Remota.objects.count() or 0
-    total_interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS').count() or 0
-    # Contar las interfaces de tipo PROTOCOLOS como "registros de protocolos"
-    total_protocolos = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS').count() or 0
+    total_interfaces = InterfazDeComunicacion.objects.count() or 0
+    total_protocolos = Protocolo.objects.count() or 0
     total_tensiones = NivelTension.objects.count() or 0
 
     ultimos_reconectadores = list(Reconectador.objects.all().order_by('-Fecha_Reg')[:5]) if total_reconectadores > 0 else []
     ultimos_reles = list(Rele.objects.all().order_by('-Fecha_Reg')[:5]) if total_reles > 0 else []
-    
+    ultimas_subestaciones = list(Subestacion.objects.all().order_by('-Fecha_Reg')[:5]) if total_subestaciones > 0 else []
     context = {
         'title': 'GridGuard - Dashboard',
         'total_reconectadores': total_reconectadores,
@@ -40,6 +39,7 @@ def index_view(request):
         'total_tensiones': total_tensiones,
         'ultimos_reconectadores': ultimos_reconectadores,
         'ultimos_reles': ultimos_reles,
+        'ultimas_subestaciones': ultimas_subestaciones,
     }
     return render(request, 'index.html', context)
 

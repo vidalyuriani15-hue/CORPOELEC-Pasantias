@@ -47,17 +47,18 @@
     
     {% if page_obj.paginator.count > 0 %}
      <table class="data-table">
-        <thead>
-          <tr>
-            <!-- Columnas de datos de la subestación -->
-            <th>Nombre</th>
-            <th>Ubicación</th>
-            <th>Nivel de Tensión</th>
-            <th>Coordenadas</th>
-            <th>Fecha de Registro</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+<thead>
+           <tr>
+             <!-- Columnas de datos de la subestación -->
+             <th>Nombre</th>
+             <th>Ubicación</th>
+             <th>Nivel de Tensión</th>
+             <th>Coordenadas</th>
+             {% if is_admin %}<th>Creado Por</th>{% endif %}
+             <th>Fecha de Registro</th>
+             <th>Acciones</th>
+           </tr>
+         </thead>
       <tbody>
         {% for sub in page_obj %}
         <tr>
@@ -66,6 +67,7 @@
             <td>{{ sub.Id_Ten.get_Tipo_ten_display }} - {{ sub.Id_Ten.get_Nivel_display }}</td>
           <!-- Muestra "—" si no hay coordenadas registradas -->
           <td>{{ sub.Coordenadas|default:"—" }}</td>
+          {% if is_admin %}<td>{{ sub.creado_por.username|default:"Sistema" }}</td>{% endif %}
           <td>{{ sub.Fecha_Reg|date:"d/m/Y" }}</td>
            <td class="actions-cell">
             <!-- Botón editar (abre modal con datos precargados) -->
