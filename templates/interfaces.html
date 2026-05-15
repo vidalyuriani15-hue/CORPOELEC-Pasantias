@@ -9,7 +9,7 @@
 </div>
 
 {% if messages %}
-<div class="messages">
+<div class="messages" id="messages-container">
   {% for message in messages %}
   <div class="alert alert-{{ message.tags }}">{{ message }}</div>
   {% endfor %}
@@ -743,14 +743,23 @@
     const modales = document.querySelectorAll('.modal');
     modales.forEach(modal => { if (event.target === modal) { modal.classList.remove('active'); } });
   }
-  document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       document.getElementById('modalAgregar').classList.remove('active');
       document.getElementById('modalEditar').classList.remove('active');
     }
   });
    document.querySelectorAll('.modal .close').forEach(btn => {
-     btn.addEventListener('click', function() { this.closest('.modal').classList.remove('active'); });
-   });
-</script>
+      btn.addEventListener('click', function() { this.closest('.modal').classList.remove('active'); });
+    });
+  // Auto-hide messages after 5 seconds
+  setTimeout(function() {
+    const messagesContainer = document.getElementById('messages-container');
+    if (messagesContainer) {
+      messagesContainer.style.transition = 'opacity 0.5s ease';
+      messagesContainer.style.opacity = '0';
+      setTimeout(function() { messagesContainer.style.display = 'none'; }, 500);
+    }
+  }, 5000);
+ </script>
 {% endblock %}

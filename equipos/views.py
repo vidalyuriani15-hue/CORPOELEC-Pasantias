@@ -915,14 +915,18 @@ def exportar_interfaces_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
     elements.append(Spacer(1, 6))
 
-    interfaces = InterfazDeComunicacion.objects.prefetch_related('puertos').all().order_by('Id_Interfaz')
-    data = [['ID Interfaz', 'Puertos', 'Fecha Registro']]
+    interfaces = InterfazDeComunicacion.objects.filter(Activo=True).prefetch_related('puertos').all().order_by('Id_Interfaz')
+    # Solo mostrar interfaces que tengan al menos un puerto
+    interfaces = [i for i in interfaces if i.puertos.exists()]
+    
+    data = [['Puertos', 'Creado Por', 'Fecha Registro']]
     for interfaz in interfaces:
         puertos_list = [p.get_Tipo_display() for p in interfaz.puertos.all()]
         puertos_str = ', '.join(puertos_list) if puertos_list else 'Sin puertos'
-        data.append([interfaz.Id_Interfaz, puertos_str, interfaz.Fecha_Reg.strftime('%d/%m/%Y') if interfaz.Fecha_Reg else ''])
+        creado_por = interfaz.creado_por.username if interfaz.creado_por else 'Sistema'
+        data.append([puertos_str, creado_por, interfaz.Fecha_Reg.strftime('%d/%m/%Y') if interfaz.Fecha_Reg else ''])
 
-    table = Table(data, colWidths=[1.0*inch, 4.0*inch, 1.5*inch])
+    table = Table(data, colWidths=[3.5*inch, 2.0*inch, 1.5*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -1014,14 +1018,25 @@ def exportar_protocolo_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
     elements.append(Spacer(1, 6))
 
-    protocolos = Protocolo.objects.select_related('Id_Interfaz').all().order_by('Tipo')
-    data = [['ID Protocolo', 'Tipo', 'Interfaz', 'Estado', 'Fecha Registro']]
-    for protocolo in protocolos:
-        interfaz_str = f"Interfaz {protocolo.Id_Interfaz.Id_Interfaz}" if protocolo.Id_Interfaz else 'N/A'
-        fecha_reg = protocolo.Fecha_Reg.strftime('%d/%m/%Y') if protocolo.Fecha_Reg else 'N/A'
-        data.append([protocolo.Id_Protocolo, protocolo.get_Tipo_display(), interfaz_str, protocolo.Estado, fecha_reg])
+    from collections import defaultdict
+    # Agrupar protocolos por interfaz (solo interfaces activas con interfaz asignada)
+    protocolos_por_interfaz = defaultdict(list)
+    creado_por_por_interfaz = {}
+    fecha_por_interfaz = {}
+    
+    for protocolo in Protocolo.objects.filter(Id_Interfaz__isnull=False, Id_Interfaz__Activo=True).select_related('Id_Interfaz').all().order_by('Tipo'):
+        interfaz_id = protocolo.Id_Interfaz.Id_Interfaz
+        protocolos_por_interfaz[interfaz_id].append(protocolo.get_Tipo_display())
+        if interfaz_id not in creado_por_por_interfaz:
+            creado_por_por_interfaz[interfaz_id] = protocolo.creado_por.username if protocolo.creado_por else 'Sistema'
+            fecha_por_interfaz[interfaz_id] = protocolo.Fecha_Reg.strftime('%d/%m/%Y') if protocolo.Fecha_Reg else ''
+    
+    data = [['Protocolos', 'Creado Por', 'Fecha de Registro']]
+    for interfaz_id, protocolos_list in protocolos_por_interfaz.items():
+        protocolos_str = ', '.join(protocolos_list)
+        data.append([protocolos_str, creado_por_por_interfaz[interfaz_id], fecha_por_interfaz[interfaz_id]])
 
-    table = Table(data, colWidths=[1.0*inch, 1.5*inch, 1.5*inch, 1.0*inch, 2.0*inch])
+    table = Table(data, colWidths=[2.5*inch, 2.0*inch, 1.5*inch], repeatRows=1)
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -1055,7 +1070,7 @@ def exportar_subestaciones_pdf(request):
     """Exporta todas las subestaciones a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.pagesizes import landscape, letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
@@ -1063,7 +1078,7 @@ def exportar_subestaciones_pdf(request):
     from io import BytesIO
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
     elements = []
     styles = getSampleStyleSheet()
 
@@ -1113,19 +1128,23 @@ def exportar_subestaciones_pdf(request):
     elements.append(Spacer(1, 6))
 
     subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
-    data = [['Nombre', 'Nivel de Tensión', 'Ubicación']]
+    data = [['Nombre', 'Ubicación', 'Nivel de Tensión', 'Coordenadas', 'Creado Por', 'Fecha de Registro']]
     for sub in subestaciones:
-        data.append([sub.Nombre, sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else '', sub.Ubicación if hasattr(sub, 'Ubicación') and sub.Ubicación else ''])
+        nivel = sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else ''
+        coordenadas = sub.Coordenadas if sub.Coordenadas else ''
+        creado_por = sub.creado_por.username if sub.creado_por else 'Sistema'
+        fecha = sub.Fecha_Reg.strftime('%d/%m/%Y') if sub.Fecha_Reg else ''
+        data.append([sub.Nombre, sub.Ubicación, nivel, coordenadas, creado_por, fecha])
 
-    table = Table(data, colWidths=[2.2*inch, 2.0*inch, 3.0*inch])
+    table = Table(data, colWidths=[1.4*inch, 1.4*inch, 1.8*inch, 1.5*inch, 1.5*inch, 1.5*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('TOPPADDING', (0, 0), (-1, 0), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
