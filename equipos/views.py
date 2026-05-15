@@ -1228,12 +1228,13 @@ def exportar_remotas_pdf(request):
     elements.append(Spacer(1, 6))
 
     remotas = Remota.objects.select_related('Id_Ten').all().order_by('Id_Remota')
-    data = [['ID Remota', 'Marca', 'Modelo', 'Nivel de Tensión', 'Fecha Registro']]
+    data = [['Marca', 'Modelo', 'Nivel de Tensión', 'Creado Por', 'Fecha Registro']]
     for remota in remotas:
         nivel_ten = f"{remota.Id_Ten.get_Tipo_ten_display()} - {remota.Id_Ten.get_Nivel_display()}" if remota.Id_Ten else ''
-        data.append([remota.Id_Remota, remota.Marca if remota.Marca else '', remota.Modelo if remota.Modelo else '', nivel_ten, remota.Fecha_Reg.strftime('%d/%m/%Y') if remota.Fecha_Reg else ''])
+        creado_por = remota.creado_por.username if remota.creado_por and remota.creado_por.username else 'Sistema'
+        data.append([remota.Marca if remota.Marca else '', remota.Modelo if remota.Modelo else '', nivel_ten, creado_por, remota.Fecha_Reg.strftime('%d/%m/%Y') if remota.Fecha_Reg else ''])
 
-    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 2.2*inch, 1.5*inch])
+    table = Table(data, colWidths=[1.5*inch, 1.5*inch, 2.2*inch, 1.5*inch, 1.5*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
