@@ -105,6 +105,10 @@ class InterfazDeComunicacion(models.Model):
     Fecha_Reg = models.DateField(auto_now_add=True)  # Fecha de registro automática
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='interfaces_creadas')  # Usuario que creó el registro
     Tipo_Interfaz = models.CharField(max_length=20, choices=TIPO_INTERFAZ_CHOICES, default='PUERTOS', verbose_name='Tipo de Interfaz')  # Tipo de interfaz
+    Activo = models.BooleanField(default=True, verbose_name='Activo')  # Para eliminación lógica
+    
+    objects = models.Manager()
+    activos = models.Manager()  # Manager por defecto para filtrar activos
     
     class Meta:
         verbose_name = 'Interfaz de Comunicación'
@@ -135,7 +139,7 @@ class PuertoComunicacion(models.Model):
         ('FIBRA', 'Fibra Óptica'),
     ]
     Id_Puerto = models.AutoField(primary_key=True)  # Identificador único
-    Id_Interfaz = models.ForeignKey(InterfazDeComunicacion, on_delete=models.CASCADE, related_name='puertos')  # Interface a la que pertenece
+    Id_Interfaz = models.ForeignKey(InterfazDeComunicacion, on_delete=models.SET_NULL, null=True, blank=True, related_name='puertos')  # Interface a la que pertenece - SET_NULL permite eliminar interfaz sin borrar puertos
     Tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='ETH', verbose_name='Tipo de Puerto')  # Tipo de puerto (enumerado)
     Estado = models.CharField(max_length=50, default='Activo', verbose_name='Estado')  # Estado operativo
     Fecha_Reg = models.DateField(auto_now_add=True)  # Fecha de registro automática
@@ -182,11 +186,12 @@ class Protocolo(models.Model):
         ('MODBUS', 'Modbus'),
     ]
     Id_Protocolo = models.AutoField(primary_key=True)  # Identificador único
-    Id_Interfaz = models.ForeignKey(InterfazDeComunicacion, on_delete=models.CASCADE, null=True, blank=True, related_name='protocolos', verbose_name='Interfaz')  # Interface asociada (puede ser nulo)
+    Id_Interfaz = models.ForeignKey(InterfazDeComunicacion, on_delete=models.SET_NULL, null=True, blank=True, related_name='protocolos', verbose_name='Interfaz')  # Interface asociada - SET_NULL permite eliminar interfaz sin borrar protocolos
     Tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, verbose_name='Tipo de Protocolo')  # Tipo de protocolo (enumerado)
     Estado = models.CharField(max_length=50, default='Activo', verbose_name='Estado')  # Estado operativo
     Fecha_Reg = models.DateField(auto_now_add=True, verbose_name='Fecha de Registro')  # Fecha de registro automática
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='protocolos_creados')  # Usuario que creó el registro
+    Activo = models.BooleanField(default=True, verbose_name='Activo')  # Para eliminación lógica
     
 
     class Meta:

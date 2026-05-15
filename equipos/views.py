@@ -1,7 +1,7 @@
 ﻿# -*- coding: utf-8 -*- 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -238,22 +238,26 @@ def interfaces_view(request):
             iface_id = request.POST.get('interfaz_id')
             try:
                 iface = InterfazDeComunicacion.objects.get(Id_Interfaz=iface_id)
-                # Verificar dependencias antes de eliminar (D4)
-                reles_afectados = Rele.objects.filter(
-                    Q(Puertos__Id_Interfaz=iface_id)
-                ).distinct()
-                remotas_afectadas = Remota.objects.filter(Interfaces=iface).distinct()
-
-                if reles_afectados.exists() or remotas_afectadas.exists():
-                    messages.error(request,
-                        f'No se puede eliminar la interfaz: {reles_afectados.count()} rel(s) y '
-                        f'{remotas_afectadas.count()} remota(s) dependen de ella. '
-                        f'Reasigne o elimine las dependencias primero.')
-                    return redirect('interfaces')
-
+                
                 with transaction.atomic():
-                    iface.delete()
-                messages.success(request, 'Interfaz eliminada correctamente.')
+                    # Limpiar relaciones M2M de Relés antes de desactivar
+                    reles_afectados = Rele.objects.filter(
+                        Q(Puertos__Id_Interfaz=iface_id) | Q(Protocolos__Id_Interfaz=iface_id)
+                    ).distinct()
+                    for rele in reles_afectados:
+                        rele.Puertos.remove(*rele.Puertos.filter(Id_Interfaz=iface_id).values_list('Id_Puerto', flat=True))
+                        rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=iface_id).values_list('Id_Protocolo', flat=True))
+                    
+                    # Limpiar relaciones M2M de Remotas
+                    remotas_afectadas = Remota.objects.filter(Interfaces=iface).distinct()
+                    for remota in remotas_afectadas:
+                        remota.Interfaces.remove(iface_id)
+                        remota.Protocolos.remove(*remota.Protocolos.filter(Id_Interfaz=iface_id).values_list('Id_Protocolo', flat=True))
+                    
+                    # Eliminación lógica: marcar como inactivo
+                    iface.Activo = False
+                    iface.save()
+                messages.success(request, 'Interfaz de Comunicación eliminada correctamente.')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -307,7 +311,7 @@ def interfaces_view(request):
                 messages.success(request, 'Interfaz creada correctamente.')
                 return redirect('interfaces')
     
-    interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS').prefetch_related('puertos').order_by('Id_Interfaz')
+    interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).prefetch_related('puertos').order_by('Id_Interfaz')
     paginator = Paginator(interfaces_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -377,30 +381,35 @@ def protocolo_view(request):
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
         
-        # Eliminar interfaz con verificación de dependencias
+        # Eliminar interfaz con limpieza de dependencias (eliminación lógica)
         elif request.POST.get('eliminar'):
             interfaz_id = request.POST.get('interfaz_id')
             try:
                 interfaz = InterfazDeComunicacion.objects.get(Id_Interfaz=interfaz_id)
-                reles_afectados = Rele.objects.filter(
-                    Q(Protocolos__Id_Interfaz=interfaz_id) | Q(Puertos__Id_Interfaz=interfaz_id)
-                ).distinct()
-                remotas_afectadas = Remota.objects.filter(Interfaces=interfaz).distinct()
-
-                if reles_afectados.exists() or remotas_afectadas.exists():
-                    messages.error(request,
-                        f'No se puede eliminar la interfaz: {reles_afectados.count()} relé(s) y '
-                        f'{remotas_afectadas.count()} remota(s) dependen de ella. '
-                        f'Reasigne o elimine las dependencias primero.')
-                    return redirect('protocolo')
-
+                
                 with transaction.atomic():
-                    interfaz.delete()
-                messages.success(request, 'Interfaz eliminada correctamente')
+                    # Limpiar relaciones M2M de Relés
+                    reles_afectados = Rele.objects.filter(
+                        Q(Protocolos__Id_Interfaz=interfaz_id) | Q(Puertos__Id_Interfaz=interfaz_id)
+                    ).distinct()
+                    for rele in reles_afectados:
+                        rele.Puertos.remove(*rele.Puertos.filter(Id_Interfaz=interfaz_id).values_list('Id_Puerto', flat=True))
+                        rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=interfaz_id).values_list('Id_Protocolo', flat=True))
+                    
+                    # Limpiar relaciones M2M de Remotas
+                    remotas_afectadas = Remota.objects.filter(Interfaces=interfaz).distinct()
+                    for remota in remotas_afectadas:
+                        remota.Interfaces.remove(interfaz_id)
+                        remota.Protocolos.remove(*remota.Protocolos.filter(Id_Interfaz=interfaz_id).values_list('Id_Protocolo', flat=True))
+                    
+                    # Eliminación lógica
+                    interfaz.Activo = False
+                    interfaz.save()
+                messages.success(request, 'Protocolos de Telecontrol y Energía eliminados correctamente.')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
     
-    interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS').prefetch_related('protocolos').all().order_by('Id_Interfaz')
+    interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS', Activo=True).prefetch_related('protocolos').all().order_by('Id_Interfaz')
     paginator = Paginator(interfaces, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -641,16 +650,16 @@ def reles_view(request):
         subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
         tensiones = list(NivelTension.objects.all().order_by('Nivel'))
         
-        # Protocolos únicos por tipo (evita duplicados con mismo Tipo)
+        # Protocolos únicos por tipo (solo activos)
         protocolos_dict = {}
-        for p in Protocolo.objects.all().order_by('Tipo'):
+        for p in Protocolo.objects.filter(Activo=True).order_by('Tipo'):
             if p.Tipo not in protocolos_dict:
                 protocolos_dict[p.Tipo] = p
         protocolos = list(protocolos_dict.values())
         
-        # Puertos únicos por tipo (evita duplicados con mismo Tipo)
+        # Puertos únicos por tipo (solo de interfaces activas)
         puertos_dict = {}
-        for pt in PuertoComunicacion.objects.all().order_by('Tipo'):
+        for pt in PuertoComunicacion.objects.filter(Id_Interfaz__Activo=True).order_by('Tipo'):
             if pt.Tipo not in puertos_dict:
                 puertos_dict[pt.Tipo] = pt
         puertos = list(puertos_dict.values())
@@ -663,9 +672,9 @@ def reles_view(request):
                 remotas_dict[key] = r
         remotas = list(remotas_dict.values())
         
-        # Solo interfaces de tipo PUERTOS pueden asignarse a remotas
+        # Solo interfaces de tipo PUERTOS activas pueden asignarse a remotas
         interfaces_disponibles = InterfazDeComunicacion.objects.filter(
-            Tipo_Interfaz='PUERTOS'
+            Tipo_Interfaz='PUERTOS', Activo=True
         ).prefetch_related('puertos').order_by('Id_Interfaz')
         
         context = {
@@ -727,9 +736,9 @@ def api_remotas(request):
             
             interfaces_por_remota[remota.Id_Remota] = list(remota.Interfaces.values_list('Id_Interfaz', flat=True))
         
-        # Solo interfaces de tipo PUERTOS están disponibles para asignar a remotas
+        # Solo interfaces de tipo PUERTOS activas están disponibles para asignar a remotas
         interfaces_disponibles = list(InterfazDeComunicacion.objects.filter(
-            Tipo_Interfaz='PUERTOS'
+            Tipo_Interfaz='PUERTOS', Activo=True
         ).values_list('Id_Interfaz', flat=True).distinct())
         
         return JsonResponse({
@@ -747,10 +756,11 @@ def exportar_tensiones_pdf(request):
     from datetime import datetime
     from reportlab.lib.pagesizes import landscape, letter
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
+    from django.http import FileResponse
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -758,48 +768,88 @@ def exportar_tensiones_pdf(request):
     styles = getSampleStyleSheet()
 
     logo_path = find('img/logo_corpoelec.png')
-    if not logo_path: logo_path = find('img/logo.jpg')
+    if not logo_path:
+        logo_path = find('img/logo.jpg')
 
     if logo_path:
-        elements.append(Paragraph("<font size=12><b>CORPOELEC</b></font>", styles['Normal']))
-        elements.append(Paragraph("<font size=11><b>Niveles de Tensión Registrados</b></font>", styles['Normal']))
-        elements.append(Paragraph(f"<font size=8>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", styles['Normal']))
+        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
+        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=14, leading=16, alignment=0))
+        logo_corpoelec_data = [[logo_img, corpoelec_text]]
+        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
+        logo_corpoelec_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+
+        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
+        title_paragraph = Paragraph('<b>Niveles de Tensión Registrados</b>', title_style)
+        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
+        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
+
+        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
+        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=14><b>Niveles de Tensión Registrados</b></font>", styles['Heading1']))
+        elements.append(Paragraph("<font size=16><b>Niveles de Tensión Registrados</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
+        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
 
     elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
-    elements.append(Spacer(1, 18))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+    elements.append(Spacer(1, 6))
 
     tensiones = NivelTension.objects.all().order_by('Nivel')
-    data = [['Nivel', 'Tipo']]
+    data = [['Tipo', 'Nivel (kV)', 'Creado Por', 'Fecha Registro']]
     for tension in tensiones:
-        data.append([tension.get_Nivel_display(), tension.get_Tipo_ten_display()])
+        creado_por = tension.creado_por.get_full_name() if tension.creado_por else 'Sistema'
+        fecha_reg = tension.Fecha_Reg.strftime('%d/%m/%Y') if tension.Fecha_Reg else ''
+        data.append([
+            tension.get_Tipo_ten_display(),
+            tension.get_Nivel_display(),
+            creado_por,
+            fecha_reg
+        ])
 
-    table = Table(data, colWidths=[2.0*inch, 4.0*inch])
+    table = Table(data, colWidths=[1.8*inch, 1.5*inch, 3.0*inch, 1.8*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('TOPPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 20))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+    elements.append(Spacer(1, 15))
+
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     elements.append(Spacer(1, 4))
-    elements.append(Paragraph("<font size=8 color=grey>Corporación Eléctrica Nacional S.A. - Documento de carácter oficial</font>", styles['Normal']))
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
+    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
 
     doc.build(elements)
     buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
+    response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="tensiones.pdf"'
     return response
 
@@ -808,31 +858,62 @@ def exportar_interfaces_pdf(request):
     """Exporta todas las interfaces a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     elements = []
     styles = getSampleStyleSheet()
 
     logo_path = find('img/logo_corpoelec.png')
-    if not logo_path: logo_path = find('img/logo.jpg')
+    if not logo_path:
+        logo_path = find('img/logo.jpg')
 
     if logo_path:
-        elements.append(Paragraph("<font size=12><b>CORPOELEC</b></font>", styles['Normal']))
-        elements.append(Paragraph("<font size=11><b>Interfaces Registradas</b></font>", styles['Normal']))
-        elements.append(Paragraph(f"<font size=8>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", styles['Normal']))
+        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
+        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=12, leading=14, alignment=0))
+        logo_corpoelec_data = [[logo_img, corpoelec_text]]
+        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
+        logo_corpoelec_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+
+        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
+        title_paragraph = Paragraph('<b>Interfaces Registradas</b>', title_style)
+        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
+        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
+
+        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
+        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=14><b>Interfaces Registradas</b></font>", styles['Heading1']))
+        elements.append(Paragraph("<font size=16><b>Interfaces Registradas</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
+        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
 
     elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
-    elements.append(Spacer(1, 18))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+    elements.append(Spacer(1, 6))
 
     interfaces = InterfazDeComunicacion.objects.prefetch_related('puertos').all().order_by('Id_Interfaz')
     data = [['ID Interfaz', 'Puertos', 'Fecha Registro']]
@@ -841,63 +922,97 @@ def exportar_interfaces_pdf(request):
         puertos_str = ', '.join(puertos_list) if puertos_list else 'Sin puertos'
         data.append([interfaz.Id_Interfaz, puertos_str, interfaz.Fecha_Reg.strftime('%d/%m/%Y') if interfaz.Fecha_Reg else ''])
 
-    table = Table(data, colWidths=[1.5*inch, 2.0*inch, 2.5*inch])
+    table = Table(data, colWidths=[1.0*inch, 4.0*inch, 1.5*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('TOPPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 20))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+    elements.append(Spacer(1, 15))
+
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     elements.append(Spacer(1, 4))
-    elements.append(Paragraph("<font size=8 color=grey>Corporación Eléctrica Nacional S.A. - Documento de carácter oficial</font>", styles['Normal']))
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
+    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
 
     doc.build(elements)
     buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
+    response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="interfaces.pdf"'
     return response
+
 
 @login_required(login_url='/login/')
 def exportar_protocolo_pdf(request):
     """Exporta todos los protocolos a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     elements = []
     styles = getSampleStyleSheet()
 
     logo_path = find('img/logo_corpoelec.png')
-    if not logo_path: logo_path = find('img/logo.jpg')
+    if not logo_path:
+        logo_path = find('img/logo.jpg')
 
     if logo_path:
-        elements.append(Paragraph("<font size=12><b>CORPOELEC</b></font>", styles['Normal']))
-        elements.append(Paragraph("<font size=11><b>Protocolos Registrados</b></font>", styles['Normal']))
-        elements.append(Paragraph(f"<font size=8>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", styles['Normal']))
+        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
+        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=12, leading=14, alignment=0))
+        logo_corpoelec_data = [[logo_img, corpoelec_text]]
+        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
+        logo_corpoelec_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+
+        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
+        title_paragraph = Paragraph('<b>Protocolos Registrados</b>', title_style)
+        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
+        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
+
+        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
+        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=14><b>Protocolos Registrados</b></font>", styles['Heading1']))
+        elements.append(Paragraph("<font size=16><b>Protocolos Registrados</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
+        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
 
     elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
-    elements.append(Spacer(1, 18))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+    elements.append(Spacer(1, 6))
 
     protocolos = Protocolo.objects.select_related('Id_Interfaz').all().order_by('Tipo')
     data = [['ID Protocolo', 'Tipo', 'Interfaz', 'Estado', 'Fecha Registro']]
@@ -906,30 +1021,32 @@ def exportar_protocolo_pdf(request):
         fecha_reg = protocolo.Fecha_Reg.strftime('%d/%m/%Y') if protocolo.Fecha_Reg else 'N/A'
         data.append([protocolo.Id_Protocolo, protocolo.get_Tipo_display(), interfaz_str, protocolo.Estado, fecha_reg])
 
-    table = Table(data, colWidths=[1.2*inch, 1.2*inch, 1.5*inch, 1.2*inch, 1.5*inch])
+    table = Table(data, colWidths=[1.0*inch, 1.5*inch, 1.5*inch, 1.0*inch, 2.0*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('TOPPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 20))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+    elements.append(Spacer(1, 15))
+
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     elements.append(Spacer(1, 4))
-    elements.append(Paragraph("<font size=8 color=grey>Corporación Eléctrica Nacional S.A. - Documento de carácter oficial</font>", styles['Normal']))
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
+    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
 
     doc.build(elements)
     buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
+    response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="protocolos.pdf"'
     return response
 
@@ -938,61 +1055,94 @@ def exportar_subestaciones_pdf(request):
     """Exporta todas las subestaciones a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     elements = []
     styles = getSampleStyleSheet()
 
     logo_path = find('img/logo_corpoelec.png')
-    if not logo_path: logo_path = find('img/logo.jpg')
+    if not logo_path:
+        logo_path = find('img/logo.jpg')
 
     if logo_path:
-        elements.append(Paragraph("<font size=12><b>CORPOELEC</b></font>", styles['Normal']))
-        elements.append(Paragraph("<font size=11><b>Subestaciones Registradas</b></font>", styles['Normal']))
-        elements.append(Paragraph(f"<font size=8>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", styles['Normal']))
+        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
+        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=12, leading=14, alignment=0))
+        logo_corpoelec_data = [[logo_img, corpoelec_text]]
+        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
+        logo_corpoelec_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+
+        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
+        title_paragraph = Paragraph('<b>Subestaciones Registradas</b>', title_style)
+        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
+        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
+
+        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
+        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=14><b>Subestaciones Registradas</b></font>", styles['Heading1']))
+        elements.append(Paragraph("<font size=16><b>Subestaciones Registradas</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
+        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
 
     elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
-    elements.append(Spacer(1, 18))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+    elements.append(Spacer(1, 6))
 
     subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
     data = [['Nombre', 'Nivel de Tensión', 'Ubicación']]
     for sub in subestaciones:
         data.append([sub.Nombre, sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else '', sub.Ubicación if hasattr(sub, 'Ubicación') and sub.Ubicación else ''])
 
-    table = Table(data, colWidths=[2.0*inch, 2.0*inch, 2.0*inch])
+    table = Table(data, colWidths=[2.2*inch, 2.0*inch, 3.0*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('TOPPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 20))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+    elements.append(Spacer(1, 15))
+
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     elements.append(Spacer(1, 4))
-    elements.append(Paragraph("<font size=8 color=grey>Corporación Eléctrica Nacional S.A. - Documento de carácter oficial</font>", styles['Normal']))
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
+    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
 
     doc.build(elements)
     buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
+    response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="subestaciones.pdf"'
     return response
 
@@ -1001,31 +1151,62 @@ def exportar_remotas_pdf(request):
     """Exporta todas las remotas a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     elements = []
     styles = getSampleStyleSheet()
 
     logo_path = find('img/logo_corpoelec.png')
-    if not logo_path: logo_path = find('img/logo.jpg')
+    if not logo_path:
+        logo_path = find('img/logo.jpg')
 
     if logo_path:
-        elements.append(Paragraph("<font size=12><b>CORPOELEC</b></font>", styles['Normal']))
-        elements.append(Paragraph("<font size=11><b>Remotas Registradas</b></font>", styles['Normal']))
-        elements.append(Paragraph(f"<font size=8>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", styles['Normal']))
+        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
+        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=12, leading=14, alignment=0))
+        logo_corpoelec_data = [[logo_img, corpoelec_text]]
+        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
+        logo_corpoelec_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+
+        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
+        title_paragraph = Paragraph('<b>Remotas Registradas</b>', title_style)
+        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
+        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
+
+        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
+        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=14><b>Remotas Registradas</b></font>", styles['Heading1']))
+        elements.append(Paragraph("<font size=16><b>Remotas Registradas</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
+        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
 
     elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
-    elements.append(Spacer(1, 18))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+    elements.append(Spacer(1, 6))
 
     remotas = Remota.objects.select_related('Id_Ten').all().order_by('Id_Remota')
     data = [['ID Remota', 'Marca', 'Modelo', 'Nivel de Tensión', 'Fecha Registro']]
@@ -1033,30 +1214,32 @@ def exportar_remotas_pdf(request):
         nivel_ten = f"{remota.Id_Ten.get_Tipo_ten_display()} - {remota.Id_Ten.get_Nivel_display()}" if remota.Id_Ten else ''
         data.append([remota.Id_Remota, remota.Marca if remota.Marca else '', remota.Modelo if remota.Modelo else '', nivel_ten, remota.Fecha_Reg.strftime('%d/%m/%Y') if remota.Fecha_Reg else ''])
 
-    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 2.2*inch, 1.5*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('TOPPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 20))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+    elements.append(Spacer(1, 15))
+
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     elements.append(Spacer(1, 4))
-    elements.append(Paragraph("<font size=8 color=grey>Corporación Eléctrica Nacional S.A. - Documento de carácter oficial</font>", styles['Normal']))
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
+    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
 
     doc.build(elements)
     buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
+    response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="remotas.pdf"'
     return response
 
@@ -1067,8 +1250,8 @@ def exportar_reles_pdf(request):
     from datetime import datetime
     from reportlab.lib.pagesizes import landscape, letter
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
 
@@ -1078,18 +1261,49 @@ def exportar_reles_pdf(request):
     styles = getSampleStyleSheet()
 
     logo_path = find('img/logo_corpoelec.png')
-    if not logo_path: logo_path = find('img/logo.jpg')
+    if not logo_path:
+        logo_path = find('img/logo.jpg')
 
     if logo_path:
-        elements.append(Paragraph("<font size=12><b>CORPOELEC</b></font>", styles['Normal']))
-        elements.append(Paragraph("<font size=11><b>Relés Registrados</b></font>", styles['Normal']))
-        elements.append(Paragraph(f"<font size=8>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", styles['Normal']))
+        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
+        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=14, leading=16, alignment=0))
+        logo_corpoelec_data = [[logo_img, corpoelec_text]]
+        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
+        logo_corpoelec_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+
+        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
+        title_paragraph = Paragraph('<b>Relés Registrados</b>', title_style)
+        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
+        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
+
+        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
+        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=14><b>Relés Registrados</b></font>", styles['Heading1']))
+        elements.append(Paragraph("<font size=16><b>Relés Registrados</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
+        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
 
     elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
-    elements.append(Spacer(1, 18))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+    elements.append(Spacer(1, 6))
 
     reles = Rele.objects.select_related('Id_Ten', 'Id_Sub_est').all().order_by('-Id_relé')
     data = [['ID Relé', 'Subestación', 'Nivel Tensión', 'Marca', 'Modelo', 'Estado', 'Fecha Registro']]
@@ -1101,27 +1315,29 @@ def exportar_reles_pdf(request):
     table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 1.2*inch, 1.2*inch, 1.0*inch, 1.2*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('TOPPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('FONTSIZE', (0, 1), (-1, -1), 10),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 20))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+    elements.append(Spacer(1, 15))
+
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     elements.append(Spacer(1, 4))
-    elements.append(Paragraph("<font size=8 color=grey>Corporación Eléctrica Nacional S.A. - Documento de carácter oficial</font>", styles['Normal']))
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
+    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
 
     doc.build(elements)
     buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
+    response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="reles.pdf"'
     return response
 
