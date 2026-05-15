@@ -21,8 +21,8 @@ def index_view(request):
     total_reles = Rele.objects.count() or 0
     total_subestaciones = Subestacion.objects.count() or 0
     total_remotas = Remota.objects.count() or 0
-    total_interfaces = InterfazDeComunicacion.objects.count() or 0
-    total_protocolos = Protocolo.objects.count() or 0
+    total_interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS').count() or 0
+    total_protocolos = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS').count() or 0
     total_tensiones = NivelTension.objects.count() or 0
 
     ultimos_reconectadores = list(Reconectador.objects.all().order_by('-Fecha_Reg')[:5]) if total_reconectadores > 0 else []
@@ -638,7 +638,7 @@ def reles_view(request):
         page_obj = paginator.get_page(page_number)
         
         # Obtener valores únicos para evitar duplicados en los formularios
-        subestaciones = Subestacion.objects.all().order_by('Nombre')
+        subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
         tensiones = list(NivelTension.objects.all().order_by('Nivel'))
         
         # Protocolos únicos por tipo (evita duplicados con mismo Tipo)
@@ -749,6 +749,7 @@ def exportar_tensiones_pdf(request):
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
@@ -811,6 +812,7 @@ def exportar_interfaces_pdf(request):
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
@@ -832,10 +834,12 @@ def exportar_interfaces_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
     elements.append(Spacer(1, 18))
 
-    interfaces = InterfazDeComunicacion.objects.all().order_by('Id_Interfaz')
+    interfaces = InterfazDeComunicacion.objects.prefetch_related('puertos').all().order_by('Id_Interfaz')
     data = [['ID Interfaz', 'Puertos', 'Fecha Registro']]
     for interfaz in interfaces:
-        data.append([interfaz.Id_Interfaz, interfaz.Puertos_C, interfaz.Fecha_Reg.strftime('%d/%m/%Y') if interfaz.Fecha_Reg else ''])
+        puertos_list = [p.get_Tipo_display() for p in interfaz.puertos.all()]
+        puertos_str = ', '.join(puertos_list) if puertos_list else 'Sin puertos'
+        data.append([interfaz.Id_Interfaz, puertos_str, interfaz.Fecha_Reg.strftime('%d/%m/%Y') if interfaz.Fecha_Reg else ''])
 
     table = Table(data, colWidths=[1.5*inch, 2.0*inch, 2.5*inch])
     table.setStyle(TableStyle([
@@ -873,6 +877,7 @@ def exportar_protocolo_pdf(request):
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
@@ -937,6 +942,7 @@ def exportar_subestaciones_pdf(request):
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
@@ -958,7 +964,7 @@ def exportar_subestaciones_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
     elements.append(Spacer(1, 18))
 
-    subestaciones = Subestacion.objects.all().order_by('Nombre')
+    subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
     data = [['Nombre', 'Nivel de Tensión', 'Ubicación']]
     for sub in subestaciones:
         data.append([sub.Nombre, sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else '', sub.Ubicación if hasattr(sub, 'Ubicación') and sub.Ubicación else ''])
@@ -999,6 +1005,7 @@ def exportar_remotas_pdf(request):
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
@@ -1020,12 +1027,13 @@ def exportar_remotas_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
     elements.append(Spacer(1, 18))
 
-    remotas = Remota.objects.all().order_by('Id_Remota')
-    data = [['ID Remota', 'Marca', 'Modelo', 'Fecha Registro']]
+    remotas = Remota.objects.select_related('Id_Ten').all().order_by('Id_Remota')
+    data = [['ID Remota', 'Marca', 'Modelo', 'Nivel de Tensión', 'Fecha Registro']]
     for remota in remotas:
-        data.append([remota.Id_Remota, remota.Marca if remota.Marca else '', remota.Modelo if remota.Modelo else '', remota.Fecha_Reg.strftime('%d/%m/%Y') if remota.Fecha_Reg else ''])
+        nivel_ten = f"{remota.Id_Ten.get_Tipo_ten_display()} - {remota.Id_Ten.get_Nivel_display()}" if remota.Id_Ten else ''
+        data.append([remota.Id_Remota, remota.Marca if remota.Marca else '', remota.Modelo if remota.Modelo else '', nivel_ten, remota.Fecha_Reg.strftime('%d/%m/%Y') if remota.Fecha_Reg else ''])
 
-    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 2.2*inch])
+    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -1061,6 +1069,7 @@ def exportar_reles_pdf(request):
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.units import inch
     from io import BytesIO
 
     buffer = BytesIO()
@@ -1082,13 +1091,14 @@ def exportar_reles_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E63946')))
     elements.append(Spacer(1, 18))
 
-    reles = Rele.objects.all().order_by('-Id_relé')
-    data = [['ID Relé', 'Subestación', 'Nivel Tensión', 'Marca', 'Modelo', 'Estado']]
+    reles = Rele.objects.select_related('Id_Ten', 'Id_Sub_est').all().order_by('-Id_relé')
+    data = [['ID Relé', 'Subestación', 'Nivel Tensión', 'Marca', 'Modelo', 'Estado', 'Fecha Registro']]
     for rele in reles:
         nivel_ten = f"{rele.Id_Ten.get_Tipo_ten_display()} - {rele.Id_Ten.get_Nivel_display()}" if rele.Id_Ten else ''
-        data.append([rele.Id_relé, rele.Id_Sub_est.Nombre if rele.Id_Sub_est else '', nivel_ten, rele.Marca if rele.Marca else '', rele.Modelo if rele.Modelo else '', rele.Estado if rele.Estado else ''])
+        fecha_reg = rele.Fecha_Reg.strftime('%d/%m/%Y') if rele.Fecha_Reg else ''
+        data.append([rele.Id_relé, rele.Id_Sub_est.Nombre if rele.Id_Sub_est else '', nivel_ten, rele.Marca if rele.Marca else '', rele.Modelo if rele.Modelo else '', rele.Estado if rele.Estado else '', fecha_reg])
 
-    table = Table(data, colWidths=[0.8*inch, 1.8*inch, 1.8*inch, 1.2*inch, 1.2*inch, 1.2*inch])
+    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 1.2*inch, 1.2*inch, 1.0*inch, 1.2*inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
