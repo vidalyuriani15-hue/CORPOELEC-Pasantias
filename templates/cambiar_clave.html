@@ -9,7 +9,7 @@
 
 <div class="password-form">
   {% if messages %}
-    <div class="messages">
+    <div class="messages" id="messages-container">
       {% for message in messages %}
       {% if 'deleted' in message.tags %}
       <div class="alert alert-deleted">{{ message }}</div>
@@ -126,3 +126,4 @@
   }
 </style>
 {% endblock %}
+

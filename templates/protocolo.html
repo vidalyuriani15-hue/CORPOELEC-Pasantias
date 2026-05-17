@@ -480,14 +480,6 @@ document.querySelectorAll('.modal .close').forEach(btn => {
         }
       });
     });
-  // Auto-hide messages after 5 seconds
-  setTimeout(function() {
-    const messagesContainer = document.getElementById('messages-container');
-    if (messagesContainer) {
-      messagesContainer.style.transition = 'opacity 0.5s ease';
-      messagesContainer.style.opacity = '0';
-      setTimeout(function() { messagesContainer.style.display = 'none'; }, 500);
-    }
-  }, 5000);
  </script>
 {% endblock %}
+

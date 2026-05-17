@@ -295,10 +295,9 @@
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      max-width: 520px;
+      max-width: 600px;
       width: 100%;
-      max-height: 75vh;
-      overflow-y: auto;
+      max-height: 85vh;
     }
     .modal-header {
       display: flex;
@@ -516,10 +515,9 @@
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      max-width: 520px;
+      max-width: 600px;
       width: 100%;
-      max-height: 75vh;
-      overflow-y: auto;
+      max-height: 85vh;
     }
     .modal-header {
       display: flex;
@@ -752,14 +750,6 @@ document.addEventListener('keydown', function(e) {
    document.querySelectorAll('.modal .close').forEach(btn => {
       btn.addEventListener('click', function() { this.closest('.modal').classList.remove('active'); });
     });
-  // Auto-hide messages after 5 seconds
-  setTimeout(function() {
-    const messagesContainer = document.getElementById('messages-container');
-    if (messagesContainer) {
-      messagesContainer.style.transition = 'opacity 0.5s ease';
-      messagesContainer.style.opacity = '0';
-      setTimeout(function() { messagesContainer.style.display = 'none'; }, 500);
-    }
-  }, 5000);
  </script>
 {% endblock %}
+
