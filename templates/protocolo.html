@@ -11,7 +11,13 @@
 {% if messages %}
 <div class="messages" id="messages-container">
   {% for message in messages %}
+  {% if 'deleted' in message.tags %}
+  <div class="alert alert-deleted">{{ message }}</div>
+  {% elif 'updated' in message.tags %}
+  <div class="alert alert-updated">{{ message }}</div>
+  {% else %}
   <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endif %}
   {% endfor %}
 </div>
 {% endif %}

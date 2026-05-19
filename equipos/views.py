@@ -53,7 +53,7 @@ def perfil_view(request):
         user.last_name = request.POST.get('last_name', user.last_name)
         user.email = request.POST.get('email', user.email)
         user.save()
-        messages.success(request, 'Perfil actualizado correctamente.')
+        messages.success(request, 'Perfil actualizado correctamente.', extra_tags='updated')
         return redirect('perfil')
     
     context = {
@@ -114,7 +114,7 @@ def subestaciones_view(request):
             try:
                 sub = Subestacion.objects.get(Id_Sub_est=sub_id)
                 sub.delete()
-                messages.success(request, 'Subestacion eliminada correctamente.')
+                messages.success(request, 'Subestacion eliminada correctamente.', extra_tags='deleted')
             except Subestacion.DoesNotExist:
                 messages.error(request, 'Subestacion no encontrada.')
             return redirect('subestaciones')
@@ -131,7 +131,7 @@ def subestaciones_view(request):
                 sub.Ubicación = ubicacion
                 sub.Coordenadas = coordenadas
                 sub.save()
-                messages.success(request, 'Subestacion actualizada correctamente.')
+                messages.success(request, 'Subestacion actualizada correctamente.', extra_tags='updated')
             except Subestacion.DoesNotExist:
                 messages.error(request, 'Subestacion no encontrada.')
             except NivelTension.DoesNotExist:
@@ -200,7 +200,7 @@ def tensiones_view(request):
                 ten.Tipo_ten = tipo_ten
                 ten.Nivel = nivel
                 ten.save()
-                messages.success(request, 'Nivel de tensión actualizado correctamente.')
+                messages.success(request, 'Nivel de tensión actualizado correctamente.', extra_tags='updated')
             except NivelTension.DoesNotExist:
                 messages.error(request, 'Nivel de tensión no encontrado.')
             return redirect('tensiones')
@@ -257,7 +257,7 @@ def interfaces_view(request):
                     # Eliminación lógica: marcar como inactivo
                     iface.Activo = False
                     iface.save()
-                    messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='error')
+                    messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -283,7 +283,7 @@ def interfaces_view(request):
                     except Exception as e:
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise  # Rollback via transaction.atomic()
-                    messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='deleted')
+                    messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='updated')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -308,7 +308,7 @@ def interfaces_view(request):
                     messages.error(request, f'Error de validación: {str(e)}')
                     iface.delete()
                     return redirect('interfaces')
-                    messages.success(request, 'Interfaz creada correctamente.', extra_tags='success')
+                    messages.success(request, 'Interfaz creada correctamente')
                 return redirect('interfaces')
     
     interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).prefetch_related('puertos').order_by('Id_Interfaz')
@@ -377,7 +377,7 @@ def protocolo_view(request):
                     except Exception as e:
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise
-                messages.success(request, 'Interfaz actualizada correctamente')
+                messages.success(request, 'Interfaz actualizada correctamente', extra_tags='updated')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
         
@@ -405,7 +405,7 @@ def protocolo_view(request):
                     # Eliminación lógica
                     interfaz.Activo = False
                     interfaz.save()
-                messages.success(request, 'Protocolos de Telecontrol y Energía eliminados correctamente.')
+                messages.success(request, 'Protocolos de Telecontrol y Energía eliminados correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
     
@@ -431,7 +431,23 @@ def remotas_view(request):
             try:
                 remota = Remota.objects.get(Id_Remota=remota_id)
                 remota.delete()
-                messages.success(request, 'Remota eliminada correctamente.')
+                messages.success(request, 'Remota eliminada correctamente.', extra_tags='deleted')
+            except Remota.DoesNotExist:
+                messages.error(request, 'Remota no encontrada.')
+            return redirect('remotas')
+        elif request.POST.get('editar'):
+            remota_id = request.POST.get('remota_id')
+            marca = request.POST.get('marca')
+            modelo = request.POST.get('modelo')
+            id_ten_id = request.POST.get('id_ten')
+            try:
+                with transaction.atomic():
+                    remota = Remota.objects.select_for_update().get(Id_Remota=remota_id)
+                    remota.Marca = marca
+                    remota.Modelo = modelo
+                    remota.Id_Ten = NivelTension.objects.get(Id_Ten=id_ten_id) if id_ten_id else None
+                    remota.save()
+                messages.success(request, 'Remota actualizada correctamente.')
             except Remota.DoesNotExist:
                 messages.error(request, 'Remota no encontrada.')
             return redirect('remotas')
@@ -512,7 +528,7 @@ def reles_view(request):
                 with transaction.atomic():
                     rele = Rele.objects.select_for_update().get(Id_relé=rele_id)
                     rele.delete()
-                    messages.success(request, 'Relé eliminado correctamente.')
+                    messages.success(request, 'Relé eliminado correctamente.', extra_tags='deleted')
             except Rele.DoesNotExist:
                 messages.error(request, 'Relé no encontrado.')
             return redirect('reles')
@@ -577,7 +593,7 @@ def reles_view(request):
                     
                     rele.save()
                     print(f"DEBUG: Rele {rele_id} saved successfully. EsRemoto={es_remoto}", file=sys.stderr)
-                    messages.success(request, 'Relé actualizado correctamente.')
+                    messages.success(request, 'Relé actualizado correctamente.', extra_tags='updated')
             except (Rele.DoesNotExist, Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
                 print(f"DEBUG ERROR: {str(e)}", file=sys.stderr)
                 messages.error(request, f'Error al actualizar: {str(e)}')
