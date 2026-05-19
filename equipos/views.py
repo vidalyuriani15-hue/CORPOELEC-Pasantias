@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from .models import *
 from .decorators import no_cache
-import json
 import sys
 from datetime import datetime
 
@@ -96,6 +95,42 @@ def usuarios_view(request):
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('index')
     
+    if request.method == 'POST':
+        if request.POST.get('eliminar'):
+            user_id = request.POST.get('user_id')
+            try:
+                user = User.objects.get(id=user_id)
+                username = user.username
+                user.delete()
+                registrar_evento(request, 'ELIMINACION', f'Usuario eliminado: {username}')
+                messages.success(request, 'Usuario eliminado correctamente.', extra_tags='deleted')
+            except User.DoesNotExist:
+                messages.error(request, 'Usuario no encontrado.')
+            return redirect('admin_usuarios')
+        elif request.POST.get('crear'):
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            first_name = request.POST.get('first_name', '')
+            last_name = request.POST.get('last_name', '')
+            email = request.POST.get('email', '')
+            is_superuser = request.POST.get('is_superuser') is not None
+            try:
+                user = User.objects.create_user(
+                    username=username,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email,
+                    is_superuser=is_superuser,
+                    is_staff=is_superuser,
+                )
+                rol = 'Administrador' if is_superuser else 'Usuario'
+                registrar_evento(request, 'CREACION', f'Usuario creado: {username} ({rol})')
+                messages.success(request, 'Usuario creado correctamente.')
+            except Exception as e:
+                messages.error(request, f'Error al crear usuario: {str(e)}')
+            return redirect('admin_usuarios')
+    
     usuarios = User.objects.all().order_by('-date_joined')
     
     context = {
@@ -113,7 +148,9 @@ def subestaciones_view(request):
             sub_id = request.POST.get('sub_id')
             try:
                 sub = Subestacion.objects.get(Id_Sub_est=sub_id)
+                sub_nombre = sub.Nombre
                 sub.delete()
+                registrar_evento(request, 'ELIMINACION', f'Subestacion eliminada: {sub_nombre}')
                 messages.success(request, 'Subestacion eliminada correctamente.', extra_tags='deleted')
             except Subestacion.DoesNotExist:
                 messages.error(request, 'Subestacion no encontrada.')
@@ -131,6 +168,7 @@ def subestaciones_view(request):
                 sub.Ubicación = ubicacion
                 sub.Coordenadas = coordenadas
                 sub.save()
+                registrar_evento(request, 'ACTUALIZACION', f'Subestacion actualizada: {sub.Nombre}')
                 messages.success(request, 'Subestacion actualizada correctamente.', extra_tags='updated')
             except Subestacion.DoesNotExist:
                 messages.error(request, 'Subestacion no encontrada.')
@@ -146,13 +184,14 @@ def subestaciones_view(request):
             if nombre and id_ten_id:
                 try:
                     id_ten = NivelTension.objects.get(Id_Ten=id_ten_id)
-                    Subestacion.objects.create(
+                    sub = Subestacion.objects.create(
                         Nombre=nombre,
                         Id_Ten=id_ten,
                         Ubicación=ubicacion,
                         Coordenadas=coordenadas,
                         creado_por=request.user
                     )
+                    registrar_evento(request, 'CREACION', f'Subestacion creada: {sub.Nombre}')
                     messages.success(request, 'Subestacion creada correctamente.')
                 except NivelTension.DoesNotExist:
                     messages.error(request, 'Nivel de tension no valido.')
@@ -182,11 +221,12 @@ def tensiones_view(request):
             tipo_ten = request.POST.get('tipo_ten')
             nivel = request.POST.get('nivel')
             if tipo_ten and nivel:
-                NivelTension.objects.create(
+                ten = NivelTension.objects.create(
                     Tipo_ten=tipo_ten,
                     Nivel=nivel,
                     creado_por=request.user
                 )
+                registrar_evento(request, 'CREACION', f'Nivel de tension creado: {ten.get_Tipo_ten_display} {ten.get_Nivel_display}')
                 messages.success(request, 'Nivel de tensión creado correctamente.')
             else:
                 messages.error(request, 'Datos incompletos.')
@@ -200,6 +240,7 @@ def tensiones_view(request):
                 ten.Tipo_ten = tipo_ten
                 ten.Nivel = nivel
                 ten.save()
+                registrar_evento(request, 'ACTUALIZACION', f'Nivel de tension actualizado: {ten.get_Tipo_ten_display} {ten.get_Nivel_display}')
                 messages.success(request, 'Nivel de tensión actualizado correctamente.', extra_tags='updated')
             except NivelTension.DoesNotExist:
                 messages.error(request, 'Nivel de tensión no encontrado.')
@@ -207,7 +248,10 @@ def tensiones_view(request):
         elif request.POST.get('eliminar'):
             ten_id = request.POST.get('ten_id')
             try:
-                NivelTension.objects.get(Id_Ten=ten_id).delete()
+                ten = NivelTension.objects.get(Id_Ten=ten_id)
+                ten_label = f'{ten.get_Tipo_ten_display()} {ten.get_Nivel_display()}'
+                ten.delete()
+                registrar_evento(request, 'ELIMINACION', f'Nivel de tension eliminado: {ten_label}')
                 messages.success(request, 'Nivel de tensión eliminado correctamente.')
             except NivelTension.DoesNotExist:
                 messages.error(request, 'Nivel de tensión no encontrado.')
@@ -257,6 +301,7 @@ def interfaces_view(request):
                     # Eliminación lógica: marcar como inactivo
                     iface.Activo = False
                     iface.save()
+                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Comunicacion desactivada: ID {iface_id}')
                     messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
@@ -284,6 +329,7 @@ def interfaces_view(request):
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise  # Rollback via transaction.atomic()
                     messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='updated')
+                registrar_evento(request, 'ACTUALIZACION', f'Interfaz PUERTOS editada: ID {iface_id}')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -308,7 +354,8 @@ def interfaces_view(request):
                     messages.error(request, f'Error de validación: {str(e)}')
                     iface.delete()
                     return redirect('interfaces')
-                    messages.success(request, 'Interfaz creada correctamente')
+                registrar_evento(request, 'CREACION', f'Interfaz PUERTOS creada: ID {iface.Id_Interfaz}')
+                messages.success(request, 'Interfaz creada correctamente')
                 return redirect('interfaces')
     
     interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).prefetch_related('puertos').order_by('Id_Interfaz')
@@ -352,6 +399,7 @@ def protocolo_view(request):
                 except Exception as e:
                     messages.error(request, f'Error de validación: {str(e)}')
                     raise  # Rollback
+            registrar_evento(request, 'CREACION', f'Interfaz PROTOCOLOS creada: ID {interfaz.Id_Interfaz}, tipos: {tipos_protocolo}')
             messages.success(request, 'Interfaz creada correctamente')
         
         # Editar interfaz/protocolos
@@ -378,6 +426,7 @@ def protocolo_view(request):
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise
                 messages.success(request, 'Interfaz actualizada correctamente', extra_tags='updated')
+                registrar_evento(request, 'ACTUALIZACION', f'Interfaz PROTOCOLOS editada: ID {interfaz_id}')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
         
@@ -405,6 +454,7 @@ def protocolo_view(request):
                     # Eliminación lógica
                     interfaz.Activo = False
                     interfaz.save()
+                registrar_evento(request, 'ELIMINACION', f'Interfaz PROTOCOLOS desactivada: ID {interfaz_id}')
                 messages.success(request, 'Protocolos de Telecontrol y Energía eliminados correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
@@ -430,7 +480,9 @@ def remotas_view(request):
             remota_id = request.POST.get('remota_id')
             try:
                 remota = Remota.objects.get(Id_Remota=remota_id)
+                marca_modelo = f'{remota.Marca} {remota.Modelo}'
                 remota.delete()
+                registrar_evento(request, 'ELIMINACION', f'Remota eliminada: {marca_modelo}')
                 messages.success(request, 'Remota eliminada correctamente.', extra_tags='deleted')
             except Remota.DoesNotExist:
                 messages.error(request, 'Remota no encontrada.')
@@ -447,7 +499,8 @@ def remotas_view(request):
                     remota.Modelo = modelo
                     remota.Id_Ten = NivelTension.objects.get(Id_Ten=id_ten_id) if id_ten_id else None
                     remota.save()
-                messages.success(request, 'Remota actualizada correctamente.')
+                registrar_evento(request, 'ACTUALIZACION', f'Remota actualizada: {remota.Marca} {remota.Modelo}')
+                messages.success(request, 'Remota actualizada correctamente.', extra_tags='updated')
             except Remota.DoesNotExist:
                 messages.error(request, 'Remota no encontrada.')
             return redirect('remotas')
@@ -458,12 +511,13 @@ def remotas_view(request):
             
             if marca and modelo:
                 id_ten = NivelTension.objects.get(Id_Ten=id_ten_id) if id_ten_id else None
-                Remota.objects.create(
+                remota = Remota.objects.create(
                     Marca=marca,
                     Modelo=modelo,
                     Id_Ten=id_ten,
                     creado_por=request.user
                 )
+                registrar_evento(request, 'CREACION', f'Remota creada: {remota.Marca} {remota.Modelo}')
                 messages.success(request, 'Remota creada correctamente.')
                 return redirect('remotas')
     
@@ -527,7 +581,9 @@ def reles_view(request):
             try:
                 with transaction.atomic():
                     rele = Rele.objects.select_for_update().get(Id_relé=rele_id)
+                    rele_ident = f'{rele.Marca} {rele.Modelo} (ID {rele_id})'
                     rele.delete()
+                    registrar_evento(request, 'ELIMINACION', f'Relé eliminado: {rele_ident}')
                     messages.success(request, 'Relé eliminado correctamente.', extra_tags='deleted')
             except Rele.DoesNotExist:
                 messages.error(request, 'Relé no encontrado.')
@@ -593,6 +649,7 @@ def reles_view(request):
                     
                     rele.save()
                     print(f"DEBUG: Rele {rele_id} saved successfully. EsRemoto={es_remoto}", file=sys.stderr)
+                    registrar_evento(request, 'ACTUALIZACION', f'Relé actualizado: {rele.Marca} {rele.Modelo} (ID {rele_id})')
                     messages.success(request, 'Relé actualizado correctamente.', extra_tags='updated')
             except (Rele.DoesNotExist, Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
                 print(f"DEBUG ERROR: {str(e)}", file=sys.stderr)
@@ -649,6 +706,7 @@ def reles_view(request):
                     rele.save()
                     print(f"DEBUG: Rele created. EsRemoto={es_remoto}, Remota_id={request.POST.get('remota_id')}", file=sys.stderr)
                     
+                    registrar_evento(request, 'CREACION', f'Relé creado: {rele.Marca} {rele.Modelo} (ID {rele.Id_relé})')
                     messages.success(request, 'Relé creado correctamente.')
                     return redirect('reles')
             except (Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
@@ -1378,6 +1436,77 @@ def exportar_reles_pdf(request):
     return response
 
 
+def registrar_evento(request, tipo, descripcion):
+    """Registra un evento en la bitácora"""
+    from .models import Evento
+    Evento.objects.create(
+        Tipo=tipo,
+        Descripcion=descripcion,
+        Usuario=request.user if request.user.is_authenticated else None,
+        IP_Address=request.META.get('REMOTE_ADDR', None)
+    )
+
+
+@no_cache
+def custom_login(request):
+    """Login con registro en bitácora (LOGIN)"""
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('/admin/inicio/')
+        else:
+            return redirect('/')
+
+    error = None
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            registrar_evento(request, 'LOGIN', f'Inicio de sesión desde IP {request.META.get("REMOTE_ADDR", "desconocida")}')
+            if user.is_superuser:
+                return redirect('/admin/inicio/')
+            else:
+                return redirect('/')
+        else:
+            error = 'Usuario o contraseña incorrectos.'
+
+    response = render(request, 'login.html', {'error': error})
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+@no_cache
+def custom_logout(request):
+    """Logout con registro en bitácora (LOGOUT)"""
+    from django.contrib.auth import logout
+    logout(request)
+    registrar_evento(request, 'LOGOUT', f'Cierre de sesión desde IP {request.META.get("REMOTE_ADDR", "desconocida")}')
+    response = redirect('/login/')
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+@login_required(login_url='/login/')
+def bitacora_view(request):
+    """Vista de bitácora de eventos del sistema"""
+    eventos_list = Evento.objects.all().order_by('-Fecha_Hora')
+    paginator = Paginator(eventos_list, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'title': 'Bitácora de Eventos',
+        'page_obj': page_obj,
+        'is_admin': request.user.is_superuser,
+    }
+    return render(request, 'bitacora.html', context)
+
+
 @login_required(login_url='/login/')
 def admin_eventos_view(request):
     """Vista de registro de eventos"""
@@ -1385,8 +1514,10 @@ def admin_eventos_view(request):
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('index')
     
+    eventos = Evento.objects.all().order_by('-Fecha_Hora')
     context = {
-        'title': 'Registro de Eventos'
+        'title': 'Registro de Eventos',
+        'eventos': eventos,
     }
     return render(request, 'admin/eventos.html', context)
 

@@ -1858,20 +1858,50 @@
              <a href="{% url 'reles' %}" class="{% if request.path == '/reles/' %}active{% endif %}" onclick="closeMobileSidebar()">
                <i class="fas fa-microchip"></i>
                <span>Relés</span>
-             </a>
-           </div>
-        </div>
+              </a>
+            </div>
+         </div>
 
-        {% if user.is_staff %}
-        <a href="{% url 'admin_usuarios' %}" onclick="closeMobileSidebar()">
-          <i class="fas fa-users"></i>
-          <span>Usuarios</span>
-        </a>
-        {% endif %}
-      </nav>
-    </aside>
-    
-    <!-- Main Content -->
+         <!-- Dropdown Utilidades de Administración -->
+         <div class="sidebar-dropdown {% if request.path == '/bitacora/' or request.path == '/admin/restaurar/' or request.path == '/admin/backup/' or request.path == '/admin/perfil/' or request.path == '/admin/cambiar-clave/' %}active{% endif %}">
+           <a href="#" class="dropdown-toggle" onclick="toggleDropdown(event, 'admin-dropdown')">
+             <i class="fas fa-tools"></i>
+             <span>Administración</span>
+             <i class="fas fa-chevron-down dropdown-arrow"></i>
+           </a>
+            <div class="dropdown-menu" id="admin-dropdown">
+              <a href="{% url 'bitacora' %}" class="{% if request.path == '/bitacora/' %}active{% endif %}" onclick="closeMobileSidebar()">
+                <i class="fas fa-book"></i>
+                <span>Registro de Eventos</span>
+              </a>
+             <a href="{% url 'admin_backup' %}" class="{% if request.path == '/admin/backup/' %}active{% endif %}" onclick="closeMobileSidebar()">
+               <i class="fas fa-database"></i>
+               <span>Copia de Seguridad</span>
+             </a>
+             <a href="{% url 'admin_restaurar' %}" class="{% if request.path == '/admin/restaurar/' %}active{% endif %}" onclick="closeMobileSidebar()">
+               <i class="fas fa-undo"></i>
+               <span>Restaurar Sistema</span>
+             </a>
+             <a href="{% url 'perfil' %}" class="{% if request.path == '/perfil/' or request.path == '/admin/perfil/' %}active{% endif %}" onclick="closeMobileSidebar()">
+               <i class="fas fa-user-circle"></i>
+               <span>Perfil</span>
+             </a>
+              <a href="{% url 'cambiar_clave' %}" class="{% if request.path == '/cambiar-clave/' or request.path == '/admin/cambiar-clave/' %}active{% endif %}" onclick="closeMobileSidebar()">
+                <i class="fas fa-key"></i>
+                <span>Cambiar Contraseña</span>
+              </a>
+              {% if user.is_staff %}
+              <a href="{% url 'admin_usuarios' %}" class="{% if request.path == '/admin/usuarios/' %}active{% endif %}" onclick="closeMobileSidebar()">
+                <i class="fas fa-users"></i>
+                <span>Usuarios</span>
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
     <main class="main-content" id="mainContent">
       <!-- Navbar -->
       <nav class="navbar">
@@ -1979,10 +2009,19 @@
       }
       const dropdown = document.getElementById(menuId);
       if (!dropdown) return;
-      const isActive = dropdown.parentElement.classList.contains('active');
-      closeAllDropdowns();
-      if (!isActive) {
-        dropdown.parentElement.classList.add('active');
+      const parent = dropdown.parentElement;
+      const isActive = parent.classList.contains('active');
+      // Cerrar TODO OTRO dropdown abierto, pero no éste si ya lo estaba
+      document.querySelectorAll('.sidebar-dropdown.active').forEach(function(el) {
+        if (el !== parent) {           // ← no cerrar el que se quiere alternar
+          el.classList.remove('active');
+        }
+      });
+      // Alternar el dropdown actual: abrir si estaba cerrado, cerrar si estaba abierto
+      if (isActive) {
+        parent.classList.remove('active');
+      } else {
+        parent.classList.add('active');
       }
     }
     

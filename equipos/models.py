@@ -226,3 +226,31 @@ class Reconectador(models.Model):
         """Representación legible: 'Marca Modelo' (ej: 'Siemens 7SJ85')"""
         return f"{self.Marca} {self.Modelo}"
 
+
+class Evento(models.Model):
+    """Modelo para registrar eventos en la bitácora del sistema"""
+    TIPO_CHOICES = [
+        ('CREACION', 'Creación'),
+        ('ACTUALIZACION', 'Actualización'),
+        ('ELIMINACION', 'Eliminación'),
+        ('LOGIN', 'Inicio de Sesión'),
+        ('LOGOUT', 'Cierre de Sesión'),
+        ('ERROR', 'Error'),
+        ('OTRO', 'Otro'),
+    ]
+    
+    Id_Evento = models.AutoField(primary_key=True)
+    Tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='OTRO')
+    Descripcion = models.TextField()
+    Usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='eventos')
+    Fecha_Hora = models.DateTimeField(auto_now_add=True)
+    IP_Address = models.GenericIPAddressField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Evento'
+        verbose_name_plural = 'Bitácora de Eventos'
+        ordering = ['-Fecha_Hora']
+    
+    def __str__(self):
+        return f"{self.get_Tipo_display()}: {self.Descripcion[:50]}"
+

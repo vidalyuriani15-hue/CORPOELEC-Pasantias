@@ -27,11 +27,34 @@
   </div>
   {% endif %}
 
-        <td colspan="6" class="no-data">No hay eventos registrados.</td>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Fecha/Hora</th>
+        <th>Tipo</th>
+        <th>Usuario</th>
+        <th>IP</th>
+        <th>Descripción</th>
       </tr>
+    </thead>
+    <tbody>
+      {% for evento in eventos %}
+      <tr>
+        <td><strong>{{ evento.Fecha_Hora|date:"d/m/Y H:i:s" }}</strong></td>
+        <td>
+          <span class="badge {% if evento.Tipo == 'CREACION' %}badge-success{% elif evento.Tipo == 'ACTUALIZACION' %}badge-info{% elif evento.Tipo == 'ELIMINACION' %}badge-warning{% elif evento.Tipo == 'LOGIN' %}badge-login{% elif evento.Tipo == 'LOGOUT' %}badge-logout{% elif evento.Tipo == 'ERROR' %}badge-error{% else %}badge-secondary{% endif %}">
+            {{ evento.get_Tipo_display }}
+          </span>
+        </td>
+        <td>{{ evento.Usuario.username|default:"Sistema" }}</td>
+        <td>{{ evento.IP_Address|default:"—" }}</td>
+        <td>{{ evento.Descripcion }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="no-data">No hay eventos registrados.</td></tr>
+      {% endfor %}
     </tbody>
   </table>
 </div>
 
-</script>
 {% endblock %}

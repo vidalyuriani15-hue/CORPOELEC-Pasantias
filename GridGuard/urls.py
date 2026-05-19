@@ -3,52 +3,11 @@ URL configuration for CORPOELEC project.
 """
 from django.contrib import admin
 from django.urls import path
-from django.views.generic import TemplateView
 from django.shortcuts import redirect, render
-from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.cache import never_cache
-from equipos.views import reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view
+from equipos.views import reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view, bitacora_view, custom_login, custom_logout
 from django.conf import settings
 from django.conf.urls.static import static
-
-@never_cache
-def custom_login(request):
-    if request.user.is_authenticated:
-        if request.user.is_superuser:
-            return redirect('/admin/inicio/')
-        else:
-            return redirect('/')
-    
-    error = None
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            if user.is_superuser:
-                return redirect('/admin/inicio/')
-            else:
-                return redirect('/')
-        else:
-            error = 'Usuario o contraseña incorrectos.'
-    
-    response = render(request, 'login.html', {'error': error})
-    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-    response['Pragma'] = 'no-cache'
-    response['Expires'] = '0'
-    return response
-
-@never_cache
-def custom_logout(request):
-    from django.contrib.auth import logout
-    logout(request)
-    response = redirect('/login/')
-    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-    response['Pragma'] = 'no-cache'
-    response['Expires'] = '0'
-    return response
 
 urlpatterns = [
     path('cerrar-sesion/', custom_logout, name='user_logout'),
@@ -62,6 +21,7 @@ urlpatterns = [
     path('admin/eventos/', admin_eventos_view, name='admin_eventos'),
     path('admin/restaurar/', admin_restaurar_view, name='admin_restaurar'),
     path('admin/backup/', admin_backup_view, name='admin_backup'),
+    path('bitacora/', bitacora_view, name='bitacora'),
     path('admin/inicio/', index_view, name='admin_index'),
     path('admin/', admin.site.urls),
     path('', index_view, name='index'),

@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CORPOELEC - Bitácora de Eventos{% endblock %}
+
+{% block content %}
+<div class="welcome-text">
+  <h2>Bitácora de Eventos</h2>
+</div>
+
+{% if messages %}
+<div class="messages" id="messages-container">
+  {% for message in messages %}
+  {% if 'deleted' in message.tags %}
+  <div class="alert alert-deleted">{{ message }}</div>
+  {% elif 'updated' in message.tags %}
+  <div class="alert alert-updated">{{ message }}</div>
+  {% else %}
+  <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Header para impresión con logo -->
+<div class="print-header" style="display: none;">
+  <img src="{% static 'img/logo.jpg' %}" alt="CORPOELEC" style="height: 50px;">
+  <h3>Bitácora de Eventos</h3>
+</div>
+
+<div class="table-section">
+   <div class="table-header">
+     <h3>Eventos Registrados</h3>
+     <div class="header-actions">
+       <div class="search-wrapper">
+         <i class="fas fa-search search-icon"></i>
+         <input type="text" class="search-input" id="searchInput" placeholder="Buscar por usuario, descripción, tipo o IP...">
+         <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
+           <i class="fas fa-times"></i>
+         </button>
+       </div>
+     </div>
+   </div>
+
+  {% if page_obj.paginator.count > 0 %}
+  <div id="resultCount" class="search-results-info"></div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 180px;">Fecha/Hora</th>
+        <th style="width: 140px;">Tipo</th>
+        <th style="width: 130px;">Usuario</th>
+        <th style="width: 120px;">IP</th>
+        <th>Descripción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for evento in page_obj %}
+      <tr>
+        <td class="cell-text"><strong>{{ evento.Fecha_Hora|date:"d/m/Y H:i:s" }}</strong></td>
+        <td>
+          <span class="badge {% if evento.Tipo == 'CREACION' %}badge-success{% elif evento.Tipo == 'ACTUALIZACION' %}badge-info{% elif evento.Tipo == 'ELIMINACION' %}badge-warning{% elif evento.Tipo == 'LOGIN' %}badge-login{% elif evento.Tipo == 'LOGOUT' %}badge-logout{% elif evento.Tipo == 'ERROR' %}badge-error{% else %}badge-secondary{% endif %}">
+            {{ evento.get_Tipo_display }}
+          </span>
+        </td>
+        <td>{{ evento.Usuario.username|default:"Sistema" }}</td>
+        <td>{{ evento.IP_Address|default:"—" }}</td>
+        <td class="cell-text">{{ evento.Descripcion }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="no-data">
+    <i class="fas fa-inbox" style="font-size: 3rem; color: #d0d7de; margin-bottom: 15px;"></i>
+    <br>No hay eventos registrados.
+  </p>
+  {% endif %}
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="pagination-container">
+  <div class="pagination-info-left">
+    <span class="pagination-text">
+      Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
+      | Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </span>
+  </div>
+  <div class="pagination-controls-right">
+    <nav class="pagination-nav">
+      <ul class="pagination-list">
+        {% if page_obj.has_previous %}
+        <li class="pagination-item">
+          <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link pagination-prev" title="Página anterior">
+            <i class="fas fa-chevron-left"></i> Anterior
+          </a>
+        </li>
+        {% else %}
+        <li class="pagination-item disabled">
+          <span class="pagination-link disabled" title="No hay página anterior"><i class="fas fa-chevron-left"></i> Anterior</span>
+        </li>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <li class="pagination-item active">
+          <span class="pagination-link">{{ num }}</span>
+        </li>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="pagination-item">
+          <a href="?page={{ num }}" class="pagination-link">{{ num }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+        <li class="pagination-item">
+          <a href="?page={{ page_obj.next_page_number }}" class="pagination-link pagination-next" title="Página siguiente">
+            Siguiente <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+        {% else %}
+        <li class="pagination-item disabled">
+          <span class="pagination-link disabled" title="No hay página siguiente">Siguiente <i class="fas fa-chevron-right"></i></span>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.badge {
+  font-size: 12px !important;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-block;
+}
+.badge-success { background: #d4edda; color: #155724; }
+.badge-info { background: #d1ecf1; color: #0c5460; }
+.badge-warning { background: #fff3cd; color: #856404; }
+.badge-error { background: #f8d7da; color: #721c24; }
+.badge-login { background: #cce5ff; color: #004085; }
+.badge-logout { background: #e2e3e5; color: #383d41; }
+.badge-secondary { background: #e2e3e5; color: #383d41; }
+
+.no-data {
+  text-align: center;
+  color: #6c757d;
+  padding: 40px 20px;
+}
+
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 12px;
+  color: #8c8c8c;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.search-wrapper .search-input {
+  width: 320px;
+  padding: 8px 36px 8px 36px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.search-wrapper .search-input:focus {
+  outline: none;
+  border-color: #4DA6FF;
+  box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.1);
+}
+
+.search-wrapper .search-clear {
+  position: absolute;
+  right: 10px;
+  background: #f5f5f5;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  display: none;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.search-wrapper .search-clear:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.search-results-info {
+  padding: 0 25px 10px;
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.search-results-info span {
+  background: #f8f9fa;
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let searchTimeout;
+
+function filterTable() {
+  const input = document.getElementById('searchInput');
+  const clearBtn = document.getElementById('searchClear');
+  const filter = input.value.toLowerCase().trim();
+  
+  clearBtn.style.display = filter ? 'block' : 'none';
+  
+  const table = document.querySelector('.data-table tbody');
+  if (!table) return;
+  
+  const rows = table.getElementsByTagName('tr');
+  let visibleCount = 0;
+  
+  for (let i = 0; i < rows.length; i++) {
+    const cells = rows[i].getElementsByTagName('td');
+    let match = false;
+    
+    if (filter === '') {
+      match = true;
+    } else {
+      for (let j = 0; j < cells.length; j++) {
+        if (cells[j].textContent.toLowerCase().indexOf(filter) > -1) {
+          match = true;
+          break;
+        }
+      }
+    }
+    
+    rows[i].style.display = match ? '' : 'none';
+    if (match) visibleCount++;
+  }
+  
+  const resultCount = document.getElementById('resultCount');
+  if (resultCount) {
+    if (filter && visibleCount < rows.length) {
+      resultCount.innerHTML = `<span>Mostrando ${visibleCount} de ${rows.length} eventos coincidentes</span>`;
+    } else {
+      resultCount.innerHTML = '';
+    }
+  }
+}
+
+function clearSearch() {
+  const input = document.getElementById('searchInput');
+  const clearBtn = document.getElementById('searchClear');
+  input.value = '';
+  clearBtn.style.display = 'none';
+  filterTable();
+  input.focus();
+}
+
+// Handle input with debounce
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(filterTable, 300);
+});
+
+// Clear on ESC
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    clearSearch();
+  }
+});
+</script>
+{% endblock %}
