@@ -1805,8 +1805,43 @@
         </div>
       </div>
     </div>
-  </div>
-</head>
+   </div>
+
+   <!-- Modal de cierre de sesión por inactividad -->
+   <div id="sessionTimeoutModal" class="modal">
+     <div class="modal-dialog">
+       <div class="modal-content">
+         <div class="modal-header">
+           <h5 class="modal-title" style="color: var(--orange-accent, #e67e22);">
+             <i class="fas fa-clock" style="margin-right: 8px;"></i>
+             Sesión por Expirar
+           </h5>
+         </div>
+         <div class="modal-body" style="text-align: center; padding: 30px 25px;">
+           <div style="font-size: 3.5rem; color: var(--orange-accent, #e67e22); margin-bottom: 20px;">
+             <i class="fas fa-hourglass-half"></i>
+           </div>
+           <h4 style="margin-bottom: 8px; color: var(--blue-dark);">¿Desea continuar su sesión?</h4>
+           <p style="color: var(--gray-600); font-size: 1.05rem; margin-bottom: 8px;">
+             Su sesión se cerrará automáticamente por inactividad.
+           </p>
+           <p id="sessionCountdown" style="color: var(--orange-accent, #e67e22); font-size: 1.6rem; font-weight: 700; margin: 0;">
+             <!-- segundos restantes, actualizado por JS -->
+           </p>
+         </div>
+         <div class="modal-footer" style="justify-content: center; gap: 15px;">
+           <button type="button" class="btn btn-secondary" onclick="cerrarModalTimeout()" style="padding: 10px 24px;">
+             Cerrar Sesión
+           </button>
+           <button type="button" class="btn btn-primary" id="btnContinuarSesion" onclick="continuarSesion()" style="padding: 10px 24px;">
+             <i class="fas fa-sign-in-alt" style="margin-right: 6px;"></i>
+             Continuar Sesión
+           </button>
+         </div>
+       </div>
+     </div>
+   </div>
+ </head>
 <body>
   <div class="layout-wrapper">
     <!-- Sidebar Backdrop for Mobile -->
@@ -1862,33 +1897,44 @@
             </div>
          </div>
 
-         <!-- Dropdown Utilidades de Administración -->
-         <div class="sidebar-dropdown {% if request.path == '/bitacora/' or request.path == '/admin/restaurar/' or request.path == '/admin/backup/' or request.path == '/admin/perfil/' or request.path == '/admin/cambiar-clave/' %}active{% endif %}">
-           <a href="#" class="dropdown-toggle" onclick="toggleDropdown(event, 'admin-dropdown')">
-             <i class="fas fa-tools"></i>
-             <span>Administración</span>
-             <i class="fas fa-chevron-down dropdown-arrow"></i>
-           </a>
-            <div class="dropdown-menu" id="admin-dropdown">
-              <a href="{% url 'bitacora' %}" class="{% if request.path == '/bitacora/' %}active{% endif %}" onclick="closeMobileSidebar()">
-                <i class="fas fa-book"></i>
-                <span>Registro de Eventos</span>
+          <!-- Dropdown Mi Cuenta -->
+          <div class="sidebar-dropdown {% if request.path == '/perfil/' or request.path == '/admin/perfil/' or request.path == '/cambiar-clave/' or request.path == '/admin/cambiar-clave/' %}active{% endif %}">
+            <a href="#" class="dropdown-toggle" onclick="toggleDropdown(event, 'cuenta-dropdown')">
+              <i class="fas fa-user-circle"></i>
+              <span>Mi Cuenta</span>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </a>
+            <div class="dropdown-menu" id="cuenta-dropdown">
+              <a href="{% url 'perfil' %}" class="{% if request.path == '/perfil/' or request.path == '/admin/perfil/' %}active{% endif %}" onclick="closeMobileSidebar()">
+                <i class="fas fa-user"></i>
+                <span>Perfil</span>
               </a>
-             <a href="{% url 'admin_backup' %}" class="{% if request.path == '/admin/backup/' %}active{% endif %}" onclick="closeMobileSidebar()">
-               <i class="fas fa-database"></i>
-               <span>Copia de Seguridad</span>
-             </a>
-             <a href="{% url 'admin_restaurar' %}" class="{% if request.path == '/admin/restaurar/' %}active{% endif %}" onclick="closeMobileSidebar()">
-               <i class="fas fa-undo"></i>
-               <span>Restaurar Sistema</span>
-             </a>
-             <a href="{% url 'perfil' %}" class="{% if request.path == '/perfil/' or request.path == '/admin/perfil/' %}active{% endif %}" onclick="closeMobileSidebar()">
-               <i class="fas fa-user-circle"></i>
-               <span>Perfil</span>
-             </a>
               <a href="{% url 'cambiar_clave' %}" class="{% if request.path == '/cambiar-clave/' or request.path == '/admin/cambiar-clave/' %}active{% endif %}" onclick="closeMobileSidebar()">
                 <i class="fas fa-key"></i>
                 <span>Cambiar Contraseña</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Dropdown Utilidades de Administración -->
+          <div class="sidebar-dropdown {% if request.path == '/bitacora/' or request.path == '/admin/restaurar/' or request.path == '/admin/backup/' %}active{% endif %}">
+            <a href="#" class="dropdown-toggle" onclick="toggleDropdown(event, 'admin-dropdown')">
+              <i class="fas fa-tools"></i>
+              <span>Administración</span>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </a>
+             <div class="dropdown-menu" id="admin-dropdown">
+               <a href="{% url 'registro' %}" class="{% if request.path == '/bitacora/' %}active{% endif %}" onclick="closeMobileSidebar()">
+                 <i class="fas fa-book"></i>
+                 <span>Registro de Eventos</span>
+               </a>
+              <a href="{% url 'admin_backup' %}" class="{% if request.path == '/admin/backup/' %}active{% endif %}" onclick="closeMobileSidebar()">
+                <i class="fas fa-database"></i>
+                <span>Copia de Seguridad</span>
+              </a>
+              <a href="{% url 'admin_restaurar' %}" class="{% if request.path == '/admin/restaurar/' %}active{% endif %}" onclick="closeMobileSidebar()">
+                <i class="fas fa-undo"></i>
+                <span>Restaurar Sistema</span>
               </a>
               {% if user.is_staff %}
               <a href="{% url 'admin_usuarios' %}" class="{% if request.path == '/admin/usuarios/' %}active{% endif %}" onclick="closeMobileSidebar()">

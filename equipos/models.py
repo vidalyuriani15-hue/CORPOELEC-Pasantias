@@ -248,7 +248,7 @@ class Evento(models.Model):
     
     class Meta:
         verbose_name = 'Evento'
-        verbose_name_plural = 'Bitácora de Eventos'
+        verbose_name_plural = 'Registro de Eventos'
         ordering = ['-Fecha_Hora']
     
     def __str__(self):

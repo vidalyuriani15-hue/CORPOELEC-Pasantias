@@ -21,7 +21,7 @@ urlpatterns = [
     path('admin/eventos/', admin_eventos_view, name='admin_eventos'),
     path('admin/restaurar/', admin_restaurar_view, name='admin_restaurar'),
     path('admin/backup/', admin_backup_view, name='admin_backup'),
-    path('bitacora/', bitacora_view, name='bitacora'),
+    path('bitacora/', bitacora_view, name='registro'),
     path('admin/inicio/', index_view, name='admin_index'),
     path('admin/', admin.site.urls),
     path('', index_view, name='index'),
