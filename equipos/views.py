@@ -257,7 +257,7 @@ def interfaces_view(request):
                     # Eliminación lógica: marcar como inactivo
                     iface.Activo = False
                     iface.save()
-                messages.success(request, 'Interfaz de Comunicación eliminada correctamente.')
+                    messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='error')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -283,7 +283,7 @@ def interfaces_view(request):
                     except Exception as e:
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise  # Rollback via transaction.atomic()
-                messages.success(request, 'Interfaz actualizada correctamente.')
+                    messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -308,7 +308,7 @@ def interfaces_view(request):
                     messages.error(request, f'Error de validación: {str(e)}')
                     iface.delete()
                     return redirect('interfaces')
-                messages.success(request, 'Interfaz creada correctamente.')
+                    messages.success(request, 'Interfaz creada correctamente.', extra_tags='success')
                 return redirect('interfaces')
     
     interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).prefetch_related('puertos').order_by('Id_Interfaz')

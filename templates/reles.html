@@ -161,7 +161,7 @@
 
 <!-- Modal Agregar/Editar Relé -->
 <div id="modalReles" class="modal">
-  <div class="modal-dialog">
+  <div class="modal-dialog" style="max-width:  900px !important;">
     <div class="modal-content">
       <div class="modal-header">
         <h3 id="modalTitle">Agregar Nuevo Relé</h3>
@@ -261,13 +261,13 @@
               <div style="display:flex; gap:20px; margin-bottom:15px;">
                 <div class="form-group" style="flex:1; margin-bottom:0;">
                   <label>Marca de Remota *</label>
-                  <select id="remota_marca_select" onchange="loadModelosByMarca()" required>
+                  <select id="remota_marca_select" onchange="loadModelosByMarca()">
                     <option value="">Seleccionar Marca</option>
                   </select>
                 </div>
                 <div class="form-group" style="flex:1; margin-bottom:0;">
                   <label>Modelo de Remota *</label>
-                  <select id="remota_modelo_select" onchange="onModeloChange()" required>
+                  <select id="remota_modelo_select" onchange="onModeloChange()">
                     <option value="">Seleccionar Modelo</option>
                   </select>
                 </div>
@@ -620,10 +620,12 @@
     /* === MODAL CON SCROLL === */
     .modal { display:none; position:fixed; z-index:1000; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; }
     .modal.active { display:flex; }
-    .modal-dialog { max-width:900px; overflow: auto; width:90%; margin:0; }
+    .modal-dialog { max-width:450px; overflow: auto; width:90%; margin:0; }
+     .modal-dialog.modal-sm { width:450px !important; max-width:450px; }
     .modal-content { background:#fff; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.2); overflow:hidden; max-height:90vh; display:flex; flex-direction:column; }
     .modal-header { padding:20px 25px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
     .modal-body { padding:25px; max-height: 500px; overflow:auto; flex:1; }
+     #confirmDeleteModal .modal-body { padding:25px; }
     .modal-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
     .modal-form-grid .full-width { grid-column:1 / -1; }
     .modal-footer { padding:15px 25px; background:#f8f9fa; display:flex; justify-content:flex-end; gap:10px; }
@@ -758,9 +760,9 @@ function abrirModal() {
    document.getElementById('imagenInput').value = '';
    document.getElementById('esRemotoSelect').value = 'no';
    document.getElementById('remotaOptionsContainer').style.display = 'none';
-   // Cargar datos de remotas para el modal de agregar
-   loadRemotaDatos();
-  }
+     // Cargar datos de remotas para el modal de agregar
+     loadRemotaDatos();
+   }
 
  function cerrarModal() {
    // Resetear formulario completo al cerrar
@@ -941,13 +943,30 @@ function marcarCheckboxesRemota(data) {
    });
  });
 
- document.querySelectorAll('#modalReles .close').forEach(btn => {
-   btn.addEventListener('click', function() {
-     cerrarModal();
-   });
- });
+  document.querySelectorAll('#modalReles .close').forEach(btn => {
+    btn.addEventListener('click', function() {
+      cerrarModal();
+    });
+  });
 
-function toggleRemotaFields() {
+  // Validación condicional de remota al enviar el formulario.
+  // No se usa required nativo en los <select> de remota porque el contenedor
+  // puede estar oculto (display:none), lo que causa el error de navegador
+  // "An invalid form control with name='#' is not focusable".
+  document.getElementById('formReles').addEventListener('submit', function(e) {
+    if (document.getElementById('esRemotoSelect').value === 'si') {
+      var marcaSelect = document.getElementById('remota_marca_select');
+      var modeloSelect = document.getElementById('remota_modelo_select');
+
+      if (!marcaSelect.value || !modeloSelect.value) {
+        e.preventDefault();
+        alert('Debe seleccionar una marca y un modelo de remota.');
+        marcaSelect.focus();
+      }
+    }
+  });
+
+ function toggleRemotaFields() {
    var select = document.getElementById('esRemotoSelect');
    var container = document.getElementById('remotaOptionsContainer');
 
