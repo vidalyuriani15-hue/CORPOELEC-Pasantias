@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.urls import path
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
-from equipos.views import reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view, bitacora_view, custom_login, custom_logout
+from equipos.views import reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view, admin_backup_download, admin_backup_delete, bitacora_view, custom_login, custom_logout
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -21,6 +21,8 @@ urlpatterns = [
     path('admin/eventos/', admin_eventos_view, name='admin_eventos'),
     path('admin/restaurar/', admin_restaurar_view, name='admin_restaurar'),
     path('admin/backup/', admin_backup_view, name='admin_backup'),
+    path('admin/backup/descargar/<str:filename>/', admin_backup_download, name='admin_backup_download'),
+    path('admin/backup/eliminar/<str:filename>/', admin_backup_delete, name='admin_backup_delete'),
     path('bitacora/', bitacora_view, name='registro'),
     path('admin/inicio/', index_view, name='admin_index'),
     path('admin/', admin.site.urls),

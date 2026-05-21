@@ -11,7 +11,11 @@ from django.core.paginator import Paginator
 from .models import *
 from .decorators import no_cache
 import sys
+import os
+import shutil
+import zipfile
 from datetime import datetime
+from django.conf import settings
 
 @login_required(login_url='/login/')
 def index_view(request):
@@ -226,7 +230,7 @@ def tensiones_view(request):
                     Nivel=nivel,
                     creado_por=request.user
                 )
-                registrar_evento(request, 'CREACION', f'Nivel de tension creado: {ten.get_Tipo_ten_display} {ten.get_Nivel_display}')
+                registrar_evento(request, 'CREACION', f'Nivel de tension creado: {ten.get_Tipo_ten_display()} {ten.get_Nivel_display()}')
                 messages.success(request, 'Nivel de tensión creado correctamente.')
             else:
                 messages.error(request, 'Datos incompletos.')
@@ -240,7 +244,7 @@ def tensiones_view(request):
                 ten.Tipo_ten = tipo_ten
                 ten.Nivel = nivel
                 ten.save()
-                registrar_evento(request, 'ACTUALIZACION', f'Nivel de tension actualizado: {ten.get_Tipo_ten_display} {ten.get_Nivel_display}')
+                registrar_evento(request, 'ACTUALIZACION', f'Nivel de tension actualizado: {ten.get_Tipo_ten_display()} {ten.get_Nivel_display()}')
                 messages.success(request, 'Nivel de tensión actualizado correctamente.', extra_tags='updated')
             except NivelTension.DoesNotExist:
                 messages.error(request, 'Nivel de tensión no encontrado.')
@@ -1436,14 +1440,41 @@ def exportar_reles_pdf(request):
     return response
 
 
+_VISTA_NOMBRES = {
+    'index': 'Inicio',
+    'admin_index': 'Inicio (Admin)',
+    'tensiones': 'Niveles de Tensión',
+    'interfaces': 'Interfaces',
+    'protocolo': 'Protocolos',
+    'subestaciones': 'Subestaciones',
+    'remotas': 'Remotas',
+    'reles': 'Relés',
+    'rele_detalle': 'Detalle de Relé',
+    'admin_usuarios': 'Usuarios',
+    'admin_eventos': 'Registro de Eventos',
+    'perfil': 'Perfil',
+    'admin_perfil': 'Perfil (Admin)',
+    'cambiar_clave': 'Cambiar Clave',
+    'admin_cambiar_clave': 'Cambiar Clave (Admin)',
+    'user_login': 'Login',
+    'user_logout': 'Logout',
+    'logout': 'Logout',
+    'registro': 'Bitácora',
+    'admin_restaurar': 'Restaurar',
+    'admin_backup': 'Backup',
+}
+
 def registrar_evento(request, tipo, descripcion):
     """Registra un evento en la bitácora"""
     from .models import Evento
+    url_name = getattr(request.resolver_match, 'url_name', '') or ''
+    vista = _VISTA_NOMBRES.get(url_name, url_name.replace('_', ' ').title() if url_name else request.path)
     Evento.objects.create(
         Tipo=tipo,
         Descripcion=descripcion,
         Usuario=request.user if request.user.is_authenticated else None,
-        IP_Address=request.META.get('REMOTE_ADDR', None)
+        IP_Address=request.META.get('REMOTE_ADDR', None),
+        Vista=vista,
     )
 
 
@@ -1494,7 +1525,7 @@ def custom_logout(request):
 @login_required(login_url='/login/')
 def bitacora_view(request):
     """Vista de bitácora de eventos del sistema"""
-    eventos_list = Evento.objects.all().order_by('-Fecha_Hora')
+    eventos_list = Evento.objects.exclude(Tipo__in=['LOGIN', 'LOGOUT']).order_by('-Fecha_Hora')
     paginator = Paginator(eventos_list, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -1528,11 +1559,90 @@ def admin_restaurar_view(request):
     if not request.user.is_superuser:
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('index')
-    
+
+    if request.method == 'POST':
+        confirmar = request.POST.get('confirmar')
+        backup_file = request.FILES.get('backup_file')
+
+        if not confirmar:
+            messages.error(request, 'Debe marcar la casilla de confirmación para continuar.')
+            return redirect('admin_restaurar')
+
+        if not backup_file:
+            messages.error(request, 'Debe seleccionar un archivo de copia de seguridad.')
+            return redirect('admin_restaurar')
+
+        if not backup_file.name.endswith('.zip'):
+            messages.error(request, 'Solo se aceptan archivos .zip generados por este sistema.')
+            return redirect('admin_restaurar')
+
+        try:
+            import tempfile, shutil
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp:
+                for chunk in backup_file.chunks():
+                    tmp.write(chunk)
+                tmp_path = tmp.name
+
+            with zipfile.ZipFile(tmp_path, 'r') as zf:
+                nombres = zf.namelist()
+
+                # Restaurar base de datos SQLite
+                if 'db.sqlite3' in nombres:
+                    db_path = str(settings.DATABASES['default']['NAME'])
+                    # Cerrar todas las conexiones antes de reemplazar el archivo
+                    from django.db import connections
+                    for conn in connections.all():
+                        conn.close()
+                    with zf.open('db.sqlite3') as src, open(db_path, 'wb') as dst:
+                        shutil.copyfileobj(src, dst)
+
+                # Restaurar archivos multimedia
+                media_root = str(settings.MEDIA_ROOT)
+                media_files = [n for n in nombres if n.startswith('media/')]
+                if media_files:
+                    parent = os.path.dirname(media_root)
+                    zf.extractall(parent, members=media_files)
+
+            os.unlink(tmp_path)
+            registrar_evento(request, 'ACTUALIZACION', f'Sistema restaurado desde copia: {backup_file.name}')
+            messages.success(request, f'Sistema restaurado correctamente desde "{backup_file.name}".')
+        except zipfile.BadZipFile:
+            messages.error(request, 'El archivo seleccionado no es un ZIP válido.')
+        except Exception as e:
+            messages.error(request, f'Error al restaurar: {str(e)}')
+
+        return redirect('admin_restaurar')
+
     context = {
-        'title': 'Restaurar Sistema'
+        'title': 'Restaurar Sistema',
+        'backups': _list_backups(),
     }
     return render(request, 'admin/restaurar.html', context)
+
+
+def _get_backup_dir():
+    backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    os.makedirs(backup_dir, exist_ok=True)
+    return backup_dir
+
+def _list_backups():
+    backup_dir = _get_backup_dir()
+    backups = []
+    for fname in sorted(os.listdir(backup_dir), reverse=True):
+        fpath = os.path.join(backup_dir, fname)
+        if os.path.isfile(fpath) and fname.endswith('.zip'):
+            stat = os.stat(fpath)
+            size_kb = stat.st_size / 1024
+            size_str = f"{size_kb:.1f} KB" if size_kb < 1024 else f"{size_kb/1024:.1f} MB"
+            mtime = datetime.fromtimestamp(stat.st_mtime).strftime('%d/%m/%Y %H:%M')
+            if fname.startswith('backup_full_'):
+                tipo = 'Completa'
+            elif fname.startswith('backup_db_'):
+                tipo = 'Base de datos'
+            else:
+                tipo = 'Multimedia'
+            backups.append({'nombre': fname, 'fecha': mtime, 'tipo': tipo, 'tamano': size_str})
+    return backups
 
 
 @login_required(login_url='/login/')
@@ -1541,8 +1651,71 @@ def admin_backup_view(request):
     if not request.user.is_superuser:
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('index')
-    
+
+    if request.method == 'POST':
+        backup_type = request.POST.get('backup_type')
+        if not backup_type:
+            messages.error(request, 'Seleccione un tipo de copia.')
+            return redirect('admin_backup')
+
+        backup_dir = _get_backup_dir()
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        prefix_map = {'full': 'backup_full', 'db': 'backup_db', 'media': 'backup_media'}
+        prefix = prefix_map.get(backup_type, 'backup')
+        zip_name = f"{prefix}_{timestamp}.zip"
+        zip_path = os.path.join(backup_dir, zip_name)
+
+        try:
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                if backup_type in ('full', 'db'):
+                    db_path = str(settings.DATABASES['default']['NAME'])
+                    if os.path.exists(db_path):
+                        zf.write(db_path, 'db.sqlite3')
+                if backup_type in ('full', 'media'):
+                    media_root = str(settings.MEDIA_ROOT)
+                    if os.path.exists(media_root):
+                        for root, dirs, files in os.walk(media_root):
+                            for file in files:
+                                fp = os.path.join(root, file)
+                                arcname = os.path.relpath(fp, os.path.dirname(media_root))
+                                zf.write(fp, arcname)
+            messages.success(request, f'Copia de seguridad generada correctamente: {zip_name}')
+        except Exception as e:
+            messages.error(request, f'Error al generar la copia: {str(e)}')
+        return redirect('admin_backup')
+
     context = {
-        'title': 'Copia de Seguridad'
+        'title': 'Copia de Seguridad',
+        'backups': _list_backups(),
     }
     return render(request, 'admin/backup.html', context)
+
+
+@login_required(login_url='/login/')
+def admin_backup_download(request, filename):
+    if not request.user.is_superuser:
+        return HttpResponse(status=403)
+    backup_dir = _get_backup_dir()
+    safe_name = os.path.basename(filename)
+    file_path = os.path.join(backup_dir, safe_name)
+    if not os.path.exists(file_path):
+        messages.error(request, 'Archivo no encontrado.')
+        return redirect('admin_backup')
+    response = FileResponse(open(file_path, 'rb'), as_attachment=True, filename=safe_name)
+    return response
+
+
+@login_required(login_url='/login/')
+def admin_backup_delete(request, filename):
+    if not request.user.is_superuser:
+        return HttpResponse(status=403)
+    if request.method == 'POST':
+        backup_dir = _get_backup_dir()
+        safe_name = os.path.basename(filename)
+        file_path = os.path.join(backup_dir, safe_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            messages.success(request, f'Copia "{safe_name}" eliminada.')
+        else:
+            messages.error(request, 'Archivo no encontrado.')
+    return redirect('admin_backup')

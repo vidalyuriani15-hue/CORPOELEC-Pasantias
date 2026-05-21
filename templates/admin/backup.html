@@ -7,74 +7,243 @@
   <h2>Copia de Seguridad</h2>
 </div>
 
-<div class="table-section">
-  <div class="table-header">
-    <h3>Generar Copia de Seguridad</h3>
+{% if messages %}
+<div id="messages-container">
+  {% for message in messages %}
+  <div class="alert alert-{% if 'error' in message.tags %}error{% elif 'success' in message.tags %}success{% else %}{{ message.tags }}{% endif %}">
+    {{ message }}
   </div>
-  
-  {% if messages %}
-  <div class="messages" id="messages-container">
-    {% for message in messages %}
-    {% if 'deleted' in message.tags %}
-    <div class="alert alert-deleted">{{ message }}</div>
-    {% elif 'updated' in message.tags %}
-    <div class="alert alert-updated">{{ message }}</div>
-    {% else %}
-    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endif %}
-    {% endfor %}
-  </div>
-  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 
-  <div class="form-section">
-    <h4>Generar Nueva Copia</h4>
-    <form method="post">
-      {% csrf_token %}
-      <div class="form-group">
-        <label>Tipo de Copia</label>
-        <select name="backup_type" class="form-control" required>
-          <option value="">Seleccione tipo</option>
-          <option value="full">Copia Completa (Base de datos y archivos)</option>
-          <option value="db">Solo Base de datos</option>
-          <option value="media">Solo Archivos Multimedia</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-          <input type="checkbox" name="automatic" style="width:18px; height:18px;">
-          <span>Programar copia automática diaria</span>
-        </label>
-      </div>
-      <button type="submit" class="btn btn-primary">Generar Copia</button>
-    </form>
-    
-    <div class="info-box">
-      <h5>Información:</h5>
-      <p>Esta función le permite crear una copia de seguridad del sistema. 
-      Puede elegir entre una copia completa (base de datos y archivos multimedia) 
-      o solo uno de estos componentes. Las copias se almacenan de forma segura 
-      y pueden ser utilizadas para restaurar el sistema en caso de fallos.</p>
+<div class="backup-grid">
+
+  <!-- Panel: Generar copia -->
+  <div class="table-section backup-panel">
+    <div class="table-header">
+      <h3>Generar Nueva Copia</h3>
     </div>
-    
-    <div class="recent-backups">
-      <h4>Copias Recientes</h4>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th>Tamaño</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Placeholder for recent backups -->
-          <tr>
-            <td colspan="4" class="no-data">No hay copias de seguridad disponibles.</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="form-section">
+      <form method="post" id="backup-form">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="backup_type">Tipo de Copia</label>
+          <select name="backup_type" id="backup_type" class="form-control" required>
+            <option value="">— Seleccione tipo —</option>
+            <option value="full">Copia Completa (BD + Archivos)</option>
+            <option value="db">Solo Base de Datos</option>
+            <option value="media">Solo Archivos Multimedia</option>
+          </select>
+        </div>
+
+        <!-- Info cards por tipo -->
+        <div class="backup-type-info" id="info-full" style="display:none;">
+          <div class="info-card info-card--blue">
+            <span class="info-icon">&#128190;</span>
+            <div>
+              <strong>Copia Completa</strong>
+              <p>Incluye la base de datos SQLite y todos los archivos multimedia subidos al sistema.</p>
+            </div>
+          </div>
+        </div>
+        <div class="backup-type-info" id="info-db" style="display:none;">
+          <div class="info-card info-card--green">
+            <span class="info-icon">&#128202;</span>
+            <div>
+              <strong>Solo Base de Datos</strong>
+              <p>Exporta únicamente el archivo db.sqlite3 con todos los registros del sistema.</p>
+            </div>
+          </div>
+        </div>
+        <div class="backup-type-info" id="info-media" style="display:none;">
+          <div class="info-card info-card--orange">
+            <span class="info-icon">&#128247;</span>
+            <div>
+              <strong>Solo Multimedia</strong>
+              <p>Comprime los archivos de imágenes y adjuntos sin incluir la base de datos.</p>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btn-generar" disabled>
+          <span id="btn-text">Generar Copia</span>
+          <span id="btn-loading" style="display:none;">Generando...</span>
+        </button>
+      </form>
     </div>
+  </div>
+
+  <!-- Panel: Estadísticas rápidas -->
+  <div class="table-section backup-panel">
+    <div class="table-header">
+      <h3>Resumen</h3>
+    </div>
+    <div class="backup-stats">
+      <div class="stat-item">
+        <span class="stat-number">{{ backups|length }}</span>
+        <span class="stat-label">Copias almacenadas</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ backups|length|yesno:"Sí,No" }}</span>
+        <span class="stat-label">Copias disponibles</span>
+      </div>
+    </div>
+    <div class="info-box" style="margin-top:1rem;">
+      <p>Las copias se almacenan en el directorio <code>backups/</code> del servidor.
+         Descárgalas y guárdalas en un lugar seguro fuera del servidor.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tabla de copias recientes -->
+<div class="table-section" style="margin-top:1.5rem;">
+  <div class="table-header">
+    <h3>Copias de Seguridad Disponibles</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Archivo</th>
+          <th>Fecha</th>
+          <th>Tipo</th>
+          <th>Tamaño</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for backup in backups %}
+        <tr>
+          <td>
+            <span class="backup-filename">{{ backup.nombre }}</span>
+          </td>
+          <td>{{ backup.fecha }}</td>
+          <td>
+            <span class="badge badge--{% if backup.tipo == 'Completa' %}blue{% elif backup.tipo == 'Base de datos' %}green{% else %}orange{% endif %}">
+              {{ backup.tipo }}
+            </span>
+          </td>
+          <td>{{ backup.tamano }}</td>
+          <td class="actions-cell">
+            <a href="{% url 'admin_backup_download' backup.nombre %}" class="btn btn-sm btn-secondary" title="Descargar">
+              Descargar
+            </a>
+            <form method="post" action="{% url 'admin_backup_delete' backup.nombre %}" style="display:inline;"
+                  onsubmit="return confirm('¿Eliminar esta copia de seguridad?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
+                Eliminar
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="no-data">No hay copias de seguridad disponibles. Genere una nueva.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
+
+<style>
+.backup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 0;
+}
+@media (max-width: 768px) {
+  .backup-grid { grid-template-columns: 1fr; }
+}
+.backup-panel { margin-bottom: 0; }
+
+.backup-type-info { margin: 0.75rem 0; }
+.info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+.info-card p { margin: 0.25rem 0 0; color: #555; font-size: 0.82rem; }
+.info-card--blue  { background: #e8f0fe; border-left: 4px solid #1a73e8; }
+.info-card--green { background: #e6f4ea; border-left: 4px solid #34a853; }
+.info-card--orange{ background: #fef3e2; border-left: 4px solid #f29900; }
+.info-icon { font-size: 1.4rem; flex-shrink: 0; }
+
+.backup-stats {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+.stat-number { font-size: 2rem; font-weight: 700; color: #1a73e8; }
+.stat-label  { font-size: 0.78rem; color: #666; margin-top: 0.25rem; text-align:center; }
+
+.backup-filename {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: #444;
+  word-break: break-all;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.65em;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.badge--blue   { background: #e8f0fe; color: #1a73e8; }
+.badge--green  { background: #e6f4ea; color: #34a853; }
+.badge--orange { background: #fef3e2; color: #f29900; }
+
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+.btn-danger { background: #dc3545; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+.btn-danger:hover { background: #c82333; }
+.actions-cell { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+
+code {
+  background: #f4f4f4;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+</style>
+
+<script>
+(function() {
+  var sel = document.getElementById('backup_type');
+  var btn = document.getElementById('btn-generar');
+  var infos = ['full', 'db', 'media'];
+
+  sel.addEventListener('change', function() {
+    var val = this.value;
+    infos.forEach(function(k) {
+      document.getElementById('info-' + k).style.display = (val === k) ? 'block' : 'none';
+    });
+    btn.disabled = !val;
+  });
+
+  document.getElementById('backup-form').addEventListener('submit', function() {
+    btn.disabled = true;
+    document.getElementById('btn-text').style.display = 'none';
+    document.getElementById('btn-loading').style.display = 'inline';
+  });
+})();
+</script>
 {% endblock %}

@@ -9,46 +9,57 @@
 
 <div class="table-section">
   <div class="table-header">
-    <h3>Eventos del Sistema</h3>
-    </button>
+    <h3>Actividad del Sistema</h3>
+    <input type="text" id="buscar-evento" class="search-input" placeholder="Buscar por usuario, descripción o vista...">
   </div>
-  
+
   {% if messages %}
   <div class="messages" id="messages-container">
     {% for message in messages %}
-    {% if 'deleted' in message.tags %}
-    <div class="alert alert-deleted">{{ message }}</div>
-    {% elif 'updated' in message.tags %}
-    <div class="alert alert-updated">{{ message }}</div>
-    {% else %}
     <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endif %}
     {% endfor %}
   </div>
   {% endif %}
 
-  <table class="data-table">
+  <table class="data-table" id="tabla-eventos">
     <thead>
       <tr>
-        <th>Fecha/Hora</th>
-        <th>Tipo</th>
+        <th>Hora</th>
         <th>Usuario</th>
-        <th>IP</th>
+        <th>Vista</th>
         <th>Descripción</th>
+        <th>Estado</th>
       </tr>
     </thead>
     <tbody>
       {% for evento in eventos %}
       <tr>
-        <td><strong>{{ evento.Fecha_Hora|date:"d/m/Y H:i:s" }}</strong></td>
-        <td>
-          <span class="badge {% if evento.Tipo == 'CREACION' %}badge-success{% elif evento.Tipo == 'ACTUALIZACION' %}badge-info{% elif evento.Tipo == 'ELIMINACION' %}badge-warning{% elif evento.Tipo == 'LOGIN' %}badge-login{% elif evento.Tipo == 'LOGOUT' %}badge-logout{% elif evento.Tipo == 'ERROR' %}badge-error{% else %}badge-secondary{% endif %}">
-            {{ evento.get_Tipo_display }}
-          </span>
+        <td style="white-space:nowrap;">
+          <span style="font-weight:600;">{{ evento.Fecha_Hora|date:"d/m/Y" }}</span><br>
+          <span style="color:#666;font-size:.85em;">{{ evento.Fecha_Hora|date:"H:i:s" }}</span>
         </td>
-        <td>{{ evento.Usuario.username|default:"Sistema" }}</td>
-        <td>{{ evento.IP_Address|default:"—" }}</td>
-        <td>{{ evento.Descripcion }}</td>
+        <td>
+          <span style="font-weight:600;">{{ evento.Usuario.username|default:"Sistema" }}</span>
+        </td>
+        <td style="color:#555;font-size:.9em;">{{ evento.Vista|default:"—" }}</td>
+        <td style="font-size:.92em;">{{ evento.Descripcion }}</td>
+        <td>
+          {% if evento.Tipo == 'CREACION' %}
+            <span class="badge badge-success">Agregó</span>
+          {% elif evento.Tipo == 'ACTUALIZACION' %}
+            <span class="badge badge-info">Editó</span>
+          {% elif evento.Tipo == 'ELIMINACION' %}
+            <span class="badge badge-warning">Eliminó</span>
+          {% elif evento.Tipo == 'LOGIN' %}
+            <span class="badge badge-login">Ingresó</span>
+          {% elif evento.Tipo == 'LOGOUT' %}
+            <span class="badge badge-logout">Salió</span>
+          {% elif evento.Tipo == 'ERROR' %}
+            <span class="badge badge-error">Error</span>
+          {% else %}
+            <span class="badge badge-secondary">Otro</span>
+          {% endif %}
+        </td>
       </tr>
       {% empty %}
       <tr><td colspan="5" class="no-data">No hay eventos registrados.</td></tr>
@@ -57,4 +68,12 @@
   </table>
 </div>
 
+<script>
+document.getElementById('buscar-evento').addEventListener('input', function () {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#tabla-eventos tbody tr').forEach(function (row) {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
 {% endblock %}

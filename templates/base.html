@@ -453,6 +453,40 @@
       text-align: center;
     }
 
+    /* Sección inferior fija del sidebar */
+    .sidebar-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 0;
+    }
+
+    .sidebar-bottom a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 14px 20px;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-size: 0.95rem;
+    }
+
+    .sidebar-bottom a:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--white);
+    }
+
+    .sidebar-bottom a.active {
+      background: rgba(77, 166, 255, 0.2);
+      color: var(--white);
+      border-left: 4px solid var(--blue-accent);
+    }
+
+    .sidebar-bottom a i {
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+    }
+
      /* Dropdown Menu Styles - Menú desplegable anidado */
      .sidebar-dropdown {
        position: relative;
@@ -1897,25 +1931,6 @@
             </div>
          </div>
 
-          <!-- Dropdown Mi Cuenta -->
-          <div class="sidebar-dropdown {% if request.path == '/perfil/' or request.path == '/admin/perfil/' or request.path == '/cambiar-clave/' or request.path == '/admin/cambiar-clave/' %}active{% endif %}">
-            <a href="#" class="dropdown-toggle" onclick="toggleDropdown(event, 'cuenta-dropdown')">
-              <i class="fas fa-user-circle"></i>
-              <span>Mi Cuenta</span>
-              <i class="fas fa-chevron-down dropdown-arrow"></i>
-            </a>
-            <div class="dropdown-menu" id="cuenta-dropdown">
-              <a href="{% url 'perfil' %}" class="{% if request.path == '/perfil/' or request.path == '/admin/perfil/' %}active{% endif %}" onclick="closeMobileSidebar()">
-                <i class="fas fa-user"></i>
-                <span>Perfil</span>
-              </a>
-              <a href="{% url 'cambiar_clave' %}" class="{% if request.path == '/cambiar-clave/' or request.path == '/admin/cambiar-clave/' %}active{% endif %}" onclick="closeMobileSidebar()">
-                <i class="fas fa-key"></i>
-                <span>Cambiar Contraseña</span>
-              </a>
-            </div>
-          </div>
-
           <!-- Dropdown Utilidades de Administración -->
           <div class="sidebar-dropdown {% if request.path == '/bitacora/' or request.path == '/admin/restaurar/' or request.path == '/admin/backup/' %}active{% endif %}">
             <a href="#" class="dropdown-toggle" onclick="toggleDropdown(event, 'admin-dropdown')">
@@ -1945,6 +1960,25 @@
             </div>
           </div>
         </nav>
+
+        <!-- Perfil y Cerrar Sesión fijados al fondo del sidebar -->
+        <div class="sidebar-bottom">
+          <a href="{% url 'perfil' %}" class="{% if request.path == '/perfil/' or request.path == '/admin/perfil/' %}active{% endif %}" onclick="closeMobileSidebar()">
+            <i class="fas fa-user-circle"></i>
+            <span>Mi Perfil</span>
+          </a>
+          {% if user.is_staff %}
+          <a href="{% url 'logout' %}" onclick="closeMobileSidebar()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Cerrar Sesión</span>
+          </a>
+          {% else %}
+          <a href="{% url 'user_logout' %}" onclick="closeMobileSidebar()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Cerrar Sesión</span>
+          </a>
+          {% endif %}
+        </div>
       </aside>
 
       <!-- Main Content -->

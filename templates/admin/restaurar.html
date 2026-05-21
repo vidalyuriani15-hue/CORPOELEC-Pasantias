@@ -7,48 +7,390 @@
   <h2>Restaurar Sistema</h2>
 </div>
 
-<div class="table-section">
-  <div class="table-header">
-    <h3>Opciones de Restauración</h3>
-  </div>
-  
-  {% if messages %}
-  <div class="messages" id="messages-container">
-    {% for message in messages %}
-    {% if 'deleted' in message.tags %}
-    <div class="alert alert-deleted">{{ message }}</div>
-    {% elif 'updated' in message.tags %}
-    <div class="alert alert-updated">{{ message }}</div>
-    {% else %}
-    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endif %}
-    {% endfor %}
-  </div>
+{% if messages %}
+<div class="messages" id="messages-container">
+  {% for message in messages %}
+  {% if 'deleted' in message.tags %}
+  <div class="alert alert-deleted">{{ message }}</div>
+  {% elif 'updated' in message.tags %}
+  <div class="alert alert-updated">{{ message }}</div>
+  {% else %}
+  <div class="alert alert-{{ message.tags }}">{{ message }}</div>
   {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 
-  <div class="form-section">
-    <h4>Restaurar Copia de Seguridad</h4>
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div class="form-group">
-        <label>Seleccionar archivo de copia</label>
-        <input type="file" name="backup_file" accept=".sql,.json,.xml,.zip" class="form-control" required>
+<div class="restore-layout">
+
+  <!-- Panel principal: formulario -->
+  <div class="restore-card">
+    <div class="restore-card-header">
+      <i class="fas fa-upload"></i>
+      <span>Cargar Copia de Seguridad</span>
+    </div>
+    <div class="restore-card-body">
+      <form method="post" enctype="multipart/form-data" id="restoreForm">
+        {% csrf_token %}
+
+        <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('backupFileInput').click()">
+          <i class="fas fa-file-archive file-drop-icon"></i>
+          <p class="file-drop-title">Haz clic o arrastra tu archivo aquí</p>
+          <p class="file-drop-hint">Formatos aceptados: <strong>.zip</strong></p>
+          <p class="file-drop-selected" id="fileSelected" style="display:none;"></p>
+          <input type="file" id="backupFileInput" name="backup_file" accept=".zip" style="display:none;" required>
+        </div>
+
+        <div class="confirm-block">
+          <label class="confirm-label">
+            <input type="checkbox" name="confirmar" id="confirmCheck">
+            <span class="confirm-text">
+              Entiendo que esta acción reemplazará <strong>todos los datos actuales</strong> con los contenidos de la copia de seguridad y que esta operación no se puede deshacer.
+            </span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-restore" id="btnRestore" disabled>
+          <i class="fas fa-undo-alt"></i> Restaurar Sistema
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Panel de advertencia -->
+  <div class="restore-warning-card">
+    <div class="restore-warning-header">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span>Antes de continuar</span>
+    </div>
+    <ul class="warning-list">
+      <li><i class="fas fa-circle"></i><span>Solo se aceptan archivos <strong>.zip</strong> generados por este sistema.</span></li>
+      <li><i class="fas fa-circle"></i><span>Todos los datos actuales serán <strong>reemplazados permanentemente</strong>, sin posibilidad de recuperación.</span></li>
+      <li><i class="fas fa-circle"></i><span>Asegúrate de tener una <strong>copia reciente</strong> antes de continuar.</span></li>
+      <li><i class="fas fa-circle"></i><span>El sistema <strong>cerrará las sesiones activas</strong> al restaurar la base de datos.</span></li>
+    </ul>
+    <a href="{% url 'admin_backup' %}" class="btn-goto-backup">
+      <i class="fas fa-database"></i> Ir a Copias de Seguridad
+    </a>
+  </div>
+
+</div>
+
+<!-- Historial de copias disponibles -->
+{% if backups %}
+<div class="table-section" style="margin-top:24px;">
+  <div class="table-header">
+    <h3>Copias disponibles en el sistema</h3>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Tipo</th>
+        <th>Fecha</th>
+        <th>Tamaño</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in backups %}
+      <tr>
+        <td><i class="fas fa-file-archive" style="color:var(--blue-accent,#4DA6FF);margin-right:8px;"></i>{{ b.nombre }}</td>
+        <td><span class="backup-tipo-badge">{{ b.tipo }}</span></td>
+        <td>{{ b.fecha }}</td>
+        <td>{{ b.tamano }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.restore-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Card formulario ── */
+.restore-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  overflow: hidden;
+}
+.restore-card-header {
+  background: var(--blue-dark, #0D2B4D);
+  color: #fff;
+  padding: 16px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.restore-card-body { padding: 28px 24px; }
+
+/* ── Zona de arrastre ── */
+.file-drop-zone {
+  border: 2px dashed var(--gray-300, #dee2e6);
+  border-radius: 10px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #fafbfc;
+  margin-bottom: 24px;
+}
+.file-drop-zone:hover,
+.file-drop-zone.drag-over {
+  border-color: var(--blue-accent, #4DA6FF);
+  background: #f0f7ff;
+}
+.file-drop-icon {
+  font-size: 2.6rem;
+  color: var(--blue-accent, #4DA6FF);
+  margin-bottom: 12px;
+  display: block;
+}
+.file-drop-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--blue-dark, #0D2B4D);
+  margin-bottom: 4px;
+}
+.file-drop-hint { font-size: 0.85rem; color: var(--gray-600, #6c757d); }
+.file-drop-selected {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: #28a745;
+  font-weight: 600;
+}
+
+/* ── Confirmación ── */
+.confirm-block {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+}
+.confirm-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+.confirm-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--blue-dark, #0D2B4D);
+}
+.confirm-text { font-size: 0.9rem; color: #7a5100; line-height: 1.5; }
+
+/* ── Botón ── */
+.btn-restore {
+  width: 100%;
+  padding: 13px;
+  background: var(--blue-dark, #0D2B4D);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.2s, opacity 0.2s;
+}
+.btn-restore:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-restore:not(:disabled):hover { background: #1a3f6e; }
+
+/* ── Card advertencia ── */
+.restore-warning-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  overflow: hidden;
+}
+.restore-warning-header {
+  background: #e63946;
+  color: #fff;
+  padding: 16px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.warning-list {
+  list-style: none;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.warning-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #444;
+  line-height: 1.5;
+}
+.warning-list li i {
+  color: #e63946;
+  font-size: 10px;
+  margin-top: 5px;
+  flex-shrink: 0;
+  width: 12px;
+  text-align: center;
+}
+.warning-list li span { flex: 1; }
+.btn-goto-backup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 24px 24px;
+  padding: 10px;
+  background: #f4f7f6;
+  border: 1px solid var(--gray-300, #dee2e6);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--blue-dark, #0D2B4D);
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.btn-goto-backup:hover { background: #e8eef4; text-decoration: none; }
+
+/* ── Tabla backups ── */
+.backup-tipo-badge {
+  background: #e8f4fd;
+  color: #0d6a9f;
+  border: 1px solid #b8ddf5;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .restore-layout { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+<!-- Modal de confirmación de restauración -->
+<div class="modal" id="restoreConfirmModal">
+  <div class="modal-dialog" style="max-width:460px;">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#e63946;border:none;">
+        <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:10px;">
+          <i class="fas fa-exclamation-triangle"></i> Confirmar Restauración
+        </h5>
       </div>
-      <div class="form-group">
-        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-          <input type="checkbox" name="confirmar" style="width:18px; height:18px;">
-          <span>Confirmo que deseo restaurar la base de datos y perderé todos los datos actuales</span>
-        </label>
+      <div class="modal-body" style="text-align:center;padding:32px 28px 20px;">
+        <div style="font-size:3.2rem;color:#e63946;margin-bottom:16px;">
+          <i class="fas fa-undo-alt"></i>
+        </div>
+        <h4 style="color:var(--blue-dark,#0D2B4D);margin-bottom:10px;">¿Está completamente seguro?</h4>
+        <p style="color:#555;font-size:0.95rem;line-height:1.6;margin-bottom:6px;">
+          Esta acción <strong>reemplazará todos los datos actuales</strong> del sistema con el contenido de la copia seleccionada.
+        </p>
+        <p style="color:#e63946;font-size:0.88rem;font-weight:600;">
+          <i class="fas fa-ban" style="margin-right:5px;"></i>Esta operación no se puede deshacer.
+        </p>
       </div>
-      <button type="submit" class="btn btn-primary">Restaurar Sistema</button>
-    </form>
-    
-    <div class="info-box">
-      <h5>Información:</h5>
-      <p>Esta función le permite restaurar el sistema desde una copia de seguridad previamente creada. 
-      Seleccione el archivo de copia y confirme que desea proceder. Todos los datos actuales serán reemplazados 
-      por los contenidos en la copia de seguridad.</p>
+      <div class="modal-footer" style="justify-content:center;gap:14px;padding:16px 28px 24px;background:#fff;border:none;">
+        <button type="button" class="btn-secondary" style="padding:10px 28px;border-radius:8px;font-size:0.95rem;cursor:pointer;border:1px solid #dee2e6;" onclick="cerrarModalRestore()">
+          <i class="fas fa-times" style="margin-right:6px;"></i>Cancelar
+        </button>
+        <button type="button" style="padding:10px 28px;background:#e63946;color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;" onclick="ejecutarRestore()">
+          <i class="fas fa-undo-alt" style="margin-right:6px;"></i>Sí, Restaurar
+        </button>
+      </div>
     </div>
   </div>
 </div>
+
+{% block extra_js %}
+<script>
+const input = document.getElementById('backupFileInput');
+const dropZone = document.getElementById('dropZone');
+const fileSelected = document.getElementById('fileSelected');
+const confirmCheck = document.getElementById('confirmCheck');
+const btnRestore = document.getElementById('btnRestore');
+
+function updateBtn() {
+  btnRestore.disabled = !(input.files.length > 0 && confirmCheck.checked);
+}
+
+input.addEventListener('change', function () {
+  if (this.files.length > 0) {
+    fileSelected.textContent = '✔ ' + this.files[0].name;
+    fileSelected.style.display = 'block';
+  }
+  updateBtn();
+});
+
+confirmCheck.addEventListener('change', updateBtn);
+
+// Drag & drop
+dropZone.addEventListener('dragover', function (e) {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', function () {
+  dropZone.classList.remove('drag-over');
+});
+dropZone.addEventListener('drop', function (e) {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    const dt = new DataTransfer();
+    dt.items.add(files[0]);
+    input.files = dt.files;
+    fileSelected.textContent = '✔ ' + files[0].name;
+    fileSelected.style.display = 'block';
+    updateBtn();
+  }
+});
+
+// Interceptar submit → mostrar modal
+document.getElementById('restoreForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  document.getElementById('restoreConfirmModal').classList.add('active');
+});
+
+function cerrarModalRestore() {
+  document.getElementById('restoreConfirmModal').classList.remove('active');
+}
+
+function ejecutarRestore() {
+  cerrarModalRestore();
+  document.getElementById('restoreForm').submit();
+}
+
+// Cerrar con Escape o clic fuera
+document.getElementById('restoreConfirmModal').addEventListener('click', function (e) {
+  if (e.target === this) cerrarModalRestore();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') cerrarModalRestore();
+});
+</script>
 {% endblock %}

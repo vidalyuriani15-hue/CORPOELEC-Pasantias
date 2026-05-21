@@ -245,6 +245,7 @@ class Evento(models.Model):
     Usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='eventos')
     Fecha_Hora = models.DateTimeField(auto_now_add=True)
     IP_Address = models.GenericIPAddressField(null=True, blank=True)
+    Vista = models.CharField(max_length=100, blank=True, default='')
     
     class Meta:
         verbose_name = 'Evento'
