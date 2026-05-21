@@ -24,8 +24,8 @@ def index_view(request):
     total_reles = Rele.objects.count() or 0
     total_subestaciones = Subestacion.objects.count() or 0
     total_remotas = Remota.objects.count() or 0
-    total_interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS').count() or 0
-    total_protocolos = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS').count() or 0
+    total_interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).count() or 0
+    total_protocolos = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS', Activo=True).count() or 0
     total_tensiones = NivelTension.objects.count() or 0
 
     ultimos_reconectadores = list(Reconectador.objects.all().order_by('-Fecha_Reg')[:5]) if total_reconectadores > 0 else []
@@ -305,7 +305,7 @@ def interfaces_view(request):
                     # Eliminación lógica: marcar como inactivo
                     iface.Activo = False
                     iface.save()
-                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Comunicacion desactivada: ID {iface_id}')
+                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Comunicacion eliminada: {iface.get_Tipo_Interfaz_display()}')
                     messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
@@ -333,7 +333,7 @@ def interfaces_view(request):
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise  # Rollback via transaction.atomic()
                     messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='updated')
-                registrar_evento(request, 'ACTUALIZACION', f'Interfaz PUERTOS editada: ID {iface_id}')
+                registrar_evento(request, 'ACTUALIZACION', 'Interfaz de Puertos editada')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -358,7 +358,7 @@ def interfaces_view(request):
                     messages.error(request, f'Error de validación: {str(e)}')
                     iface.delete()
                     return redirect('interfaces')
-                registrar_evento(request, 'CREACION', f'Interfaz PUERTOS creada: ID {iface.Id_Interfaz}')
+                registrar_evento(request, 'CREACION', 'Interfaz de Puertos creada')
                 messages.success(request, 'Interfaz creada correctamente')
                 return redirect('interfaces')
     
@@ -403,7 +403,7 @@ def protocolo_view(request):
                 except Exception as e:
                     messages.error(request, f'Error de validación: {str(e)}')
                     raise  # Rollback
-            registrar_evento(request, 'CREACION', f'Interfaz PROTOCOLOS creada: ID {interfaz.Id_Interfaz}, tipos: {tipos_protocolo}')
+            registrar_evento(request, 'CREACION', f'Interfaz de Protocolos creada: {tipos_protocolo}')
             messages.success(request, 'Interfaz creada correctamente')
         
         # Editar interfaz/protocolos
@@ -430,7 +430,7 @@ def protocolo_view(request):
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise
                 messages.success(request, 'Interfaz actualizada correctamente', extra_tags='updated')
-                registrar_evento(request, 'ACTUALIZACION', f'Interfaz PROTOCOLOS editada: ID {interfaz_id}')
+                registrar_evento(request, 'ACTUALIZACION', 'Interfaz de Protocolos editada')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
         
@@ -458,7 +458,7 @@ def protocolo_view(request):
                     # Eliminación lógica
                     interfaz.Activo = False
                     interfaz.save()
-                registrar_evento(request, 'ELIMINACION', f'Interfaz PROTOCOLOS desactivada: ID {interfaz_id}')
+                registrar_evento(request, 'ELIMINACION', f'Interfaz de Protocolos eliminada: {interfaz.get_Tipo_Interfaz_display()}')
                 messages.success(request, 'Protocolos de Telecontrol y Energía eliminados correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
@@ -653,7 +653,7 @@ def reles_view(request):
                     
                     rele.save()
                     print(f"DEBUG: Rele {rele_id} saved successfully. EsRemoto={es_remoto}", file=sys.stderr)
-                    registrar_evento(request, 'ACTUALIZACION', f'Relé actualizado: {rele.Marca} {rele.Modelo} (ID {rele_id})')
+                    registrar_evento(request, 'ACTUALIZACION', f'Relé actualizado: {rele.Marca} {rele.Modelo}')
                     messages.success(request, 'Relé actualizado correctamente.', extra_tags='updated')
             except (Rele.DoesNotExist, Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
                 print(f"DEBUG ERROR: {str(e)}", file=sys.stderr)
@@ -710,7 +710,7 @@ def reles_view(request):
                     rele.save()
                     print(f"DEBUG: Rele created. EsRemoto={es_remoto}, Remota_id={request.POST.get('remota_id')}", file=sys.stderr)
                     
-                    registrar_evento(request, 'CREACION', f'Relé creado: {rele.Marca} {rele.Modelo} (ID {rele.Id_relé})')
+                    registrar_evento(request, 'CREACION', f'Relé creado: {rele.Marca} {rele.Modelo}')
                     messages.success(request, 'Relé creado correctamente.')
                     return redirect('reles')
             except (Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
@@ -1525,15 +1525,35 @@ def custom_logout(request):
 @login_required(login_url='/login/')
 def bitacora_view(request):
     """Vista de bitácora de eventos del sistema"""
+    tipo_usuario = request.GET.get('tipo_usuario', '')
+    busqueda = request.GET.get('q', '')
+
     eventos_list = Evento.objects.exclude(Tipo__in=['LOGIN', 'LOGOUT']).order_by('-Fecha_Hora')
-    paginator = Paginator(eventos_list, 20)
+
+    if tipo_usuario == 'admin':
+        eventos_list = eventos_list.filter(Usuario__is_superuser=True)
+    elif tipo_usuario == 'regular':
+        eventos_list = eventos_list.filter(Usuario__is_superuser=False, Usuario__isnull=False)
+    elif tipo_usuario == 'sistema':
+        eventos_list = eventos_list.filter(Usuario__isnull=True)
+
+    if busqueda:
+        eventos_list = eventos_list.filter(
+            Q(Usuario__username__icontains=busqueda) |
+            Q(Vista__icontains=busqueda) |
+            Q(Descripcion__icontains=busqueda)
+        )
+
+    paginator = Paginator(eventos_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'title': 'Bitácora de Eventos',
         'page_obj': page_obj,
         'is_admin': request.user.is_superuser,
+        'tipo_usuario': tipo_usuario,
+        'busqueda': busqueda,
     }
     return render(request, 'bitacora.html', context)
 

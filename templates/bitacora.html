@@ -32,18 +32,39 @@
    <div class="table-header">
      <h3>Eventos Registrados</h3>
      <div class="header-actions">
-       <div class="search-wrapper">
-         <i class="fas fa-search search-icon"></i>
-         <input type="text" class="search-input" id="searchInput" placeholder="Buscar por usuario, vista o descripción...">
-         <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
-           <i class="fas fa-times"></i>
-         </button>
-       </div>
+       <form method="get" id="filterForm" class="filter-form">
+         <!-- Filtro tipo de usuario -->
+         <div class="filter-select-wrapper">
+           <i class="fas fa-users filter-select-icon"></i>
+           <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
+             <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
+             <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
+             <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
+           </select>
+         </div>
+         <!-- Buscador -->
+         <div class="search-wrapper">
+           <i class="fas fa-search search-icon"></i>
+           <input type="text" name="q" class="search-input" id="searchInput"
+                  placeholder="Buscar por usuario, vista o descripción..."
+                  value="{{ busqueda }}">
+           {% if busqueda %}
+           <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
+             <i class="fas fa-times"></i>
+           </button>
+           {% endif %}
+         </div>
+         <button type="submit" class="btn-buscar"><i class="fas fa-search"></i></button>
+       </form>
      </div>
    </div>
 
   {% if page_obj.paginator.count > 0 %}
-  <div id="resultCount" class="search-results-info"></div>
+  <div id="resultCount" class="search-results-info">
+    {% if busqueda or tipo_usuario %}
+    <span>{{ page_obj.paginator.count }} evento{{ page_obj.paginator.count|pluralize }} encontrado{{ page_obj.paginator.count|pluralize }}</span>
+    {% endif %}
+  </div>
   <table class="data-table">
     <thead>
       <tr>
@@ -65,10 +86,20 @@
           <div class="user-cell">
             {% if evento.Usuario %}
               <div class="user-avatar">{{ evento.Usuario.username|slice:":2" }}</div>
-              <span class="user-name">{{ evento.Usuario.username }}</span>
+              <div>
+                <span class="user-name">{{ evento.Usuario.username }}</span>
+                {% if evento.Usuario.is_superuser %}
+                <span class="user-type-badge admin-badge">Admin</span>
+                {% else %}
+                <span class="user-type-badge regular-badge">Regular</span>
+                {% endif %}
+              </div>
             {% else %}
               <div class="user-avatar system"><i class="fas fa-cog"></i></div>
-              <span class="user-name">Sistema</span>
+              <div>
+                <span class="user-name">Sistema</span>
+                <span class="user-type-badge sistema-badge">Sistema</span>
+              </div>
             {% endif %}
           </div>
         </td>
@@ -104,7 +135,7 @@
   {% else %}
   <div class="no-data">
     <i class="fas fa-inbox"></i>
-    No hay eventos registrados.
+    No hay eventos que coincidan con los filtros aplicados.
   </div>
   {% endif %}
 </div>
@@ -122,16 +153,16 @@
       <ul class="pagination-list">
         {% if page_obj.has_previous %}
         <li class="pagination-item">
-          <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link pagination-prev" title="Página anterior">
+          <a href="?page={{ page_obj.previous_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link pagination-prev" title="Página anterior">
             <i class="fas fa-chevron-left"></i> Anterior
           </a>
         </li>
         {% else %}
         <li class="pagination-item disabled">
-          <span class="pagination-link disabled" title="No hay página anterior"><i class="fas fa-chevron-left"></i> Anterior</span>
+          <span class="pagination-link disabled"><i class="fas fa-chevron-left"></i> Anterior</span>
         </li>
         {% endif %}
-        
+
         {% for num in page_obj.paginator.page_range %}
         {% if page_obj.number == num %}
         <li class="pagination-item active">
@@ -139,20 +170,20 @@
         </li>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
         <li class="pagination-item">
-          <a href="?page={{ num }}" class="pagination-link">{{ num }}</a>
+          <a href="?page={{ num }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link">{{ num }}</a>
         </li>
         {% endif %}
         {% endfor %}
-        
+
         {% if page_obj.has_next %}
         <li class="pagination-item">
-          <a href="?page={{ page_obj.next_page_number }}" class="pagination-link pagination-next" title="Página siguiente">
+          <a href="?page={{ page_obj.next_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link pagination-next" title="Página siguiente">
             Siguiente <i class="fas fa-chevron-right"></i>
           </a>
         </li>
         {% else %}
         <li class="pagination-item disabled">
-          <span class="pagination-link disabled" title="No hay página siguiente">Siguiente <i class="fas fa-chevron-right"></i></span>
+          <span class="pagination-link disabled">Siguiente <i class="fas fa-chevron-right"></i></span>
         </li>
         {% endif %}
       </ul>
@@ -185,7 +216,7 @@
 .badge-secondary{ background: #f3f3f3; color: #555;    border: 1px solid #ddd; }
 
 /* ── Fila coloreada por tipo (borde izquierdo) ── */
-.row-creacion  { border-left: 3px solid #28a745; }
+.row-creacion      { border-left: 3px solid #28a745; }
 .row-actualizacion { border-left: 3px solid #17a2b8; }
 .row-eliminacion   { border-left: 3px solid #ffc107; }
 .row-login         { border-left: 3px solid #4DA6FF; }
@@ -221,7 +252,22 @@
   font-weight: 600;
   color: var(--blue-dark, #0D2B4D);
   font-size: 0.9rem;
+  display: block;
 }
+
+/* ── Badge de tipo de usuario ── */
+.user-type-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+}
+.admin-badge   { background: #fff3cd; color: #856404; border: 1px solid #ffd87a; }
+.regular-badge { background: #d1ecf1; color: #0c5460; border: 1px solid #9fd8e2; }
+.sistema-badge { background: #e2e3e5; color: #555;    border: 1px solid #c6c8ca; }
 
 /* ── Celda de fecha ── */
 .date-cell .date-main { font-weight: 600; color: var(--blue-dark, #0D2B4D); font-size: 0.88rem; }
@@ -248,6 +294,45 @@
   line-height: 1.5;
 }
 
+/* ── Filtros ── */
+.filter-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.filter-select-icon {
+  position: absolute;
+  left: 10px;
+  color: #8c8c8c;
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 2;
+}
+.filter-select {
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--gray-300, #dee2e6);
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #333;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 180px;
+}
+.filter-select:focus {
+  outline: none;
+  border-color: var(--blue-accent, #4DA6FF);
+  box-shadow: 0 0 0 3px rgba(77,166,255,0.12);
+}
+
 /* ── Buscador ── */
 .search-wrapper {
   position: relative;
@@ -263,7 +348,7 @@
   z-index: 2;
 }
 .search-wrapper .search-input {
-  width: 300px;
+  width: 260px;
   padding: 8px 36px;
   border: 1px solid var(--gray-300, #dee2e6);
   border-radius: 8px;
@@ -287,11 +372,22 @@
   font-size: 11px;
   padding: 4px 6px;
   border-radius: 4px;
-  display: none;
   z-index: 2;
   transition: background 0.2s;
 }
 .search-wrapper .search-clear:hover { background: #ddd; color: #333; }
+
+.btn-buscar {
+  padding: 8px 14px;
+  background: var(--blue-dark, #0D2B4D);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+.btn-buscar:hover { background: var(--blue-accent, #4DA6FF); }
 
 /* ── Contador de resultados ── */
 .search-results-info {
@@ -348,66 +444,12 @@
 
 {% block extra_js %}
 <script>
-let searchTimeout;
-
-function filterTable() {
-  const input = document.getElementById('searchInput');
-  const clearBtn = document.getElementById('searchClear');
-  const filter = input.value.toLowerCase().trim();
-  
-  clearBtn.style.display = filter ? 'block' : 'none';
-  
-  const table = document.querySelector('.data-table tbody');
-  if (!table) return;
-  
-  const rows = table.getElementsByTagName('tr');
-  let visibleCount = 0;
-  
-  for (let i = 0; i < rows.length; i++) {
-    const cells = rows[i].getElementsByTagName('td');
-    let match = false;
-    
-    if (filter === '') {
-      match = true;
-    } else {
-      for (let j = 0; j < cells.length; j++) {
-        if (cells[j].textContent.toLowerCase().indexOf(filter) > -1) {
-          match = true;
-          break;
-        }
-      }
-    }
-    
-    rows[i].style.display = match ? '' : 'none';
-    if (match) visibleCount++;
-  }
-  
-  const resultCount = document.getElementById('resultCount');
-  if (resultCount) {
-    if (filter && visibleCount < rows.length) {
-      resultCount.innerHTML = `<span>Mostrando ${visibleCount} de ${rows.length} eventos coincidentes</span>`;
-    } else {
-      resultCount.innerHTML = '';
-    }
-  }
-}
-
 function clearSearch() {
   const input = document.getElementById('searchInput');
-  const clearBtn = document.getElementById('searchClear');
   input.value = '';
-  clearBtn.style.display = 'none';
-  filterTable();
-  input.focus();
+  document.getElementById('filterForm').submit();
 }
 
-// Handle input with debounce
-document.getElementById('searchInput').addEventListener('input', function() {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(filterTable, 300);
-});
-
-// Clear on ESC
 document.getElementById('searchInput').addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     clearSearch();
