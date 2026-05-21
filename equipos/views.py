@@ -840,310 +840,329 @@ def exportar_tensiones_pdf(request):
     from io import BytesIO
     from django.http import FileResponse
 
+
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+                            rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
+    NAVY   = colors.HexColor('#1c2e4a')
+    RED    = colors.HexColor('#ED1C24')
+    GREY_L = colors.HexColor('#f5f5f5')
+    GREY_B = colors.HexColor('#cccccc')
 
-    logo_path = find('img/logo_corpoelec.png')
-    if not logo_path:
-        logo_path = find('img/logo.jpg')
-
+    logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
     if logo_path:
-        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
-        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=14, leading=16, alignment=0))
-        logo_corpoelec_data = [[logo_img, corpoelec_text]]
-        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
-        logo_corpoelec_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
+        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
+        logo_cell = Table(
+            [[logo_img, Paragraph('<b>CORPOELEC</b>',
+               ParagraphStyle('corp', parent=styles['Normal'], fontSize=13, leading=15))]],
+            colWidths=[0.8*inch, 1.4*inch])
+        logo_cell.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-
-        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
-        title_paragraph = Paragraph('<b>Niveles de Tensión Registrados</b>', title_style)
-        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
-        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
-
-        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
-        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=16><b>Niveles de Tensión Registrados</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
-        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
-
-    elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+        logo_cell = Paragraph('<b>CORPOELEC</b>',
+                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=13))
+    title_p = Paragraph('<b>Niveles de Tensión Registrados</b>',
+                        ParagraphStyle('title', parent=styles['Normal'],
+                                       fontSize=14, leading=17, alignment=1))
+    date_p  = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
+                        ParagraphStyle('date', parent=styles['Normal'],
+                                       fontSize=8, leading=10, alignment=2,
+                                       textColor=colors.HexColor('#555555')))
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(hdr)
     elements.append(Spacer(1, 6))
+    elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
     tensiones = NivelTension.objects.all().order_by('Nivel')
-    data = [['Tipo', 'Nivel (kV)', 'Creado Por', 'Fecha Registro']]
+    _pw = landscape(letter)[0] - 50
+    _ratios = [1.8, 1.5, 3.0, 1.8]
+    col_w = [_pw * r / sum(_ratios) for r in _ratios]
+    hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
+    cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
+    data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in ['Tipo', 'Nivel (kV)', 'Creado Por', 'Fecha Registro']]]
     for tension in tensiones:
         creado_por = tension.creado_por.get_full_name() if tension.creado_por else 'Sistema'
-        fecha_reg = tension.Fecha_Reg.strftime('%d/%m/%Y') if tension.Fecha_Reg else ''
-        data.append([
-            tension.get_Tipo_ten_display(),
-            tension.get_Nivel_display(),
-            creado_por,
-            fecha_reg
-        ])
+        fecha_reg  = tension.Fecha_Reg.strftime('%d/%m/%Y') if tension.Fecha_Reg else ''
+        data.append([Paragraph(tension.get_Tipo_ten_display(), cell_st),
+                     Paragraph(tension.get_Nivel_display(), cell_st),
+                     Paragraph(creado_por, cell_st),
+                     Paragraph(fecha_reg, cell_st)])
+    table = Table(data, colWidths=col_w, repeatRows=1)
 
-    table = Table(data, colWidths=[1.8*inch, 1.5*inch, 3.0*inch, 1.8*inch])
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('TOPPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+        ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+        ('TOPPADDING',    (0, 0), (-1, 0),  6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0),  6),
+        ('INNERGRID',     (0, 0), (-1, 0),  0,   NAVY),
+        ('BOX',           (0, 0), (-1, 0),  0,   NAVY),
+        ('LINEBELOW',     (0, 0), (-1, 0),  1.0, colors.white),
+        ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE',      (0, 1), (-1, -1), 8),
+        ('TOPPADDING',    (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, GREY_L]),
+        ('LINEBELOW',     (0, 1), (-1, -1), 0.4, GREY_B),
+        ('LINEBEFORE',    (0, 1), (0,  -1), 0.4, GREY_B),
+        ('LINEAFTER',     (-1,1), (-1, -1), 0.4, GREY_B),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 15))
-
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
+    elements.append(Spacer(1, 12))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=GREY_B))
     elements.append(Spacer(1, 4))
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
-    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
-
+    elements.append(Paragraph(
+        'Corporación Eléctrica Nacional S.A. — Documento de carácter oficial',
+        ParagraphStyle('foot', parent=styles['Normal'], fontSize=7.5, leading=9,
+                       alignment=1, textColor=colors.HexColor('#666666'))))
     doc.build(elements)
     buffer.seek(0)
     response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="tensiones.pdf"'
     return response
 
-@login_required(login_url='/login/')
 def exportar_interfaces_pdf(request):
     """Exporta todas las interfaces a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.pagesizes import landscape, letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
 
+
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+                            rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
+    NAVY   = colors.HexColor('#1c2e4a')
+    RED    = colors.HexColor('#ED1C24')
+    GREY_L = colors.HexColor('#f5f5f5')
+    GREY_B = colors.HexColor('#cccccc')
 
-    logo_path = find('img/logo_corpoelec.png')
-    if not logo_path:
-        logo_path = find('img/logo.jpg')
-
+    logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
     if logo_path:
-        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
-        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=12, leading=14, alignment=0))
-        logo_corpoelec_data = [[logo_img, corpoelec_text]]
-        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
-        logo_corpoelec_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
+        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
+        logo_cell = Table(
+            [[logo_img, Paragraph('<b>CORPOELEC</b>',
+               ParagraphStyle('corp', parent=styles['Normal'], fontSize=13, leading=15))]],
+            colWidths=[0.8*inch, 1.4*inch])
+        logo_cell.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-
-        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
-        title_paragraph = Paragraph('<b>Interfaces Registradas</b>', title_style)
-        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
-        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
-
-        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
-        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=16><b>Interfaces Registradas</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
-        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
-
-    elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+        logo_cell = Paragraph('<b>CORPOELEC</b>',
+                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=13))
+    title_p = Paragraph('<b>Interfaces Registradas</b>',
+                        ParagraphStyle('title', parent=styles['Normal'],
+                                       fontSize=14, leading=17, alignment=1))
+    date_p  = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
+                        ParagraphStyle('date', parent=styles['Normal'],
+                                       fontSize=8, leading=10, alignment=2,
+                                       textColor=colors.HexColor('#555555')))
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(hdr)
     elements.append(Spacer(1, 6))
+    elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
     interfaces = InterfazDeComunicacion.objects.filter(Activo=True).prefetch_related('puertos').all().order_by('Id_Interfaz')
-    # Solo mostrar interfaces que tengan al menos un puerto
     interfaces = [i for i in interfaces if i.puertos.exists()]
-    
-    data = [['Puertos', 'Creado Por', 'Fecha Registro']]
+    _pw = landscape(letter)[0] - 50
+    _ratios = [3.5, 2.0, 1.5]
+    col_w = [_pw * r / sum(_ratios) for r in _ratios]
+    hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
+    cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
+    data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in ['Puertos', 'Creado Por', 'Fecha Registro']]]
     for interfaz in interfaces:
         puertos_list = [p.get_Tipo_display() for p in interfaz.puertos.all()]
-        puertos_str = ', '.join(puertos_list) if puertos_list else 'Sin puertos'
-        creado_por = interfaz.creado_por.username if interfaz.creado_por else 'Sistema'
-        data.append([puertos_str, creado_por, interfaz.Fecha_Reg.strftime('%d/%m/%Y') if interfaz.Fecha_Reg else ''])
+        puertos_str  = ', '.join(puertos_list) if puertos_list else 'Sin puertos'
+        creado_por   = interfaz.creado_por.username if interfaz.creado_por else 'Sistema'
+        data.append([Paragraph(puertos_str, cell_st),
+                     Paragraph(creado_por, cell_st),
+                     Paragraph(interfaz.Fecha_Reg.strftime('%d/%m/%Y') if interfaz.Fecha_Reg else '', cell_st)])
+    table = Table(data, colWidths=col_w, repeatRows=1)
 
-    table = Table(data, colWidths=[3.5*inch, 2.0*inch, 1.5*inch])
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('TOPPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+        ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+        ('TOPPADDING',    (0, 0), (-1, 0),  6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0),  6),
+        ('INNERGRID',     (0, 0), (-1, 0),  0,   NAVY),
+        ('BOX',           (0, 0), (-1, 0),  0,   NAVY),
+        ('LINEBELOW',     (0, 0), (-1, 0),  1.0, colors.white),
+        ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE',      (0, 1), (-1, -1), 8),
+        ('TOPPADDING',    (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, GREY_L]),
+        ('LINEBELOW',     (0, 1), (-1, -1), 0.4, GREY_B),
+        ('LINEBEFORE',    (0, 1), (0,  -1), 0.4, GREY_B),
+        ('LINEAFTER',     (-1,1), (-1, -1), 0.4, GREY_B),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 15))
-
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
+    elements.append(Spacer(1, 12))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=GREY_B))
     elements.append(Spacer(1, 4))
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
-    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
-
+    elements.append(Paragraph(
+        'Corporación Eléctrica Nacional S.A. — Documento de carácter oficial',
+        ParagraphStyle('foot', parent=styles['Normal'], fontSize=7.5, leading=9,
+                       alignment=1, textColor=colors.HexColor('#666666'))))
     doc.build(elements)
     buffer.seek(0)
     response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="interfaces.pdf"'
     return response
 
-
-@login_required(login_url='/login/')
 def exportar_protocolo_pdf(request):
     """Exporta todos los protocolos a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.pagesizes import landscape, letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
 
+
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+                            rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
+    NAVY   = colors.HexColor('#1c2e4a')
+    RED    = colors.HexColor('#ED1C24')
+    GREY_L = colors.HexColor('#f5f5f5')
+    GREY_B = colors.HexColor('#cccccc')
 
-    logo_path = find('img/logo_corpoelec.png')
-    if not logo_path:
-        logo_path = find('img/logo.jpg')
-
+    logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
     if logo_path:
-        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
-        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=12, leading=14, alignment=0))
-        logo_corpoelec_data = [[logo_img, corpoelec_text]]
-        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
-        logo_corpoelec_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
+        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
+        logo_cell = Table(
+            [[logo_img, Paragraph('<b>CORPOELEC</b>',
+               ParagraphStyle('corp', parent=styles['Normal'], fontSize=13, leading=15))]],
+            colWidths=[0.8*inch, 1.4*inch])
+        logo_cell.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-
-        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
-        title_paragraph = Paragraph('<b>Protocolos Registrados</b>', title_style)
-        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
-        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
-
-        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
-        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=16><b>Protocolos Registrados</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
-        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
-
-    elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+        logo_cell = Paragraph('<b>CORPOELEC</b>',
+                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=13))
+    title_p = Paragraph('<b>Protocolos Registrados</b>',
+                        ParagraphStyle('title', parent=styles['Normal'],
+                                       fontSize=14, leading=17, alignment=1))
+    date_p  = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
+                        ParagraphStyle('date', parent=styles['Normal'],
+                                       fontSize=8, leading=10, alignment=2,
+                                       textColor=colors.HexColor('#555555')))
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(hdr)
     elements.append(Spacer(1, 6))
+    elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
     from collections import defaultdict
-    # Agrupar protocolos por interfaz (solo interfaces activas con interfaz asignada)
     protocolos_por_interfaz = defaultdict(list)
     creado_por_por_interfaz = {}
     fecha_por_interfaz = {}
-    
     for protocolo in Protocolo.objects.filter(Id_Interfaz__isnull=False, Id_Interfaz__Activo=True).select_related('Id_Interfaz').all().order_by('Tipo'):
         interfaz_id = protocolo.Id_Interfaz.Id_Interfaz
         protocolos_por_interfaz[interfaz_id].append(protocolo.get_Tipo_display())
         if interfaz_id not in creado_por_por_interfaz:
             creado_por_por_interfaz[interfaz_id] = protocolo.creado_por.username if protocolo.creado_por else 'Sistema'
             fecha_por_interfaz[interfaz_id] = protocolo.Fecha_Reg.strftime('%d/%m/%Y') if protocolo.Fecha_Reg else ''
-    
-    data = [['Protocolos', 'Creado Por', 'Fecha de Registro']]
+    _pw = landscape(letter)[0] - 50
+    _ratios = [2.5, 2.0, 1.5]
+    col_w = [_pw * r / sum(_ratios) for r in _ratios]
+    hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
+    cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
+    data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in ['Protocolos', 'Creado Por', 'Fecha de Registro']]]
     for interfaz_id, protocolos_list in protocolos_por_interfaz.items():
-        protocolos_str = ', '.join(protocolos_list)
-        data.append([protocolos_str, creado_por_por_interfaz[interfaz_id], fecha_por_interfaz[interfaz_id]])
+        data.append([Paragraph(', '.join(protocolos_list), cell_st),
+                     Paragraph(creado_por_por_interfaz[interfaz_id], cell_st),
+                     Paragraph(fecha_por_interfaz[interfaz_id], cell_st)])
+    table = Table(data, colWidths=col_w, repeatRows=1)
 
-    table = Table(data, colWidths=[2.5*inch, 2.0*inch, 1.5*inch], repeatRows=1)
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('TOPPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+        ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+        ('TOPPADDING',    (0, 0), (-1, 0),  6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0),  6),
+        ('INNERGRID',     (0, 0), (-1, 0),  0,   NAVY),
+        ('BOX',           (0, 0), (-1, 0),  0,   NAVY),
+        ('LINEBELOW',     (0, 0), (-1, 0),  1.0, colors.white),
+        ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE',      (0, 1), (-1, -1), 8),
+        ('TOPPADDING',    (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, GREY_L]),
+        ('LINEBELOW',     (0, 1), (-1, -1), 0.4, GREY_B),
+        ('LINEBEFORE',    (0, 1), (0,  -1), 0.4, GREY_B),
+        ('LINEAFTER',     (-1,1), (-1, -1), 0.4, GREY_B),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 15))
-
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
+    elements.append(Spacer(1, 12))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=GREY_B))
     elements.append(Spacer(1, 4))
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
-    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
-
+    elements.append(Paragraph(
+        'Corporación Eléctrica Nacional S.A. — Documento de carácter oficial',
+        ParagraphStyle('foot', parent=styles['Normal'], fontSize=7.5, leading=9,
+                       alignment=1, textColor=colors.HexColor('#666666'))))
     doc.build(elements)
     buffer.seek(0)
     response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="protocolos.pdf"'
     return response
 
-@login_required(login_url='/login/')
 def exportar_subestaciones_pdf(request):
     """Exporta todas las subestaciones a PDF"""
     from django.contrib.staticfiles.finders import find
@@ -1155,193 +1174,215 @@ def exportar_subestaciones_pdf(request):
     from reportlab.lib.units import inch
     from io import BytesIO
 
+
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+                            rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
+    NAVY   = colors.HexColor('#1c2e4a')
+    RED    = colors.HexColor('#ED1C24')
+    GREY_L = colors.HexColor('#f5f5f5')
+    GREY_B = colors.HexColor('#cccccc')
 
-    logo_path = find('img/logo_corpoelec.png')
-    if not logo_path:
-        logo_path = find('img/logo.jpg')
-
+    logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
     if logo_path:
-        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
-        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=12, leading=14, alignment=0))
-        logo_corpoelec_data = [[logo_img, corpoelec_text]]
-        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
-        logo_corpoelec_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
+        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
+        logo_cell = Table(
+            [[logo_img, Paragraph('<b>CORPOELEC</b>',
+               ParagraphStyle('corp', parent=styles['Normal'], fontSize=13, leading=15))]],
+            colWidths=[0.8*inch, 1.4*inch])
+        logo_cell.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-
-        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
-        title_paragraph = Paragraph('<b>Subestaciones Registradas</b>', title_style)
-        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
-        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
-
-        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
-        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=16><b>Subestaciones Registradas</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
-        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
-
-    elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+        logo_cell = Paragraph('<b>CORPOELEC</b>',
+                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=13))
+    title_p = Paragraph('<b>Subestaciones Registradas</b>',
+                        ParagraphStyle('title', parent=styles['Normal'],
+                                       fontSize=14, leading=17, alignment=1))
+    date_p  = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
+                        ParagraphStyle('date', parent=styles['Normal'],
+                                       fontSize=8, leading=10, alignment=2,
+                                       textColor=colors.HexColor('#555555')))
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(hdr)
     elements.append(Spacer(1, 6))
+    elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
     subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
-    data = [['Nombre', 'Ubicación', 'Nivel de Tensión', 'Coordenadas', 'Creado Por', 'Fecha de Registro']]
+    _pw = landscape(letter)[0] - 50
+    _ratios = [1.4, 1.4, 1.8, 1.5, 1.5, 1.5]
+    col_w = [_pw * r / sum(_ratios) for r in _ratios]
+    hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
+    cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
+    data = [[Paragraph(f'<b>{h}</b>', hdr_st)
+             for h in ['Nombre', 'Ubicación', 'Nivel de Tensión', 'Coordenadas', 'Creado Por', 'Fecha de Registro']]]
     for sub in subestaciones:
-        nivel = sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else ''
-        coordenadas = sub.Coordenadas if sub.Coordenadas else ''
+        nivel     = sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else ''
+        coords    = sub.Coordenadas if sub.Coordenadas else ''
         creado_por = sub.creado_por.username if sub.creado_por else 'Sistema'
-        fecha = sub.Fecha_Reg.strftime('%d/%m/%Y') if sub.Fecha_Reg else ''
-        data.append([sub.Nombre, sub.Ubicación, nivel, coordenadas, creado_por, fecha])
+        fecha     = sub.Fecha_Reg.strftime('%d/%m/%Y') if sub.Fecha_Reg else ''
+        data.append([Paragraph(sub.Nombre, cell_st), Paragraph(sub.Ubicación, cell_st),
+                     Paragraph(nivel, cell_st), Paragraph(coords, cell_st),
+                     Paragraph(creado_por, cell_st), Paragraph(fecha, cell_st)])
+    table = Table(data, colWidths=col_w, repeatRows=1)
 
-    table = Table(data, colWidths=[1.4*inch, 1.4*inch, 1.8*inch, 1.5*inch, 1.5*inch, 1.5*inch])
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+        ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+        ('TOPPADDING',    (0, 0), (-1, 0),  6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0),  6),
+        ('INNERGRID',     (0, 0), (-1, 0),  0,   NAVY),
+        ('BOX',           (0, 0), (-1, 0),  0,   NAVY),
+        ('LINEBELOW',     (0, 0), (-1, 0),  1.0, colors.white),
+        ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE',      (0, 1), (-1, -1), 8),
+        ('TOPPADDING',    (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, GREY_L]),
+        ('LINEBELOW',     (0, 1), (-1, -1), 0.4, GREY_B),
+        ('LINEBEFORE',    (0, 1), (0,  -1), 0.4, GREY_B),
+        ('LINEAFTER',     (-1,1), (-1, -1), 0.4, GREY_B),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 15))
-
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
+    elements.append(Spacer(1, 12))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=GREY_B))
     elements.append(Spacer(1, 4))
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
-    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
-
+    elements.append(Paragraph(
+        'Corporación Eléctrica Nacional S.A. — Documento de carácter oficial',
+        ParagraphStyle('foot', parent=styles['Normal'], fontSize=7.5, leading=9,
+                       alignment=1, textColor=colors.HexColor('#666666'))))
     doc.build(elements)
     buffer.seek(0)
     response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="subestaciones.pdf"'
     return response
 
-@login_required(login_url='/login/')
 def exportar_remotas_pdf(request):
     """Exporta todas las remotas a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.pagesizes import landscape, letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
     from reportlab.lib.units import inch
     from io import BytesIO
 
+
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+                            rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
+    NAVY   = colors.HexColor('#1c2e4a')
+    RED    = colors.HexColor('#ED1C24')
+    GREY_L = colors.HexColor('#f5f5f5')
+    GREY_B = colors.HexColor('#cccccc')
 
-    logo_path = find('img/logo_corpoelec.png')
-    if not logo_path:
-        logo_path = find('img/logo.jpg')
-
+    logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
     if logo_path:
-        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
-        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=12, leading=14, alignment=0))
-        logo_corpoelec_data = [[logo_img, corpoelec_text]]
-        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
-        logo_corpoelec_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
+        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
+        logo_cell = Table(
+            [[logo_img, Paragraph('<b>CORPOELEC</b>',
+               ParagraphStyle('corp', parent=styles['Normal'], fontSize=13, leading=15))]],
+            colWidths=[0.8*inch, 1.4*inch])
+        logo_cell.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-
-        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
-        title_paragraph = Paragraph('<b>Remotas Registradas</b>', title_style)
-        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
-        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
-
-        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
-        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=16><b>Remotas Registradas</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
-        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
-
-    elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+        logo_cell = Paragraph('<b>CORPOELEC</b>',
+                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=13))
+    title_p = Paragraph('<b>Remotas Registradas</b>',
+                        ParagraphStyle('title', parent=styles['Normal'],
+                                       fontSize=14, leading=17, alignment=1))
+    date_p  = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
+                        ParagraphStyle('date', parent=styles['Normal'],
+                                       fontSize=8, leading=10, alignment=2,
+                                       textColor=colors.HexColor('#555555')))
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(hdr)
     elements.append(Spacer(1, 6))
+    elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
     remotas = Remota.objects.select_related('Id_Ten').all().order_by('Id_Remota')
-    data = [['Marca', 'Modelo', 'Nivel de Tensión', 'Creado Por', 'Fecha Registro']]
+    _pw = landscape(letter)[0] - 50
+    _ratios = [1.5, 1.5, 2.2, 1.5, 1.5]
+    col_w = [_pw * r / sum(_ratios) for r in _ratios]
+    hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
+    cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
+    data = [[Paragraph(f'<b>{h}</b>', hdr_st)
+             for h in ['Marca', 'Modelo', 'Nivel de Tensión', 'Creado Por', 'Fecha Registro']]]
     for remota in remotas:
-        nivel_ten = f"{remota.Id_Ten.get_Tipo_ten_display()} - {remota.Id_Ten.get_Nivel_display()}" if remota.Id_Ten else ''
-        creado_por = remota.creado_por.username if remota.creado_por and remota.creado_por.username else 'Sistema'
-        data.append([remota.Marca if remota.Marca else '', remota.Modelo if remota.Modelo else '', nivel_ten, creado_por, remota.Fecha_Reg.strftime('%d/%m/%Y') if remota.Fecha_Reg else ''])
+        nivel_ten  = f"{remota.Id_Ten.get_Tipo_ten_display()} - {remota.Id_Ten.get_Nivel_display()}" if remota.Id_Ten else ''
+        creado_por = remota.creado_por.username if remota.creado_por else 'Sistema'
+        data.append([Paragraph(remota.Marca or '', cell_st), Paragraph(remota.Modelo or '', cell_st),
+                     Paragraph(nivel_ten, cell_st), Paragraph(creado_por, cell_st),
+                     Paragraph(remota.Fecha_Reg.strftime('%d/%m/%Y') if remota.Fecha_Reg else '', cell_st)])
+    table = Table(data, colWidths=col_w, repeatRows=1)
 
-    table = Table(data, colWidths=[1.5*inch, 1.5*inch, 2.2*inch, 1.5*inch, 1.5*inch])
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('TOPPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+        ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+        ('TOPPADDING',    (0, 0), (-1, 0),  6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0),  6),
+        ('INNERGRID',     (0, 0), (-1, 0),  0,   NAVY),
+        ('BOX',           (0, 0), (-1, 0),  0,   NAVY),
+        ('LINEBELOW',     (0, 0), (-1, 0),  1.0, colors.white),
+        ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE',      (0, 1), (-1, -1), 8),
+        ('TOPPADDING',    (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, GREY_L]),
+        ('LINEBELOW',     (0, 1), (-1, -1), 0.4, GREY_B),
+        ('LINEBEFORE',    (0, 1), (0,  -1), 0.4, GREY_B),
+        ('LINEAFTER',     (-1,1), (-1, -1), 0.4, GREY_B),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 15))
-
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
+    elements.append(Spacer(1, 12))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=GREY_B))
     elements.append(Spacer(1, 4))
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
-    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
-
+    elements.append(Paragraph(
+        'Corporación Eléctrica Nacional S.A. — Documento de carácter oficial',
+        ParagraphStyle('foot', parent=styles['Normal'], fontSize=7.5, leading=9,
+                       alignment=1, textColor=colors.HexColor('#666666'))))
     doc.build(elements)
     buffer.seek(0)
     response = FileResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="remotas.pdf"'
     return response
 
-@login_required(login_url='/login/')
 def exportar_reles_pdf(request):
     """Exporta todos los relés a PDF"""
     from django.contrib.staticfiles.finders import find
@@ -1354,84 +1395,150 @@ def exportar_reles_pdf(request):
     from io import BytesIO
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+                            rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
 
-    logo_path = find('img/logo_corpoelec.png')
-    if not logo_path:
-        logo_path = find('img/logo.jpg')
+    NAVY   = colors.HexColor('#1c2e4a')
+    RED    = colors.HexColor('#ED1C24')
+    GREY_L = colors.HexColor('#f5f5f5')
+    GREY_B = colors.HexColor('#cccccc')
+
+    # ── Header ───────────────────────────────────────────────────────────────
+    logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
 
     if logo_path:
-        logo_img = Image(logo_path, width=0.8*inch, height=0.8*inch, hAlign='LEFT')
-        corpoelec_text = Paragraph('<b>CORPOELEC</b>', ParagraphStyle('Corpoelec', parent=styles['Normal'], fontSize=14, leading=16, alignment=0))
-        logo_corpoelec_data = [[logo_img, corpoelec_text]]
-        logo_corpoelec_table = Table(logo_corpoelec_data, colWidths=[0.9*inch, 1.5*inch])
-        logo_corpoelec_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
+        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
+        logo_cell = Table(
+            [[logo_img, Paragraph('<b>CORPOELEC</b>',
+                                  ParagraphStyle('corp', parent=styles['Normal'],
+                                                 fontSize=13, leading=15))]],
+            colWidths=[0.8*inch, 1.4*inch])
+        logo_cell.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-
-        title_style = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=14, leading=16, alignment=1)
-        title_paragraph = Paragraph('<b>Relés Registrados</b>', title_style)
-        date_style = ParagraphStyle('HeaderDate', parent=styles['Normal'], fontSize=9, leading=11, alignment=2, textColor=colors.HexColor('#555555'))
-        date_paragraph = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}', date_style)
-
-        header_data = [[logo_corpoelec_table, title_paragraph, date_paragraph]]
-        header_table = Table(header_data, colWidths=[2.2*inch, 3.3*inch, 1.8*inch])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        elements.append(header_table)
     else:
-        elements.append(Paragraph("<font size=16><b>Relés Registrados</b></font>", ParagraphStyle('CenterTitle', parent=styles['Normal'], alignment=1, fontSize=16, leading=18)))
-        elements.append(Paragraph(f"<font size=9>Reporte Generado: {datetime.now().strftime('%d/%m/%Y')}</font>", ParagraphStyle('CenterDate', parent=styles['Normal'], alignment=1, fontSize=9)))
+        logo_cell = Paragraph('<b>CORPOELEC</b>',
+                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=13))
 
-    elements.append(Spacer(1, 8))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#ED1C24'), spaceBefore=0, spaceAfter=8))
+    title_p = Paragraph('<b>Relés Registrados</b>',
+                        ParagraphStyle('title', parent=styles['Normal'],
+                                       fontSize=14, leading=17, alignment=1))
+    date_p = Paragraph(
+        f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
+        ParagraphStyle('date', parent=styles['Normal'],
+                       fontSize=8, leading=10, alignment=2,
+                       textColor=colors.HexColor('#555555')))
+
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(hdr)
     elements.append(Spacer(1, 6))
+    elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
-    reles = Rele.objects.select_related('Id_Ten', 'Id_Sub_est').all().order_by('-Id_relé')
-    data = [['ID Relé', 'Subestación', 'Nivel Tensión', 'Marca', 'Modelo', 'Estado', 'Fecha Registro']]
+    # ── Data ─────────────────────────────────────────────────────────────────
+    reles = (Rele.objects
+             .select_related('Id_Ten', 'Id_Sub_est', 'creado_por', 'Remota', 'Remota__Id_Ten')
+             .prefetch_related('Protocolos', 'Puertos')
+             .order_by('Id_relé'))
+
+    cell_st = ParagraphStyle('cell', parent=styles['Normal'], fontSize=7, leading=9, alignment=1)
+
+    def wrap(txt):
+        return Paragraph(str(txt) if txt else '—', cell_st)
+
+    hdr_st = ParagraphStyle('hdr', parent=styles['Normal'],
+                             fontSize=7.5, leading=9, textColor=colors.white, alignment=1)
+    col_names = ['Subestación', 'Marca', 'Modelo', 'Nivel (kV)',
+                 'Protocolos', 'Puertos', 'Estado',
+                 'Remota', 'Marca Remota', 'Modelo Remota', 'Niv. Remota',
+                 'Creado Por', 'Fecha Reg.']
+    data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in col_names]]
+
     for rele in reles:
-        nivel_ten = f"{rele.Id_Ten.get_Tipo_ten_display()} - {rele.Id_Ten.get_Nivel_display()}" if rele.Id_Ten else ''
-        fecha_reg = rele.Fecha_Reg.strftime('%d/%m/%Y') if rele.Fecha_Reg else ''
-        data.append([rele.Id_relé, rele.Id_Sub_est.Nombre if rele.Id_Sub_est else '', nivel_ten, rele.Marca if rele.Marca else '', rele.Modelo if rele.Modelo else '', rele.Estado if rele.Estado else '', fecha_reg])
+        nivel = ''
+        if rele.Id_Ten:
+            tipo = rele.Id_Ten.get_Tipo_ten_display() if hasattr(rele.Id_Ten, 'get_Tipo_ten_display') else ''
+            niv  = rele.Id_Ten.get_Nivel_display()    if hasattr(rele.Id_Ten, 'get_Nivel_display')    else str(rele.Id_Ten.Nivel)
+            nivel = f"{tipo} - {niv}" if tipo else niv
 
-    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 1.2*inch, 1.2*inch, 1.0*inch, 1.2*inch])
+        protos  = ', '.join(p.get_Tipo_display() for p in rele.Protocolos.all()) or '—'
+        puertos = ', '.join(str(p) for p in rele.Puertos.all()) or '—'
+
+        rem      = rele.Remota
+        es_rem   = 'Sí' if rele.EsRemoto and rem else 'No'
+        marc_rem = rem.Marca  if rem else '—'
+        mod_rem  = rem.Modelo if rem else '—'
+        niv_rem  = '—'
+        if rem and rem.Id_Ten:
+            niv_rem = rem.Id_Ten.get_Nivel_display() if hasattr(rem.Id_Ten, 'get_Nivel_display') else str(rem.Id_Ten.Nivel)
+
+        fecha  = rele.Fecha_Reg.strftime('%d/%m/%Y') if rele.Fecha_Reg else '—'
+        creado = rele.creado_por.username if rele.creado_por else '—'
+
+        data.append([
+            wrap(rele.Id_Sub_est.Nombre if rele.Id_Sub_est else '—'),
+            wrap(rele.Marca), wrap(rele.Modelo), wrap(nivel),
+            wrap(protos), wrap(puertos), wrap(rele.Estado),
+            wrap(es_rem), wrap(marc_rem), wrap(mod_rem), wrap(niv_rem),
+            wrap(creado), wrap(fecha),
+        ])
+
+    from reportlab.lib.pagesizes import landscape, letter as _letter
+    _pw = landscape(_letter)[0] - 50  # ancho total menos márgenes (25+25)
+    _ratios = [1.0, 0.7, 0.7, 0.9, 0.8, 0.7, 0.75, 0.5, 0.75, 0.75, 0.65, 0.65, 0.65]
+    _total  = sum(_ratios)
+    col_w   = [_pw * r / _total for r in _ratios]
+
+    table = Table(data, colWidths=col_w, repeatRows=1)
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2e4a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('TOPPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        # header fondo y texto
+        ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+        ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+        ('TOPPADDING',    (0, 0), (-1, 0),  6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0),  6),
+        # sin bordes verticales en el header
+        ('INNERGRID',     (0, 0), (-1, 0),  0,   NAVY),
+        ('BOX',           (0, 0), (-1, 0),  0,   NAVY),
+        # línea separadora header / datos
+        ('LINEBELOW',     (0, 0), (-1, 0),  1.0, colors.white),
+        # filas de datos
+        ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE',      (0, 1), (-1, -1), 7),
+        ('TOPPADDING',    (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, GREY_L]),
+        # sólo líneas horizontales entre filas de datos
+        ('LINEBELOW',     (0, 1), (-1, -1), 0.4, GREY_B),
+        ('LINEBEFORE',    (0, 1), (0, -1),  0.4, GREY_B),
+        ('LINEAFTER',     (-1, 1),(-1, -1), 0.4, GREY_B),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 15))
+    elements.append(Spacer(1, 12))
 
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
+    # ── Footer ───────────────────────────────────────────────────────────────
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=GREY_B))
     elements.append(Spacer(1, 4))
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=1, textColor=colors.HexColor('#666666'))
-    elements.append(Paragraph('Corporación Eléctrica Nacional S.A. - Documento de carácter oficial', footer_style))
+    elements.append(Paragraph(
+        'Corporación Eléctrica Nacional S.A. — Documento de carácter oficial',
+        ParagraphStyle('foot', parent=styles['Normal'],
+                       fontSize=7.5, leading=9, alignment=1,
+                       textColor=colors.HexColor('#666666'))))
 
     doc.build(elements)
     buffer.seek(0)
