@@ -1932,6 +1932,7 @@
          </div>
 
           <!-- Dropdown Utilidades de Administración -->
+          {% if user.is_staff %}
           <div class="sidebar-dropdown {% if request.path == '/bitacora/' or request.path == '/admin/restaurar/' or request.path == '/admin/backup/' %}active{% endif %}">
             <a href="#" class="dropdown-toggle" onclick="toggleDropdown(event, 'admin-dropdown')">
               <i class="fas fa-tools"></i>
@@ -1959,25 +1960,10 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
         </nav>
 
-        <!-- Perfil y Cerrar Sesión fijados al fondo del sidebar -->
         <div class="sidebar-bottom">
-          <a href="{% url 'perfil' %}" class="{% if request.path == '/perfil/' or request.path == '/admin/perfil/' %}active{% endif %}" onclick="closeMobileSidebar()">
-            <i class="fas fa-user-circle"></i>
-            <span>Mi Perfil</span>
-          </a>
-          {% if user.is_staff %}
-          <a href="{% url 'logout' %}" onclick="closeMobileSidebar()">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Cerrar Sesión</span>
-          </a>
-          {% else %}
-          <a href="{% url 'user_logout' %}" onclick="closeMobileSidebar()">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Cerrar Sesión</span>
-          </a>
-          {% endif %}
         </div>
       </aside>
 
