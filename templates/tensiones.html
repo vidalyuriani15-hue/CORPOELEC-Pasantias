@@ -64,9 +64,12 @@
         {% if is_admin %}<td>{{ nivel.creado_por.username|default:"Sistema" }}</td>{% endif %}
         <td>{{ nivel.Fecha_Reg|date:"d/m/Y" }}</td>
         <td class="actions-cell">
+          {% if puede_actualizar %}
           <button type="button" class="btn-icon btn-edit" title="Editar" onclick='openEditModal({{ nivel.Id_Ten }}, "{{ nivel.Tipo_ten }}", "{{ nivel.Nivel }}")'>
             <i class="fas fa-edit"></i>
           </button>
+          {% endif %}
+          {% if puede_eliminar %}
           <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
             {% csrf_token %}
             <input type="hidden" name="eliminar" value="1">
@@ -75,6 +78,10 @@
               <i class="fas fa-trash-alt"></i>
             </button>
           </form>
+          {% endif %}
+          {% if not puede_actualizar and not puede_eliminar %}
+          <span style="color:#adb5bd; font-size:0.8rem;">Sin permisos</span>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

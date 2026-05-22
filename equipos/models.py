@@ -83,6 +83,7 @@ class Usuario(models.Model):
     Nombre = models.CharField(max_length=100)  # Nombre completo
     Correo = models.EmailField()  # Correo electrónico
     Nivel_User = models.CharField(max_length=50)  # Nivel de acceso/permisos
+    permisos = models.JSONField(default=dict, blank=True)  # Permisos: crear, actualizar, eliminar
     
     class Meta:
         verbose_name = 'Usuario'

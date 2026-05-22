@@ -18,6 +18,18 @@ from datetime import datetime
 from django.conf import settings
 
 @login_required(login_url='/login/')
+def get_user_permisos(request, user_id):
+    """API para obtener permisos de un usuario"""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+    try:
+        usuario_perfil = Usuario.objects.get(Id_user_id=user_id)
+        permisos = usuario_perfil.permisos
+    except Usuario.DoesNotExist:
+        permisos = {'crear': False, 'actualizar': False, 'eliminar': False}
+    return JsonResponse(permisos)
+
+@login_required(login_url='/login/')
 def index_view(request):
     """Vista principal del dashboard"""
     total_reconectadores = Reconectador.objects.count() or 0
@@ -118,6 +130,11 @@ def usuarios_view(request):
             last_name = request.POST.get('last_name', '')
             email = request.POST.get('email', '')
             is_superuser = request.POST.get('is_superuser') is not None
+            permisos = {
+                'crear': request.POST.get('permiso_crear') is not None,
+                'actualizar': request.POST.get('permiso_actualizar') is not None,
+                'eliminar': request.POST.get('permiso_eliminar') is not None,
+            }
             try:
                 user = User.objects.create_user(
                     username=username,
@@ -128,14 +145,38 @@ def usuarios_view(request):
                     is_superuser=is_superuser,
                     is_staff=is_superuser,
                 )
+                usuario_perfil, created = Usuario.objects.get_or_create(
+                    Id_user=user,
+                    defaults={'Nombre': f'{first_name} {last_name}', 'Correo': email, 'Nivel_User': 'admin' if is_superuser else 'usuario', 'permisos': permisos}
+                )
+                if not created:
+                    usuario_perfil.permisos = permisos
+                    usuario_perfil.save()
                 rol = 'Administrador' if is_superuser else 'Usuario'
                 registrar_evento(request, 'CREACION', f'Usuario creado: {username} ({rol})')
                 messages.success(request, 'Usuario creado correctamente.')
             except Exception as e:
                 messages.error(request, f'Error al crear usuario: {str(e)}')
             return redirect('admin_usuarios')
+        elif request.POST.get('editar'):
+            user_id = request.POST.get('user_id')
+            permisos = {
+                'crear': request.POST.get('permiso_crear') is not None,
+                'actualizar': request.POST.get('permiso_actualizar') is not None,
+                'eliminar': request.POST.get('permiso_eliminar') is not None,
+            }
+            try:
+                user = User.objects.get(id=user_id)
+                usuario_perfil, created = Usuario.objects.get_or_create(Id_user=user)
+                usuario_perfil.permisos = permisos
+                usuario_perfil.save()
+                registrar_evento(request, 'ACTUALIZACION', f'Permisos actualizados para: {user.username}')
+                messages.success(request, 'Permisos actualizados correctamente.', extra_tags='updated')
+            except User.DoesNotExist:
+                messages.error(request, 'Usuario no encontrado.')
+            return redirect('admin_usuarios')
     
-    usuarios = User.objects.all().order_by('-date_joined')
+    usuarios = User.objects.select_related('usuario').all().order_by('-date_joined')
     
     context = {
         'title': 'Gestion de Usuarios',
