@@ -92,17 +92,8 @@
     {% if not puede_actualizar and not puede_eliminar %}
     <span style="color:#adb5bd; font-size:0.8rem;">Sin permisos</span>
     {% endif %}
-    {% endwith %}
+{% endwith %}
 </td>
-           <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
-             {% csrf_token %}
-             <input type="hidden" name="eliminar" value="1">
-             <input type="hidden" name="interfaz_id" value="{{ interfaz.Id_Interfaz }}">
-             <button type="submit" class="btn-icon btn-delete" title="Eliminar">
-               <i class="fas fa-trash-alt"></i>
-             </button>
-           </form>
-         </td>
       </tr>
       {% endfor %}
       </tbody>
