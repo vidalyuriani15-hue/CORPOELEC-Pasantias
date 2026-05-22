@@ -29,21 +29,21 @@
 </div>
 
 <div class="table-section">
-   <div class="table-header">
-      <h3>PROTOCOLOS DE TELECONTROL Y ENERGÍA REGISTRADOS</h3>
-      <div class="search-container">
-        <i class="fas fa-search search-icon"></i>
-        <input type="text" class="search-input" id="searchInput" placeholder="Buscar protocolos..." onkeyup="filterTable()">
-      </div>
-       <div style="display: flex; gap: 10px;">
-         <button class="btn btn-primary btn-add-top" onclick="abrirModal()">
-           <i class="fas fa-plus"></i> Añadir
-         </button>
-         <a href="{% url 'exportar_protocolo_pdf' %}" class="btn btn-secondary btn-add-top">
-           <i class="fas fa-file-pdf"></i> Exportar
-         </a>
-       </div>
-    </div>
+<div class="table-header">
+  <h3>PROTOCOLOS DE TELECONTROL Y ENERGÍA REGISTRADOS</h3>
+  <div class="search-container">
+    <i class="fas fa-search search-icon"></i>
+    <input type="text" class="search-input" id="searchInput" placeholder="Buscar protocolos..." onkeyup="filterTable()">
+  </div>
+  <div class="action-buttons">
+    <button class="btn btn-primary btn-add-top" onclick="abrirModal()">
+      <i class="fas fa-plus"></i> Añadir
+    </button>
+    <a href="{% url 'exportar_protocolo_pdf' %}" class="btn btn-secondary btn-add-top">
+      <i class="fas fa-file-pdf"></i> Exportar
+    </a>
+  </div>
+</div>
 
     {% if page_obj.paginator.count > 0 %}
     <table class="data-table">
