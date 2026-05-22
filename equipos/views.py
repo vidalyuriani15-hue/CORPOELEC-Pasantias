@@ -9,7 +9,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.core.paginator import Paginator
 from .models import *
-from .decorators import no_cache
+from .decorators import no_cache, puede_crear, puede_actualizar, puede_eliminar
 import sys
 import os
 import shutil
@@ -190,6 +190,9 @@ def subestaciones_view(request):
     """Vista de subestaciones"""
     if request.method == 'POST':
         if request.POST.get('eliminar'):
+            if not puede_eliminar(request):
+                messages.error(request, 'No tiene permisos para eliminar subestaciones.')
+                return redirect('subestaciones')
             sub_id = request.POST.get('sub_id')
             try:
                 sub = Subestacion.objects.get(Id_Sub_est=sub_id)
@@ -201,6 +204,9 @@ def subestaciones_view(request):
                 messages.error(request, 'Subestacion no encontrada.')
             return redirect('subestaciones')
         elif request.POST.get('editar'):
+            if not puede_actualizar(request):
+                messages.error(request, 'No tiene permisos para actualizar subestaciones.')
+                return redirect('subestaciones')
             sub_id = request.POST.get('sub_id')
             nombre = request.POST.get('nombre')
             id_ten_id = request.POST.get('id_ten')
@@ -221,6 +227,9 @@ def subestaciones_view(request):
                 messages.error(request, 'Nivel de tension no valido.')
             return redirect('subestaciones')
         else:
+            if not puede_crear(request):
+                messages.error(request, 'No tiene permisos para crear subestaciones.')
+                return redirect('subestaciones')
             nombre = request.POST.get('nombre')
             id_ten_id = request.POST.get('id_ten')
             ubicacion = request.POST.get('ubicacion')
@@ -263,6 +272,9 @@ def tensiones_view(request):
     """Vista de niveles de tensión"""
     if request.method == 'POST':
         if request.POST.get('crear'):
+            if not puede_crear(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('tensiones')
             tipo_ten = request.POST.get('tipo_ten')
             nivel = request.POST.get('nivel')
             if tipo_ten and nivel:
@@ -277,6 +289,9 @@ def tensiones_view(request):
                 messages.error(request, 'Datos incompletos.')
             return redirect('tensiones')
         elif request.POST.get('editar'):
+            if not puede_actualizar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('tensiones')
             ten_id = request.POST.get('ten_id')
             tipo_ten = request.POST.get('tipo_ten')
             nivel = request.POST.get('nivel')
@@ -291,6 +306,9 @@ def tensiones_view(request):
                 messages.error(request, 'Nivel de tensión no encontrado.')
             return redirect('tensiones')
         elif request.POST.get('eliminar'):
+            if not puede_eliminar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('tensiones')
             ten_id = request.POST.get('ten_id')
             try:
                 ten = NivelTension.objects.get(Id_Ten=ten_id)
@@ -324,6 +342,9 @@ def interfaces_view(request):
     """Vista de interfaces de comunicacion"""
     if request.method == 'POST':
         if request.POST.get('eliminar'):
+            if not puede_eliminar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('interfaces')
             iface_id = request.POST.get('interfaz_id')
             try:
                 iface = InterfazDeComunicacion.objects.get(Id_Interfaz=iface_id)
@@ -352,6 +373,9 @@ def interfaces_view(request):
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
         elif request.POST.get('editar'):
+            if not puede_actualizar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('interfaces')
             iface_id = request.POST.get('interfaz_id')
             tipos_puerto = request.POST.getlist('tipos_puerto')
             try:
@@ -379,6 +403,9 @@ def interfaces_view(request):
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
         else:
+            if not puede_crear(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('interfaces')
             tipos_puerto = request.POST.getlist('tipos_puerto')
             if tipos_puerto:
                 iface = InterfazDeComunicacion.objects.create(
@@ -411,10 +438,13 @@ def interfaces_view(request):
     puertos_tipos = PuertoComunicacion.TIPO_CHOICES
     
     context = {
-        'title': 'Interfaces',
+        'title': 'Interfaz de Comunicacion',
         'page_obj': page_obj,
         'puertos_tipos': puertos_tipos,
-        'is_admin': request.user.is_superuser
+        'is_admin': request.user.is_superuser,
+        'puede_crear': puede_crear(request),
+        'puede_actualizar': puede_actualizar(request),
+        'puede_eliminar': puede_eliminar(request)
     }
     return render(request, 'interfaces.html', context)
 
@@ -425,6 +455,9 @@ def protocolo_view(request):
     if request.method == 'POST':
         # Crear interfaz con protocolos
         if request.POST.get('crear'):
+            if not puede_crear(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('protocolo')
             tipos_protocolo = request.POST.getlist('tipos_protocolo')
             with transaction.atomic():
                 interfaz = InterfazDeComunicacion.objects.create(
@@ -449,6 +482,9 @@ def protocolo_view(request):
         
         # Editar interfaz/protocolos
         elif request.POST.get('editar'):
+            if not puede_actualizar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('protocolo')
             interfaz_id = request.POST.get('interfaz_id')
             try:
                 with transaction.atomic():
@@ -477,6 +513,9 @@ def protocolo_view(request):
         
         # Eliminar interfaz con limpieza de dependencias (eliminación lógica)
         elif request.POST.get('eliminar'):
+            if not puede_eliminar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('protocolo')
             interfaz_id = request.POST.get('interfaz_id')
             try:
                 interfaz = InterfazDeComunicacion.objects.get(Id_Interfaz=interfaz_id)
@@ -513,8 +552,12 @@ def protocolo_view(request):
         'title': 'Protocolos',
         'page_obj': page_obj,
         'is_admin': request.user.is_superuser,
+        'puede_crear': puede_crear(request),
+        'puede_actualizar': puede_actualizar(request),
+        'puede_eliminar': puede_eliminar(request)
     }
     return render(request, 'protocolo.html', context)
+
 
 @no_cache
 @login_required(login_url='/login/')
@@ -522,6 +565,9 @@ def remotas_view(request):
     """Vista de remotas"""
     if request.method == 'POST':
         if request.POST.get('eliminar'):
+            if not puede_eliminar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('remotas')
             remota_id = request.POST.get('remota_id')
             try:
                 remota = Remota.objects.get(Id_Remota=remota_id)
@@ -533,6 +579,9 @@ def remotas_view(request):
                 messages.error(request, 'Remota no encontrada.')
             return redirect('remotas')
         elif request.POST.get('editar'):
+            if not puede_actualizar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('remotas')
             remota_id = request.POST.get('remota_id')
             marca = request.POST.get('marca')
             modelo = request.POST.get('modelo')
@@ -555,6 +604,9 @@ def remotas_view(request):
             id_ten_id = request.POST.get('id_ten')
             
             if marca and modelo:
+                if not puede_crear(request):
+                    messages.error(request, 'No tiene permisos para realizar esta acción.')
+                    return redirect('remotas')
                 id_ten = NivelTension.objects.get(Id_Ten=id_ten_id) if id_ten_id else None
                 remota = Remota.objects.create(
                     Marca=marca,
@@ -577,7 +629,10 @@ def remotas_view(request):
         'title': 'Remotas',
         'page_obj': page_obj,
         'tensiones': tensiones,
-        'is_admin': request.user.is_superuser
+        'is_admin': request.user.is_superuser,
+        'puede_crear': puede_crear(request),
+        'puede_actualizar': puede_actualizar(request),
+        'puede_eliminar': puede_eliminar(request)
     }
     return render(request, 'remotas.html', context)
 
@@ -622,6 +677,9 @@ def reles_view(request):
     
     if request.method == 'POST':
         if request.POST.get('eliminar'):
+            if not puede_eliminar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('reles')
             rele_id = request.POST.get('rele_id')
             try:
                 with transaction.atomic():
@@ -634,6 +692,9 @@ def reles_view(request):
                 messages.error(request, 'Relé no encontrado.')
             return redirect('reles')
         elif request.POST.get('editar'):
+            if not puede_actualizar(request):
+                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                return redirect('reles')
             rele_id = request.POST.get('rele_id')
             
             # DEBUG: Log POST data
@@ -701,6 +762,9 @@ def reles_view(request):
                 messages.error(request, f'Error al actualizar: {str(e)}')
             return redirect('reles')
         else:
+            if not puede_crear(request):
+                messages.error(request, 'No tiene permisos para crear relés.')
+                return redirect('reles')
             try:
                 sub = Subestacion.objects.get(Id_Sub_est=request.POST.get('id_sub_est'))
                 ten = NivelTension.objects.get(Id_Ten=request.POST.get('id_ten'))
@@ -805,7 +869,10 @@ def reles_view(request):
             'puertos': puertos,
             'remotas': remotas,
             'interfaces_disponibles': interfaces_disponibles,
-            'is_admin': request.user.is_superuser
+            'is_admin': request.user.is_superuser,
+            'puede_crear': puede_crear(request),
+            'puede_actualizar': puede_actualizar(request),
+            'puede_eliminar': puede_eliminar(request)
         }
         return render(request, 'reles.html', context)
 

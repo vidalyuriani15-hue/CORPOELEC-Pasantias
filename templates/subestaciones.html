@@ -71,22 +71,26 @@
           <td>{{ sub.Coordenadas|default:"—" }}</td>
           {% if is_admin %}<td>{{ sub.creado_por.username|default:"Sistema" }}</td>{% endif %}
           <td>{{ sub.Fecha_Reg|date:"d/m/Y" }}</td>
-           <td class="actions-cell">
-            <!-- Botón editar (abre modal con datos precargados) -->
-            <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ sub.Id_Sub_est }}, '{{ sub.Nombre }}', '{{ sub.Ubicación }}', {{ sub.Id_Ten.Id_Ten }}, '{{ sub.Coordenadas|default:"" }}')">
-              <i class="fas fa-edit"></i>
-            </button>
-            <!-- Formulario de eliminación con confirmación -->
-            <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
-             {% csrf_token %}
-             <input type="hidden" name="eliminar" value="1">
-             <!-- ID de la subestación a eliminar -->
-             <input type="hidden" name="sub_id" value="{{ sub.Id_Sub_est }}">
-             <button type="submit" class="btn-icon btn-delete" title="Eliminar">
-               <i class="fas fa-trash-alt"></i>
-             </button>
-           </form>
-          </td>
+<td class="actions-cell">
+              {% if puede_actualizar %}
+              <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ sub.Id_Sub_est }}, '{{ sub.Nombre }}', '{{ sub.Ubicación }}', {{ sub.Id_Ten.Id_Ten }}, '{{ sub.Coordenadas|default:"" }}')">
+                <i class="fas fa-edit"></i>
+              </button>
+              {% endif %}
+              {% if puede_eliminar %}
+              <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
+               {% csrf_token %}
+               <input type="hidden" name="eliminar" value="1">
+               <input type="hidden" name="sub_id" value="{{ sub.Id_Sub_est }}">
+               <button type="submit" class="btn-icon btn-delete" title="Eliminar">
+                 <i class="fas fa-trash-alt"></i>
+               </button>
+              </form>
+              {% endif %}
+              {% if not puede_actualizar and not puede_eliminar %}
+              <span style="color:#adb5bd; font-size:0.8rem;">Sin permisos</span>
+              {% endif %}
+            </td>
         </tr>
         {% endfor %}
       </tbody>

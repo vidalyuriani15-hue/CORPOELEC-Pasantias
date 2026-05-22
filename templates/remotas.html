@@ -65,19 +65,26 @@
           <td>{{ remota.Id_Ten.get_Tipo_ten_display }} - {{ remota.Id_Ten.get_Nivel_display }}</td>
         {% if is_admin %}<td>{{ remota.creado_por.username|default:"Sistema" }}</td>{% endif %}
         <td>{{ remota.Fecha_Reg|date:"d/m/Y" }}</td>
-        <td class="actions-cell">
-          <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ remota.Id_Remota }}, '{{ remota.Marca }}', '{{ remota.Modelo }}', {{ remota.Id_Ten.Id_Ten }})">
-            <i class="fas fa-edit"></i>
-          </button>
-            <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
-              {% csrf_token %}
-              <input type="hidden" name="eliminar" value="1">
-              <input type="hidden" name="remota_id" value="{{ remota.Id_Remota }}">
-              <button type="submit" class="btn-icon btn-delete" title="Eliminar">
-                <i class="fas fa-trash-alt"></i>
-              </button>
-            </form>
-        </td>
+<td class="actions-cell">
+    {% if puede_actualizar %}
+    <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ remota.Id_Remota }}, '{{ remota.Marca }}', '{{ remota.Modelo }}', {{ remota.Id_Ten.Id_Ten }})">
+        <i class="fas fa-edit"></i>
+    </button>
+    {% endif %}
+    {% if puede_eliminar %}
+    <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
+        {% csrf_token %}
+        <input type="hidden" name="eliminar" value="1">
+        <input type="hidden" name="remota_id" value="{{ remota.Id_Remota }}">
+        <button type="submit" class="btn-icon btn-delete" title="Eliminar">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+    </form>
+    {% endif %}
+    {% if not puede_actualizar and not puede_eliminar %}
+    <span style="color:#adb5bd; font-size:0.8rem;">Sin permisos</span>
+    {% endif %}
+</td>
       </tr>
       {% endfor %}
     </tbody>

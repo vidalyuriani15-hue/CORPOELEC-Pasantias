@@ -72,12 +72,28 @@
           </td>
           {% if is_admin %}<td>{{ interfaz.creado_por.username|default:"Sistema" }}</td>{% endif %}
           <td><span class="fecha-text">{{ interfaz.Fecha_Reg|date:"d/m/Y" }}</span></td>
-          <td class="actions-cell">
-           {% with puertos_list=interfaz.puertos.all %}
-           <button type="button" class="btn-icon btn-edit" title="Editar" onclick="abrirModalEditar({{ interfaz.Id_Interfaz }}, '{% for p in puertos_list %}{{ p.Tipo }}{% if not forloop.last %},{% endif %}{% endfor %}')">
-             <i class="fas fa-edit"></i>
-           </button>
-           {% endwith %}
+<td class="actions-cell">
+    {% with puertos_list=interfaz.puertos.all %}
+    {% if puede_actualizar %}
+    <button type="button" class="btn-icon btn-edit" title="Editar" onclick="abrirModalEditar({{ interfaz.Id_Interfaz }}, '{% for p in puertos_list %}{{ p.Tipo }}{% if not forloop.last %},{% endif %}{% endfor %}')">
+        <i class="fas fa-edit"></i>
+    </button>
+    {% endif %}
+    <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
+        {% csrf_token %}
+        <input type="hidden" name="eliminar" value="1">
+        <input type="hidden" name="interfaz_id" value="{{ interfaz.Id_Interfaz }}">
+        {% if puede_eliminar %}
+        <button type="submit" class="btn-icon btn-delete" title="Eliminar">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+        {% endif %}
+    </form>
+    {% if not puede_actualizar and not puede_eliminar %}
+    <span style="color:#adb5bd; font-size:0.8rem;">Sin permisos</span>
+    {% endif %}
+    {% endwith %}
+</td>
            <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
              {% csrf_token %}
              <input type="hidden" name="eliminar" value="1">

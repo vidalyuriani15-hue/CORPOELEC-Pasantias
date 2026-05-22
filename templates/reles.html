@@ -30,19 +30,21 @@
 
 <div class="table-section">
 <div class="table-header">
-  <h3>Relés Registrados</h3>
-  <div class="search-container">
-    <i class="fas fa-search search-icon"></i>
-    <input type="text" class="search-input" id="searchInput" placeholder="Buscar relés..." onkeyup="filterTable()">
-  </div>
-  <div class="action-buttons">
-    <button class="btn btn-primary btn-add-top" onclick="abrirModal()">
-      <i class="fas fa-plus"></i> Añadir
-    </button>
-    <a href="{% url 'exportar_reles_pdf' %}" class="btn btn-secondary btn-add-top">
-      <i class="fas fa-file-pdf"></i> Exportar
-    </a>
-  </div>
+<h3>Relés Registrados</h3>
+<div class="search-container">
+<i class="fas fa-search search-icon"></i>
+<input type="text" class="search-input" id="searchInput" placeholder="Buscar relés..." onkeyup="filterTable()">
+</div>
+<div class="action-buttons">
+{% if puede_crear %}
+<button class="btn btn-primary btn-add-top" onclick="abrirModal()">
+<i class="fas fa-plus"></i> Añadir
+</button>
+{% endif %}
+<a href="{% url 'exportar_reles_pdf' %}" class="btn btn-secondary btn-add-top">
+<i class="fas fa-file-pdf"></i> Exportar
+</a>
+</div>
 </div>
 
   {% if page_obj.paginator.count > 0 %}
@@ -82,22 +84,26 @@
           </span>
         </td>
         <td>{{ rele.Fecha_Reg|date:"d/m/Y" }}</td>
-        <td class="actions-cell">
-          <button class="btn-icon" title="Visualizar" onclick="openViewModal({{ rele.Id_relé }})">
-            <i class="fas fa-eye"></i>
-          </button>
-          <button class="btn-icon btn-edit" title="Editar" onclick="openReleEditModal({{ rele.Id_relé }})">
-            <i class="fas fa-edit"></i>
-          </button>
-            <form method="post" style="display:inline;" onsubmit="return confirmarEliminacion(this);">
-              {% csrf_token %}
-              <input type="hidden" name="eliminar" value="1">
-              <input type="hidden" name="rele_id" value="{{ rele.Id_relé }}">
-              <button type="submit" class="btn-icon btn-delete" title="Eliminar">
-                <i class="fas fa-trash-alt"></i>
-              </button>
-            </form>
-        </td>
+<td class="actions-cell">
+    <button class="btn-icon" title="Visualizar" onclick="openViewModal({{ rele.Id_relé }})">
+        <i class="fas fa-eye"></i>
+    </button>
+    {% if puede_actualizar %}
+    <button class="btn-icon btn-edit" title="Editar" onclick="openReleEditModal({{ rele.Id_relé }})">
+        <i class="fas fa-edit"></i>
+    </button>
+    {% endif %}
+    <form method="post" style="display:inline;" onsubmit="return confirmarEliminacion(this);">
+        {% csrf_token %}
+        <input type="hidden" name="eliminar" value="1">
+        <input type="hidden" name="rele_id" value="{{ rele.Id_relé }}">
+        {% if puede_eliminar %}
+        <button type="submit" class="btn-icon btn-delete" title="Eliminar">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+        {% endif %}
+    </form>
+</td>
       </tr>
       {% endfor %}
     </tbody>
