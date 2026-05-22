@@ -23,14 +23,14 @@
 
 <div class="restore-layout">
 
-  <!-- Panel principal: formulario -->
-  <div class="restore-card">
-    <div class="restore-card-header">
-      <i class="fas fa-upload"></i>
-      <span>Cargar Copia de Seguridad</span>
-    </div>
-    <div class="restore-card-body">
-      <form method="post" enctype="multipart/form-data" id="restoreForm">
+    <!-- Panel principal: formulario -->
+    <div class="restore-card">
+      <div class="restore-card-header">
+        <i class="fas fa-upload"></i>
+        <span>Cargar Copia de Seguridad</span>
+      </div>
+      <div class="restore-card-body">
+        <form method="post" enctype="multipart/form-data" id="restoreForm" action="{% url 'admin_restaurar' %}">
         {% csrf_token %}
 
         <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('backupFileInput').click()">
@@ -370,15 +370,23 @@ dropZone.addEventListener('drop', function (e) {
   }
 });
 
-// Interceptar submit → mostrar modal
-document.getElementById('restoreForm').addEventListener('submit', function (e) {
-  e.preventDefault();
-  document.getElementById('restoreConfirmModal').classList.add('active');
-});
-
-function cerrarModalRestore() {
-  document.getElementById('restoreConfirmModal').classList.remove('active');
-}
+  // Interceptar submit → mostrar modal
+  let formSubmittedProgrammatically = false;
+  document.getElementById('restoreForm').addEventListener('submit', function (e) {
+    if (formSubmittedProgrammatically) {
+      // Permitir envío programático
+      formSubmittedProgrammatically = false;
+      return;
+    }
+    e.preventDefault();
+    document.getElementById('restoreConfirmModal').classList.add('active');
+  });
+  
+  function ejecutarRestore() {
+    cerrarModalRestore();
+    formSubmittedProgrammatically = true;
+    document.getElementById('restoreForm').submit();
+  }
 
 function ejecutarRestore() {
   cerrarModalRestore();
