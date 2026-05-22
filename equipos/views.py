@@ -1811,8 +1811,12 @@ def admin_restaurar_view(request):
             messages.error(request, 'Solo se aceptan archivos .zip generados por este sistema.')
             return redirect('admin_restaurar')
 
+        db_backup_path = None
         try:
             import tempfile, shutil
+            messages.info(request, '🔄 Iniciando restauración del sistema...')
+
+            # Cargar archivo ZIP
             with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp:
                 for chunk in backup_file.chunks():
                     tmp.write(chunk)
@@ -1820,31 +1824,87 @@ def admin_restaurar_view(request):
 
             with zipfile.ZipFile(tmp_path, 'r') as zf:
                 nombres = zf.namelist()
+                messages.info(request, f'✓ Archivo ZIP validado ({len(nombres)} archivos encontrados).')
 
                 # Restaurar base de datos SQLite
                 if 'db.sqlite3' in nombres:
                     db_path = str(settings.DATABASES['default']['NAME'])
-                    # Cerrar todas las conexiones antes de reemplazar el archivo
-                    from django.db import connections
-                    for conn in connections.all():
-                        conn.close()
-                    with zf.open('db.sqlite3') as src, open(db_path, 'wb') as dst:
-                        shutil.copyfileobj(src, dst)
+                    db_backup_path = db_path + '.backup'
+
+                    try:
+                        messages.info(request, '🔒 Cerrando conexiones a la base de datos...')
+                        # Cerrar todas las conexiones antes de reemplazar el archivo
+                        from django.db import connections
+                        connections.close_all()
+                        messages.info(request, '✓ Conexiones cerradas correctamente.')
+
+                        # Hacer backup del archivo actual
+                        if os.path.exists(db_path):
+                            messages.info(request, '💾 Creando backup de la BD actual...')
+                            shutil.copy2(db_path, db_backup_path)
+                            messages.info(request, '✓ Backup creado exitosamente.')
+
+                        # Restaurar la base de datos
+                        messages.info(request, '📥 Restaurando base de datos...')
+                        with zf.open('db.sqlite3') as src, open(db_path, 'wb') as dst:
+                            shutil.copyfileobj(src, dst)
+                        messages.success(request, '✓ Base de datos restaurada correctamente.')
+
+                        # Limpiar la caché de conexiones y resetear
+                        from django.core.cache import cache
+                        cache.clear()
+                        messages.info(request, '✓ Caché limpiada.')
+                    except Exception as db_error:
+                        messages.error(request, f'❌ Error al restaurar BD: {str(db_error)}')
+                        # Restaurar desde backup si algo falla
+                        if os.path.exists(db_backup_path):
+                            messages.info(request, '⚠️ Restaurando BD desde backup de seguridad...')
+                            shutil.copy2(db_backup_path, db_path)
+                            messages.warning(request, '⚠️ BD restaurada desde backup anterior. Intente de nuevo.')
+                        raise Exception(f'Error al restaurar base de datos: {str(db_error)}')
+                else:
+                    messages.warning(request, '⚠️ No se encontró base de datos en la copia de seguridad.')
 
                 # Restaurar archivos multimedia
                 media_root = str(settings.MEDIA_ROOT)
                 media_files = [n for n in nombres if n.startswith('media/')]
+
                 if media_files:
+                    messages.info(request, f'🗂️ Preparando restauración de {len(media_files)} archivos multimedia...')
+
+                    if media_root and os.path.exists(media_root):
+                        # Limpiar el directorio de media antes de restaurar
+                        messages.info(request, '🗑️ Limpiando directorio multimedia...')
+                        deleted_count = 0
+                        for item in os.listdir(media_root):
+                            item_path = os.path.join(media_root, item)
+                            if os.path.isfile(item_path):
+                                os.remove(item_path)
+                                deleted_count += 1
+                            elif os.path.isdir(item_path):
+                                shutil.rmtree(item_path)
+                                deleted_count += 1
+                        messages.info(request, f'✓ {deleted_count} elemento(s) eliminado(s).')
+
+                    messages.info(request, '📥 Extrayendo archivos multimedia...')
                     parent = os.path.dirname(media_root)
                     zf.extractall(parent, members=media_files)
+                    messages.success(request, f'✓ {len(media_files)} archivo(s) multimedia restaurado(s).')
+                else:
+                    messages.info(request, '📁 No hay archivos multimedia en la copia de seguridad.')
 
             os.unlink(tmp_path)
+
+            # Limpiar backups temporales de BD
+            if db_backup_path and os.path.exists(db_backup_path):
+                os.remove(db_backup_path)
+
             registrar_evento(request, 'ACTUALIZACION', f'Sistema restaurado desde copia: {backup_file.name}')
-            messages.success(request, f'Sistema restaurado correctamente desde "{backup_file.name}".')
+            messages.success(request, f'✅ ¡Sistema restaurado correctamente desde "{backup_file.name}"! Puede ser necesario reiniciar la aplicación para que los cambios tomen efecto.')
         except zipfile.BadZipFile:
-            messages.error(request, 'El archivo seleccionado no es un ZIP válido.')
+            messages.error(request, '❌ El archivo seleccionado no es un ZIP válido.')
         except Exception as e:
-            messages.error(request, f'Error al restaurar: {str(e)}')
+            messages.error(request, f'❌ Error general en restauración: {str(e)}')
 
         return redirect('admin_restaurar')
 
