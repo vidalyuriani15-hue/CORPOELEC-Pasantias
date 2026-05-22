@@ -256,7 +256,7 @@ def tensiones_view(request):
                 ten_label = f'{ten.get_Tipo_ten_display()} {ten.get_Nivel_display()}'
                 ten.delete()
                 registrar_evento(request, 'ELIMINACION', f'Nivel de tension eliminado: {ten_label}')
-                messages.success(request, 'Nivel de tensión eliminado correctamente.')
+                messages.success(request, 'Nivel de tensión eliminado correctamente.', extra_tags='deleted')
             except NivelTension.DoesNotExist:
                 messages.error(request, 'Nivel de tensión no encontrado.')
             return redirect('tensiones')
@@ -1842,7 +1842,7 @@ def admin_backup_delete(request, filename):
         file_path = os.path.join(backup_dir, safe_name)
         if os.path.exists(file_path):
             os.remove(file_path)
-            messages.success(request, f'Copia "{safe_name}" eliminada.')
+            messages.success(request, f'Copia "{safe_name}" eliminada.', extra_tags='deleted')
         else:
             messages.error(request, 'Archivo no encontrado.')
     return redirect('admin_backup')
