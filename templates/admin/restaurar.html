@@ -105,6 +105,39 @@
 </div>
 {% endif %}
 
+<!-- Modal de confirmación de restauración -->
+<div class="modal" id="restoreConfirmModal">
+  <div class="modal-dialog" style="max-width:460px;">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#e63946;border:none;">
+        <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:10px;">
+          <i class="fas fa-exclamation-triangle"></i> Confirmar Restauración
+        </h5>
+      </div>
+      <div class="modal-body" style="text-align:center;padding:32px 28px 20px;">
+        <div style="font-size:3.2rem;color:#e63946;margin-bottom:16px;">
+          <i class="fas fa-undo-alt"></i>
+        </div>
+        <h4 style="color:var(--blue-dark,#0D2B4D);margin-bottom:10px;">¿Está completamente seguro?</h4>
+        <p style="color:#555;font-size:0.95rem;line-height:1.6;margin-bottom:6px;">
+          Esta acción <strong>reemplazará todos los datos actuales</strong> del sistema con el contenido de la copia seleccionada.
+        </p>
+        <p style="color:#e63946;font-size:0.88rem;font-weight:600;">
+          <i class="fas fa-ban" style="margin-right:5px;"></i>Esta operación no se puede deshacer.
+        </p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;gap:14px;padding:16px 28px 24px;background:#fff;border:none;">
+        <button type="button" class="btn-secondary" style="padding:10px 28px;border-radius:8px;font-size:0.95rem;cursor:pointer;border:1px solid #dee2e6;" onclick="cerrarModalRestore()">
+          <i class="fas fa-times" style="margin-right:6px;"></i>Cancelar
+        </button>
+        <button type="button" style="padding:10px 28px;background:#e63946;color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;" onclick="ejecutarRestore()">
+          <i class="fas fa-undo-alt" style="margin-right:6px;"></i>Sí, Restaurar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_css %}
@@ -290,115 +323,180 @@
 @media (max-width: 900px) {
   .restore-layout { grid-template-columns: 1fr; }
 }
+
+/* Modal styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.2s ease;
+}
+
+.modal.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-dialog {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 460px;
+  width: 90%;
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+  background: #e63946;
+  color: #fff;
+  border-radius: 8px 8px 0 0;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-body {
+  padding: 32px 28px 20px;
+  text-align: center;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 16px 28px 24px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  background: #fff;
+  border-top: 1px solid #e9ecef;
+  border-radius: 0 0 8px 8px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 </style>
 {% endblock %}
 
-<!-- Modal de confirmación de restauración -->
-<div class="modal" id="restoreConfirmModal">
-  <div class="modal-dialog" style="max-width:460px;">
-    <div class="modal-content">
-      <div class="modal-header" style="background:#e63946;border:none;">
-        <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:10px;">
-          <i class="fas fa-exclamation-triangle"></i> Confirmar Restauración
-        </h5>
-      </div>
-      <div class="modal-body" style="text-align:center;padding:32px 28px 20px;">
-        <div style="font-size:3.2rem;color:#e63946;margin-bottom:16px;">
-          <i class="fas fa-undo-alt"></i>
-        </div>
-        <h4 style="color:var(--blue-dark,#0D2B4D);margin-bottom:10px;">¿Está completamente seguro?</h4>
-        <p style="color:#555;font-size:0.95rem;line-height:1.6;margin-bottom:6px;">
-          Esta acción <strong>reemplazará todos los datos actuales</strong> del sistema con el contenido de la copia seleccionada.
-        </p>
-        <p style="color:#e63946;font-size:0.88rem;font-weight:600;">
-          <i class="fas fa-ban" style="margin-right:5px;"></i>Esta operación no se puede deshacer.
-        </p>
-      </div>
-      <div class="modal-footer" style="justify-content:center;gap:14px;padding:16px 28px 24px;background:#fff;border:none;">
-        <button type="button" class="btn-secondary" style="padding:10px 28px;border-radius:8px;font-size:0.95rem;cursor:pointer;border:1px solid #dee2e6;" onclick="cerrarModalRestore()">
-          <i class="fas fa-times" style="margin-right:6px;"></i>Cancelar
-        </button>
-        <button type="button" style="padding:10px 28px;background:#e63946;color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;" onclick="ejecutarRestore()">
-          <i class="fas fa-undo-alt" style="margin-right:6px;"></i>Sí, Restaurar
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 {% block extra_js %}
 <script>
-const input = document.getElementById('backupFileInput');
-const dropZone = document.getElementById('dropZone');
-const fileSelected = document.getElementById('fileSelected');
-const confirmCheck = document.getElementById('confirmCheck');
-const btnRestore = document.getElementById('btnRestore');
+function initRestoreForm() {
+  const input = document.getElementById('backupFileInput');
+  const dropZone = document.getElementById('dropZone');
+  const fileSelected = document.getElementById('fileSelected');
+  const confirmCheck = document.getElementById('confirmCheck');
+  const btnRestore = document.getElementById('btnRestore');
+  const restoreForm = document.getElementById('restoreForm');
+  const modal = document.getElementById('restoreConfirmModal');
 
-function updateBtn() {
-  btnRestore.disabled = !(input.files.length > 0 && confirmCheck.checked);
-}
+  console.log('Buscando elementos...');
+  console.log('input:', input);
+  console.log('dropZone:', dropZone);
+  console.log('fileSelected:', fileSelected);
+  console.log('confirmCheck:', confirmCheck);
+  console.log('btnRestore:', btnRestore);
+  console.log('restoreForm:', restoreForm);
+  console.log('modal:', modal);
 
-input.addEventListener('change', function () {
-  if (this.files.length > 0) {
-    fileSelected.textContent = '✔ ' + this.files[0].name;
-    fileSelected.style.display = 'block';
+  if (!input || !dropZone || !confirmCheck || !btnRestore || !restoreForm || !modal) {
+    console.error('Elementos del formulario no encontrados');
+    return;
   }
-  updateBtn();
-});
 
-confirmCheck.addEventListener('change', updateBtn);
+  console.log('Todos los elementos encontrados, inicializando...');
 
-// Drag & drop
-dropZone.addEventListener('dragover', function (e) {
-  e.preventDefault();
-  dropZone.classList.add('drag-over');
-});
-dropZone.addEventListener('dragleave', function () {
-  dropZone.classList.remove('drag-over');
-});
-dropZone.addEventListener('drop', function (e) {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-  const files = e.dataTransfer.files;
-  if (files.length > 0) {
-    const dt = new DataTransfer();
-    dt.items.add(files[0]);
-    input.files = dt.files;
-    fileSelected.textContent = '✔ ' + files[0].name;
-    fileSelected.style.display = 'block';
-    updateBtn();
+  // Actualizar estado del boton
+  function updateBtn() {
+    btnRestore.disabled = !(input.files.length > 0 && confirmCheck.checked);
   }
-});
 
-  // Interceptar submit → mostrar modal
-  let formSubmittedProgrammatically = false;
-  document.getElementById('restoreForm').addEventListener('submit', function (e) {
-    if (formSubmittedProgrammatically) {
-      // Permitir envío programático
-      formSubmittedProgrammatically = false;
-      return;
+  // Eventos del archivo
+  input.addEventListener('change', function () {
+    if (this.files.length > 0) {
+      fileSelected.textContent = '✔ ' + this.files[0].name;
+      fileSelected.style.display = 'block';
     }
-    e.preventDefault();
-    document.getElementById('restoreConfirmModal').classList.add('active');
+    updateBtn();
   });
-  
-  function ejecutarRestore() {
-    cerrarModalRestore();
-    formSubmittedProgrammatically = true;
-    document.getElementById('restoreForm').submit();
-  }
 
-function ejecutarRestore() {
-  cerrarModalRestore();
-  document.getElementById('restoreForm').submit();
+  confirmCheck.addEventListener('change', updateBtn);
+
+  // Drag & drop
+  dropZone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+
+  dropZone.addEventListener('dragleave', function () {
+    dropZone.classList.remove('drag-over');
+  });
+
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) {
+      const dt = new DataTransfer();
+      dt.items.add(e.dataTransfer.files[0]);
+      input.files = dt.files;
+      fileSelected.textContent = '✔ ' + e.dataTransfer.files[0].name;
+      fileSelected.style.display = 'block';
+      updateBtn();
+    }
+  });
+
+  // Modal
+  window.cerrarModalRestore = function() {
+    modal.classList.remove('active');
+  };
+
+  window.ejecutarRestore = function() {
+    window.cerrarModalRestore();
+    restoreForm.submit();
+  };
+
+  // Submit del formulario
+  restoreForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    modal.classList.add('active');
+  });
+
+  // Cerrar modal
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) {
+      window.cerrarModalRestore();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      window.cerrarModalRestore();
+    }
+  });
 }
 
-// Cerrar con Escape o clic fuera
-document.getElementById('restoreConfirmModal').addEventListener('click', function (e) {
-  if (e.target === this) cerrarModalRestore();
-});
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') cerrarModalRestore();
-});
+// Ejecutar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initRestoreForm);
+} else {
+  initRestoreForm();
+}
 </script>
 {% endblock %}

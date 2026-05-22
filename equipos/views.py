@@ -58,6 +58,15 @@ def index_view(request):
     }
     return render(request, 'index.html', context)
 
+def admin_root_view(request):
+    """Redirige /admin/ a /admin/inicio/"""
+    if not request.user.is_authenticated:
+        return redirect('user_login')
+    if not request.user.is_superuser:
+        messages.error(request, 'No tiene permisos para acceder a esta sección.')
+        return redirect('index')
+    return redirect('admin_index')
+
 @no_cache
 @login_required(login_url='/login/')
 def perfil_view(request):
