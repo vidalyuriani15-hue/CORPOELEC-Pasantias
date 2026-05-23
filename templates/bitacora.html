@@ -4,11 +4,11 @@
 {% block title %}CORPOELEC - Registro de Eventos{% endblock %}
 
 {% block content %}
-<div class="welcome-text" style="position: sticky; top: 55px; background: var(--gray-100); padding: 20px 0; border-bottom: 1px solid var(--gray-300); z-index: 40;">
-  <h2>Registro de Eventos</h2>
+<div class="welcome-text" style="position: sticky; top: 80px; background: var(--gray-100); padding: 20px 30px; border-bottom: 1px solid var(--gray-300); z-index: 40;">
+  <h2 style="margin: 0;">Registro de Eventos</h2>
 </div>
 
-<div style="padding-top: 20px;">
+<div style="padding-top: 0;">
 {% if messages %}
 <div class="messages" id="messages-container">
   {% for message in messages %}
@@ -547,5 +547,6 @@ document.getElementById('searchClear').addEventListener('click', function() {
 document.addEventListener('DOMContentLoaded', function() {
     filterTable();
 });
+
 </script>
 {% endblock %}
