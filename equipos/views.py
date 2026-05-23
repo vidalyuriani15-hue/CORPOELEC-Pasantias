@@ -376,7 +376,27 @@ def interfaces_view(request):
                     # Eliminación lógica: marcar como inactivo
                     iface.Activo = False
                     iface.save()
-                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Comunicacion eliminada: {iface.get_Tipo_Interfaz_display()}')
+                    # Convertir los códigos de tipo de puerto a sus representaciones legibles para el mensaje de bitácora
+                    # Ejemplo: 'ETH' -> 'Ethernet', 'RS232' -> 'RS232'
+                    tipos_legibles = []
+                    puertos_asociados = iface.puertos.all()
+                    for puerto in puertos_asociados:
+                        tipo_codigo = puerto.Tipo
+                        if tipo_codigo == 'ETH':
+                            tipos_legibles.append('Ethernet')
+                        elif tipo_codigo == 'RS232':
+                            tipos_legibles.append('RS232')
+                        elif tipo_codigo == 'RS485':
+                            tipos_legibles.append('RS485')
+                        elif tipo_codigo == 'USB':
+                            tipos_legibles.append('USB')
+                        elif tipo_codigo == 'FIBRA':
+                            tipos_legibles.append('Fibra Óptica')
+                        else:
+                            # Valor desconocido, usar tal cual
+                            tipos_legibles.append(tipo_codigo)
+                    tipos_str = ", ".join(tipos_legibles) if tipos_legibles else "Sin puertos especificados"
+                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Comunicación Eliminado: {tipos_str}')
                     messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
@@ -400,14 +420,32 @@ def interfaces_view(request):
                     iface.Puertos_C = len(tipos_puerto)
                     iface.Tipo_Interfaz = 'PUERTOS'
                     iface.save()
-                    # Validar
-                    try:
-                        iface.full_clean()
-                    except Exception as e:
-                        messages.error(request, f'Error de validación: {str(e)}')
-                        raise  # Rollback via transaction.atomic()
-                    messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='updated')
-                registrar_evento(request, 'ACTUALIZACION', 'Interfaz de Puertos editada')
+                # Validar
+                try:
+                    iface.full_clean()
+                except Exception as e:
+                    messages.error(request, f'Error de validación: {str(e)}')
+                    raise  # Rollback via transaction.atomic()
+                messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='updated')
+                # Convertir los códigos de tipo de puerto a sus representaciones legibles para el mensaje de bitácora
+                # Ejemplo: 'ETH' -> 'Ethernet', 'RS232' -> 'RS232'
+                tipos_legibles = []
+                for tipo_codigo in tipos_puerto:
+                    if tipo_codigo == 'ETH':
+                        tipos_legibles.append('Ethernet')
+                    elif tipo_codigo == 'RS232':
+                        tipos_legibles.append('RS232')
+                    elif tipo_codigo == 'RS485':
+                        tipos_legibles.append('RS485')
+                    elif tipo_codigo == 'USB':
+                        tipos_legibles.append('USB')
+                    elif tipo_codigo == 'FIBRA':
+                        tipos_legibles.append('Fibra Óptica')
+                    else:
+                        # Valor desconocido, usar tal cual
+                        tipos_legibles.append(tipo_codigo)
+                tipos_str = ", ".join(tipos_legibles)
+                registrar_evento(request, 'ACTUALIZACION', f'Interfaz de Comunicación Actualizado: {tipos_str}')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -435,7 +473,25 @@ def interfaces_view(request):
                     messages.error(request, f'Error de validación: {str(e)}')
                     iface.delete()
                     return redirect('interfaces')
-                registrar_evento(request, 'CREACION', 'Interfaz de Puertos creada')
+                # Convertir los códigos de tipo de puerto a sus representaciones legibles para el mensaje de bitácora
+                # Ejemplo: 'ETH' -> 'Ethernet', 'RS232' -> 'RS232'
+                tipos_legibles = []
+                for tipo_codigo in tipos_puerto:
+                    if tipo_codigo == 'ETH':
+                        tipos_legibles.append('Ethernet')
+                    elif tipo_codigo == 'RS232':
+                        tipos_legibles.append('RS232')
+                    elif tipo_codigo == 'RS485':
+                        tipos_legibles.append('RS485')
+                    elif tipo_codigo == 'USB':
+                        tipos_legibles.append('USB')
+                    elif tipo_codigo == 'FIBRA':
+                        tipos_legibles.append('Fibra Óptica')
+                    else:
+                        # Valor desconocido, usar tal cual
+                        tipos_legibles.append(tipo_codigo)
+                tipos_str = ", ".join(tipos_legibles)
+                registrar_evento(request, 'CREACION', f'Interfaz de Comunicación Agregado: {tipos_str}')
                 messages.success(request, 'Interfaz creada correctamente')
                 return redirect('interfaces')
     
@@ -486,7 +542,25 @@ def protocolo_view(request):
                 except Exception as e:
                     messages.error(request, f'Error de validación: {str(e)}')
                     raise  # Rollback
-            registrar_evento(request, 'CREACION', f'Interfaz de Protocolos creada: {tipos_protocolo}')
+                # Convertir los códigos de tipo de protocolo a sus representaciones legibles para el mensaje de bitácora
+                # Ejemplo: '101' -> 'IEC 101', 'DNP' -> 'DNP3'
+                protocolos_legibles = []
+                for tipo_codigo in tipos_protocolo:
+                    if tipo_codigo == '101':
+                        protocolos_legibles.append('IEC 101')
+                    elif tipo_codigo == '104':
+                        protocolos_legibles.append('IEC 104')
+                    elif tipo_codigo == 'DNP':
+                        protocolos_legibles.append('DNP3')
+                    elif tipo_codigo == 'GOOSE':
+                        protocolos_legibles.append('GOOSE')
+                    elif tipo_codigo == 'MODBUS':
+                        protocolos_legibles.append('Modbus')
+                    else:
+                        # Valor desconocido, usar tal cual
+                        protocolos_legibles.append(tipo_codigo)
+                protocolos_str = ", ".join(protocolos_legibles)
+                registrar_evento(request, 'CREACION', f'Protocolos Agregado: {protocolos_str}')
             messages.success(request, 'Interfaz creada correctamente')
         
         # Editar interfaz/protocolos
@@ -516,7 +590,25 @@ def protocolo_view(request):
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise
                 messages.success(request, 'Interfaz actualizada correctamente', extra_tags='updated')
-                registrar_evento(request, 'ACTUALIZACION', 'Interfaz de Protocolos editada')
+                # Convertir los códigos de tipo de protocolo a sus representaciones legibles para el mensaje de bitácora
+                # Ejemplo: '101' -> 'IEC 101', 'DNP' -> 'DNP3'
+                protocolos_legibles = []
+                for tipo_codigo in tipos_protocolo:
+                    if tipo_codigo == '101':
+                        protocolos_legibles.append('IEC 101')
+                    elif tipo_codigo == '104':
+                        protocolos_legibles.append('IEC 104')
+                    elif tipo_codigo == 'DNP':
+                        protocolos_legibles.append('DNP3')
+                    elif tipo_codigo == 'GOOSE':
+                        protocolos_legibles.append('GOOSE')
+                    elif tipo_codigo == 'MODBUS':
+                        protocolos_legibles.append('Modbus')
+                    else:
+                        # Valor desconocido, usar tal cual
+                        protocolos_legibles.append(tipo_codigo)
+                protocolos_str = ", ".join(protocolos_legibles)
+                registrar_evento(request, 'ACTUALIZACION', f'Protocolos Actualizado: {protocolos_str}')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
         
@@ -547,7 +639,27 @@ def protocolo_view(request):
                     # Eliminación lógica
                     interfaz.Activo = False
                     interfaz.save()
-                registrar_evento(request, 'ELIMINACION', f'Interfaz de Protocolos eliminada: {interfaz.get_Tipo_Interfaz_display()}')
+                    
+                    # Obtener los nombres legibles de los protocolos asociados para el mensaje de bitácora
+                    protocolos_asociados = interfaz.protocolos.all()
+                    protocolos_legibles = []
+                    for protocolo in protocolos_asociados:
+                        tipo_codigo = protocolo.Tipo
+                        if tipo_codigo == '101':
+                            protocolos_legibles.append('IEC 101')
+                        elif tipo_codigo == '104':
+                            protocolos_legibles.append('IEC 104')
+                        elif tipo_codigo == 'DNP':
+                            protocolos_legibles.append('DNP3')
+                        elif tipo_codigo == 'GOOSE':
+                            protocolos_legibles.append('GOOSE')
+                        elif tipo_codigo == 'MODBUS':
+                            protocolos_legibles.append('Modbus')
+                        else:
+                            # Valor desconocido, usar tal cual
+                            protocolos_legibles.append(tipo_codigo)
+                    protocolos_str = ", ".join(protocolos_legibles) if protocolos_legibles else "Sin protocolos especificados"
+                    registrar_evento(request, 'ELIMINACION', f'Protocolos Eliminado: {protocolos_str}')
                 messages.success(request, 'Protocolos de Telecontrol y Energía eliminados correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
@@ -764,7 +876,7 @@ def reles_view(request):
                     
                     rele.save()
                     print(f"DEBUG: Rele {rele_id} saved successfully. EsRemoto={es_remoto}", file=sys.stderr)
-                    registrar_evento(request, 'ACTUALIZACION', f'Relé actualizado: {rele.Marca} {rele.Modelo}')
+                    registrar_evento(request, 'ACTUALIZACION', f'Relé actualizado: {rele.Id_Sub_est.Nombre}')
                     messages.success(request, 'Relé actualizado correctamente.', extra_tags='updated')
             except (Rele.DoesNotExist, Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
                 print(f"DEBUG ERROR: {str(e)}", file=sys.stderr)
@@ -824,7 +936,7 @@ def reles_view(request):
                     rele.save()
                     print(f"DEBUG: Rele created. EsRemoto={es_remoto}, Remota_id={request.POST.get('remota_id')}", file=sys.stderr)
                     
-                    registrar_evento(request, 'CREACION', f'Relé creado: {rele.Marca} {rele.Modelo}')
+                    registrar_evento(request, 'CREACION', f'Relé creado: {sub.Nombre}')
                     messages.success(request, 'Relé creado correctamente.')
                     return redirect('reles')
             except (Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
@@ -1823,8 +1935,6 @@ def admin_restaurar_view(request):
         db_backup_path = None
         try:
             import tempfile, shutil
-            messages.info(request, '🔄 Iniciando restauración del sistema...')
-
             # Cargar archivo ZIP
             with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp:
                 for chunk in backup_file.chunks():
@@ -1833,7 +1943,6 @@ def admin_restaurar_view(request):
 
             with zipfile.ZipFile(tmp_path, 'r') as zf:
                 nombres = zf.namelist()
-                messages.info(request, f'✓ Archivo ZIP validado ({len(nombres)} archivos encontrados).')
 
                 # Restaurar base de datos SQLite
                 if 'db.sqlite3' in nombres:
@@ -1841,49 +1950,32 @@ def admin_restaurar_view(request):
                     db_backup_path = db_path + '.backup'
 
                     try:
-                        messages.info(request, '🔒 Cerrando conexiones a la base de datos...')
                         # Cerrar todas las conexiones antes de reemplazar el archivo
                         from django.db import connections
                         connections.close_all()
-                        messages.info(request, '✓ Conexiones cerradas correctamente.')
 
                         # Hacer backup del archivo actual
                         if os.path.exists(db_path):
-                            messages.info(request, '💾 Creando backup de la BD actual...')
                             shutil.copy2(db_path, db_backup_path)
-                            messages.info(request, '✓ Backup creado exitosamente.')
 
                         # Restaurar la base de datos
-                        messages.info(request, '📥 Restaurando base de datos...')
                         with zf.open('db.sqlite3') as src, open(db_path, 'wb') as dst:
                             shutil.copyfileobj(src, dst)
-                        messages.success(request, '✓ Base de datos restaurada correctamente.')
 
                         # Limpiar la caché de conexiones y resetear
                         from django.core.cache import cache
                         cache.clear()
-                        messages.info(request, '✓ Caché limpiada.')
                     except Exception as db_error:
-                        messages.error(request, f'❌ Error al restaurar BD: {str(db_error)}')
                         # Restaurar desde backup si algo falla
                         if os.path.exists(db_backup_path):
-                            messages.info(request, '⚠️ Restaurando BD desde backup de seguridad...')
                             shutil.copy2(db_backup_path, db_path)
-                            messages.warning(request, '⚠️ BD restaurada desde backup anterior. Intente de nuevo.')
                         raise Exception(f'Error al restaurar base de datos: {str(db_error)}')
-                else:
-                    messages.warning(request, '⚠️ No se encontró base de datos en la copia de seguridad.')
-
                 # Restaurar archivos multimedia
                 media_root = str(settings.MEDIA_ROOT)
                 media_files = [n for n in nombres if n.startswith('media/')]
 
                 if media_files:
-                    messages.info(request, f'🗂️ Preparando restauración de {len(media_files)} archivos multimedia...')
-
                     if media_root and os.path.exists(media_root):
-                        # Limpiar el directorio de media antes de restaurar
-                        messages.info(request, '🗑️ Limpiando directorio multimedia...')
                         deleted_count = 0
                         for item in os.listdir(media_root):
                             item_path = os.path.join(media_root, item)
@@ -1893,14 +1985,11 @@ def admin_restaurar_view(request):
                             elif os.path.isdir(item_path):
                                 shutil.rmtree(item_path)
                                 deleted_count += 1
-                        messages.info(request, f'✓ {deleted_count} elemento(s) eliminado(s).')
 
-                    messages.info(request, '📥 Extrayendo archivos multimedia...')
                     parent = os.path.dirname(media_root)
                     zf.extractall(parent, members=media_files)
-                    messages.success(request, f'✓ {len(media_files)} archivo(s) multimedia restaurado(s).')
                 else:
-                    messages.info(request, '📁 No hay archivos multimedia en la copia de seguridad.')
+                    pass
 
             os.unlink(tmp_path)
 
@@ -1909,13 +1998,13 @@ def admin_restaurar_view(request):
                 os.remove(db_backup_path)
 
             registrar_evento(request, 'ACTUALIZACION', f'Sistema restaurado desde copia: {backup_file.name}')
-            messages.success(request, f'✅ ¡Sistema restaurado correctamente desde "{backup_file.name}"! Puede ser necesario reiniciar la aplicación para que los cambios tomen efecto.')
+            messages.success(request, f'✅ Sistema restaurado correctamente desde "{backup_file.name}".', extra_tags='restore-redirect')
         except zipfile.BadZipFile:
             messages.error(request, '❌ El archivo seleccionado no es un ZIP válido.')
         except Exception as e:
             messages.error(request, f'❌ Error general en restauración: {str(e)}')
 
-        return redirect('admin_restaurar')
+        return redirect('index')
 
     context = {
         'title': 'Restaurar Sistema',

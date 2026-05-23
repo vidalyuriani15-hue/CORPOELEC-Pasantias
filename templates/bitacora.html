@@ -4,7 +4,7 @@
 {% block title %}CORPOELEC - Registro de Eventos{% endblock %}
 
 {% block content %}
-<div class="welcome-text">
+<div class="welcome-text" style="position: sticky; top: 0; background: var(--gray-100); z-index: 100; padding: 20px 0; border-bottom: 1px solid var(--gray-300);">
   <h2>Registro de Eventos</h2>
 </div>
 
@@ -58,138 +58,138 @@
      </div>
    </div>
 
-  {% if page_obj.paginator.count > 0 %}
-  <div id="resultCount" class="search-results-info">
-    {% if busqueda or tipo_usuario %}
-    <span>{{ page_obj.paginator.count }} evento{{ page_obj.paginator.count|pluralize }} encontrado{{ page_obj.paginator.count|pluralize }}</span>
-    {% endif %}
-  </div>
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th style="width:140px;">Hora</th>
-        <th style="width:150px;">Usuario</th>
-        <th style="width:160px;">Vista</th>
-        <th>Descripción</th>
-        <th style="width:110px;">Estado</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for evento in page_obj %}
-      <tr class="row-{% if evento.Tipo == 'CREACION' %}creacion{% elif evento.Tipo == 'ACTUALIZACION' %}actualizacion{% elif evento.Tipo == 'ELIMINACION' %}eliminacion{% elif evento.Tipo == 'LOGIN' %}login{% elif evento.Tipo == 'LOGOUT' %}logout{% elif evento.Tipo == 'ERROR' %}error{% else %}otro{% endif %}">
-        <td class="date-cell">
-          <div class="date-main">{{ evento.Fecha_Hora|date:"d/m/Y" }}</div>
-          <div class="date-time"><i class="fas fa-clock" style="margin-right:3px;"></i>{{ evento.Fecha_Hora|date:"H:i:s" }}</div>
-        </td>
-        <td>
-          <div class="user-cell">
-            {% if evento.Usuario %}
-              <div class="user-avatar">{{ evento.Usuario.username|slice:":2" }}</div>
-              <div>
-                <span class="user-name">{{ evento.Usuario.username }}</span>
-                {% if evento.Usuario.is_superuser %}
-                <span class="user-type-badge admin-badge">Admin</span>
-                {% else %}
-                <span class="user-type-badge regular-badge">Regular</span>
-                {% endif %}
-              </div>
-            {% else %}
-              <div class="user-avatar system"><i class="fas fa-cog"></i></div>
-              <div>
-                <span class="user-name">Sistema</span>
-                <span class="user-type-badge sistema-badge">Sistema</span>
-              </div>
-            {% endif %}
-          </div>
-        </td>
-        <td>
-          {% if evento.Vista %}
-            <span class="vista-cell"><i class="fas fa-layer-group"></i>{{ evento.Vista }}</span>
-          {% else %}
-            <span style="color:#aaa;">—</span>
-          {% endif %}
-        </td>
-        <td class="desc-cell">{{ evento.Descripcion }}</td>
-        <td>
-          {% if evento.Tipo == 'CREACION' %}
-            <span class="badge badge-success"><i class="fas fa-plus-circle"></i>Agregó</span>
-          {% elif evento.Tipo == 'ACTUALIZACION' %}
-            <span class="badge badge-info"><i class="fas fa-pen"></i>Editó</span>
-          {% elif evento.Tipo == 'ELIMINACION' %}
-            <span class="badge badge-warning"><i class="fas fa-trash"></i>Eliminó</span>
-          {% elif evento.Tipo == 'LOGIN' %}
-            <span class="badge badge-login"><i class="fas fa-sign-in-alt"></i>Ingresó</span>
-          {% elif evento.Tipo == 'LOGOUT' %}
-            <span class="badge badge-logout"><i class="fas fa-sign-out-alt"></i>Salió</span>
-          {% elif evento.Tipo == 'ERROR' %}
-            <span class="badge badge-error"><i class="fas fa-exclamation-circle"></i>Error</span>
-          {% else %}
-            <span class="badge badge-secondary">Otro</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="no-data">
-    <i class="fas fa-inbox"></i>
-    No hay eventos que coincidan con los filtros aplicados.
-  </div>
-  {% endif %}
-</div>
+   {% if page_obj.paginator.count > 0 %}
+   <div id="resultCount" class="search-results-info">
+     {% if busqueda or tipo_usuario %}
+     <span>{{ page_obj.paginator.count }} evento{{ page_obj.paginator.count|pluralize }} encontrado{{ page_obj.paginator.count|pluralize }}</span>
+     {% endif %}
+   </div>
+   <table class="data-table">
+     <thead>
+       <tr>
+         <th style="width:140px;">Hora</th>
+         <th style="width:150px;">Usuario</th>
+         <th style="width:160px;">Vista</th>
+         <th>Descripción</th>
+         <th style="width:110px;">Estado</th>
+       </tr>
+     </thead>
+     <tbody>
+       {% for evento in page_obj %}
+       <tr class="row-{% if evento.Tipo == 'CREACION' %}creacion{% elif evento.Tipo == 'ACTUALIZACION' %}actualizacion{% elif evento.Tipo == 'ELIMINACION' %}eliminacion{% elif evento.Tipo == 'LOGIN' %}login{% elif evento.Tipo == 'LOGOUT' %}logout{% elif evento.Tipo == 'ERROR' %}error{% else %}otro{% endif %}">
+         <td class="date-cell">
+           <div class="date-main">{{ evento.Fecha_Hora|date:"d/m/Y" }}</div>
+           <div class="date-time"><i class="fas fa-clock" style="margin-right:3px;"></i>{{ evento.Fecha_Hora|date:"H:i:s" }}</div>
+         </td>
+         <td>
+           <div class="user-cell">
+             {% if evento.Usuario %}
+               <div class="user-avatar">{{ evento.Usuario.username|slice:":2" }}</div>
+               <div>
+                 <span class="user-name">{{ evento.Usuario.username }}</span>
+                 {% if evento.Usuario.is_superuser %}
+                 <span class="user-type-badge admin-badge">Admin</span>
+                 {% else %}
+                 <span class="user-type-badge regular-badge">Regular</span>
+                 {% endif %}
+               </div>
+             {% else %}
+               <div class="user-avatar system"><i class="fas fa-cog"></i></div>
+               <div>
+                 <span class="user-name">Sistema</span>
+                 <span class="user-type-badge sistema-badge">Sistema</span>
+               </div>
+             {% endif %}
+           </div>
+         </td>
+         <td>
+           {% if evento.Vista %}
+             <span class="vista-cell"><i class="fas fa-layer-group"></i>{{ evento.Vista }}</span>
+           {% else %}
+             <span style="color:#aaa;">—</span>
+           {% endif %}
+         </td>
+         <td class="desc-cell">{{ evento.Descripcion }}</td>
+         <td>
+           {% if evento.Tipo == 'CREACION' %}
+             <span class="badge badge-success"><i class="fas fa-plus-circle"></i>Agregó</span>
+           {% elif evento.Tipo == 'ACTUALIZACION' %}
+             <span class="badge badge-info"><i class="fas fa-pen"></i>Editó</span>
+           {% elif evento.Tipo == 'ELIMINACION' %}
+             <span class="badge badge-warning"><i class="fas fa-trash"></i>Eliminó</span>
+           {% elif evento.Tipo == 'LOGIN' %}
+             <span class="badge badge-login"><i class="fas fa-sign-in-alt"></i>Ingresó</span>
+           {% elif evento.Tipo == 'LOGOUT' %}
+             <span class="badge badge-logout"><i class="fas fa-sign-out-alt"></i>Salió</span>
+           {% elif evento.Tipo == 'ERROR' %}
+             <span class="badge badge-error"><i class="fas fa-exclamation-circle"></i>Error</span>
+           {% else %}
+             <span class="badge badge-secondary">Otro</span>
+           {% endif %}
+         </td>
+       </tr>
+       {% endfor %}
+     </tbody>
+   </table>
+   {% else %}
+   <div class="no-data">
+     <i class="fas fa-inbox"></i>
+     No hay eventos que coincidan con los filtros aplicados.
+   </div>
+   {% endif %}
+ </div>
 
-{% if page_obj.paginator.num_pages > 1 %}
-<div class="pagination-container">
-  <div class="pagination-info-left">
-    <span class="pagination-text">
-      Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
-      | Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-    </span>
-  </div>
-  <div class="pagination-controls-right">
-    <nav class="pagination-nav">
-      <ul class="pagination-list">
-        {% if page_obj.has_previous %}
-        <li class="pagination-item">
-          <a href="?page={{ page_obj.previous_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link pagination-prev" title="Página anterior">
-            <i class="fas fa-chevron-left"></i> Anterior
-          </a>
-        </li>
-        {% else %}
-        <li class="pagination-item disabled">
-          <span class="pagination-link disabled"><i class="fas fa-chevron-left"></i> Anterior</span>
-        </li>
-        {% endif %}
+ {% if page_obj.paginator.num_pages > 1 %}
+ <div class="pagination-container">
+   <div class="pagination-info-left">
+     <span class="pagination-text">
+       Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
+       | Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+     </span>
+   </div>
+   <div class="pagination-controls-right">
+     <nav class="pagination-nav">
+       <ul class="pagination-list">
+         {% if page_obj.has_previous %}
+         <li class="pagination-item">
+           <a href="?page={{ page_obj.previous_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link pagination-prev" title="Página anterior">
+             <i class="fas fa-chevron-left"></i> Anterior
+           </a>
+         </li>
+         {% else %}
+         <li class="pagination-item disabled">
+           <span class="pagination-link disabled"><i class="fas fa-chevron-left"></i> Anterior</span>
+         </li>
+         {% endif %}
 
-        {% for num in page_obj.paginator.page_range %}
-        {% if page_obj.number == num %}
-        <li class="pagination-item active">
-          <span class="pagination-link">{{ num }}</span>
-        </li>
-        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-        <li class="pagination-item">
-          <a href="?page={{ num }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link">{{ num }}</a>
-        </li>
-        {% endif %}
-        {% endfor %}
+         {% for num in page_obj.paginator.page_range %}
+         {% if page_obj.number == num %}
+         <li class="pagination-item active">
+           <span class="pagination-link">{{ num }}</span>
+         </li>
+         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+         <li class="pagination-item">
+           <a href="?page={{ num }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link">{{ num }}</a>
+         </li>
+         {% endif %}
+         {% endfor %}
 
-        {% if page_obj.has_next %}
-        <li class="pagination-item">
-          <a href="?page={{ page_obj.next_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link pagination-next" title="Página siguiente">
-            Siguiente <i class="fas fa-chevron-right"></i>
-          </a>
-        </li>
-        {% else %}
-        <li class="pagination-item disabled">
-          <span class="pagination-link disabled">Siguiente <i class="fas fa-chevron-right"></i></span>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-  </div>
-</div>
-{% endif %}
+         {% if page_obj.has_next %}
+         <li class="pagination-item">
+           <a href="?page={{ page_obj.next_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link pagination-next" title="Página siguiente">
+             Siguiente <i class="fas fa-chevron-right"></i>
+           </a>
+         </li>
+         {% else %}
+         <li class="pagination-item disabled">
+           <span class="pagination-link disabled">Siguiente <i class="fas fa-chevron-right"></i></span>
+         </li>
+         {% endif %}
+       </ul>
+     </nav>
+   </div>
+ </div>
+ {% endif %}
 {% endblock %}
 
 {% block extra_css %}

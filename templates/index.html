@@ -3,6 +3,17 @@
 {% block title %}CORPOELEC - Inicio{% endblock %}
 
 {% block content %}
+<!-- Mensaje de restauración exitosa -->
+{% if messages %}
+<div class="messages" id="messages-container">
+  {% for message in messages %}
+  {% if 'restore-redirect' in message.tags %}
+  <div class="alert alert-success">{{ message }}</div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
 <!-- Sección de bienvenida -->
 <div class="welcome-header">
   <h2>Bienvenido{% if user.first_name %}, {{ user.first_name }}{% endif %}</h2>
