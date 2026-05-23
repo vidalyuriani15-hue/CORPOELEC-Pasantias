@@ -4,11 +4,11 @@
 {% block title %}CORPOELEC - Registro de Eventos{% endblock %}
 
 {% block content %}
-<div class="welcome-text" style="position: sticky; top: 0; background: var(--gray-100); z-index: 100; padding: 20px 0; border-bottom: 1px solid var(--gray-300);">
+<div class="welcome-text" style="position: sticky; top: 55px; background: var(--gray-100); padding: 20px 0; border-bottom: 1px solid var(--gray-300); z-index: 40;">
   <h2>Registro de Eventos</h2>
 </div>
 
-<div style="padding-top: 80px;">
+<div style="padding-top: 20px;">
 {% if messages %}
 <div class="messages" id="messages-container">
   {% for message in messages %}
@@ -193,6 +193,7 @@
  {% endif %}
 </div>
 {% endblock %}
+{% block extra_css %}
 <style>
 /* ── Badges de estado ── */
 .badge {
