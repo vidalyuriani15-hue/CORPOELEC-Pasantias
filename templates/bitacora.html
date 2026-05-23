@@ -8,6 +8,7 @@
   <h2>Registro de Eventos</h2>
 </div>
 
+<div style="padding-top: 80px;">
 {% if messages %}
 <div class="messages" id="messages-container">
   {% for message in messages %}
@@ -190,9 +191,8 @@
    </div>
  </div>
  {% endif %}
+</div>
 {% endblock %}
-
-{% block extra_css %}
 <style>
 /* ── Badges de estado ── */
 .badge {

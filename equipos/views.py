@@ -376,27 +376,7 @@ def interfaces_view(request):
                     # Eliminación lógica: marcar como inactivo
                     iface.Activo = False
                     iface.save()
-                    # Convertir los códigos de tipo de puerto a sus representaciones legibles para el mensaje de bitácora
-                    # Ejemplo: 'ETH' -> 'Ethernet', 'RS232' -> 'RS232'
-                    tipos_legibles = []
-                    puertos_asociados = iface.puertos.all()
-                    for puerto in puertos_asociados:
-                        tipo_codigo = puerto.Tipo
-                        if tipo_codigo == 'ETH':
-                            tipos_legibles.append('Ethernet')
-                        elif tipo_codigo == 'RS232':
-                            tipos_legibles.append('RS232')
-                        elif tipo_codigo == 'RS485':
-                            tipos_legibles.append('RS485')
-                        elif tipo_codigo == 'USB':
-                            tipos_legibles.append('USB')
-                        elif tipo_codigo == 'FIBRA':
-                            tipos_legibles.append('Fibra Óptica')
-                        else:
-                            # Valor desconocido, usar tal cual
-                            tipos_legibles.append(tipo_codigo)
-                    tipos_str = ", ".join(tipos_legibles) if tipos_legibles else "Sin puertos especificados"
-                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Comunicación Eliminado: {tipos_str}')
+                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Comunicación Eliminado: {iface.get_Tipo_Interfaz_display()}')
                     messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
@@ -420,32 +400,14 @@ def interfaces_view(request):
                     iface.Puertos_C = len(tipos_puerto)
                     iface.Tipo_Interfaz = 'PUERTOS'
                     iface.save()
-                # Validar
-                try:
-                    iface.full_clean()
-                except Exception as e:
-                    messages.error(request, f'Error de validación: {str(e)}')
-                    raise  # Rollback via transaction.atomic()
-                messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='updated')
-                # Convertir los códigos de tipo de puerto a sus representaciones legibles para el mensaje de bitácora
-                # Ejemplo: 'ETH' -> 'Ethernet', 'RS232' -> 'RS232'
-                tipos_legibles = []
-                for tipo_codigo in tipos_puerto:
-                    if tipo_codigo == 'ETH':
-                        tipos_legibles.append('Ethernet')
-                    elif tipo_codigo == 'RS232':
-                        tipos_legibles.append('RS232')
-                    elif tipo_codigo == 'RS485':
-                        tipos_legibles.append('RS485')
-                    elif tipo_codigo == 'USB':
-                        tipos_legibles.append('USB')
-                    elif tipo_codigo == 'FIBRA':
-                        tipos_legibles.append('Fibra Óptica')
-                    else:
-                        # Valor desconocido, usar tal cual
-                        tipos_legibles.append(tipo_codigo)
-                tipos_str = ", ".join(tipos_legibles)
-                registrar_evento(request, 'ACTUALIZACION', f'Interfaz de Comunicación Actualizado: {tipos_str}')
+                    # Validar
+                    try:
+                        iface.full_clean()
+                    except Exception as e:
+                        messages.error(request, f'Error de validación: {str(e)}')
+                        raise  # Rollback via transaction.atomic()
+                    messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='updated')
+                registrar_evento(request, 'ACTUALIZACION', 'Interfaz de Puertos editada')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
@@ -473,25 +435,7 @@ def interfaces_view(request):
                     messages.error(request, f'Error de validación: {str(e)}')
                     iface.delete()
                     return redirect('interfaces')
-                # Convertir los códigos de tipo de puerto a sus representaciones legibles para el mensaje de bitácora
-                # Ejemplo: 'ETH' -> 'Ethernet', 'RS232' -> 'RS232'
-                tipos_legibles = []
-                for tipo_codigo in tipos_puerto:
-                    if tipo_codigo == 'ETH':
-                        tipos_legibles.append('Ethernet')
-                    elif tipo_codigo == 'RS232':
-                        tipos_legibles.append('RS232')
-                    elif tipo_codigo == 'RS485':
-                        tipos_legibles.append('RS485')
-                    elif tipo_codigo == 'USB':
-                        tipos_legibles.append('USB')
-                    elif tipo_codigo == 'FIBRA':
-                        tipos_legibles.append('Fibra Óptica')
-                    else:
-                        # Valor desconocido, usar tal cual
-                        tipos_legibles.append(tipo_codigo)
-                tipos_str = ", ".join(tipos_legibles)
-                registrar_evento(request, 'CREACION', f'Interfaz de Comunicación Agregado: {tipos_str}')
+                registrar_evento(request, 'CREACION', 'Interfaz de Puertos creada')
                 messages.success(request, 'Interfaz creada correctamente')
                 return redirect('interfaces')
     
@@ -542,25 +486,7 @@ def protocolo_view(request):
                 except Exception as e:
                     messages.error(request, f'Error de validación: {str(e)}')
                     raise  # Rollback
-                # Convertir los códigos de tipo de protocolo a sus representaciones legibles para el mensaje de bitácora
-                # Ejemplo: '101' -> 'IEC 101', 'DNP' -> 'DNP3'
-                protocolos_legibles = []
-                for tipo_codigo in tipos_protocolo:
-                    if tipo_codigo == '101':
-                        protocolos_legibles.append('IEC 101')
-                    elif tipo_codigo == '104':
-                        protocolos_legibles.append('IEC 104')
-                    elif tipo_codigo == 'DNP':
-                        protocolos_legibles.append('DNP3')
-                    elif tipo_codigo == 'GOOSE':
-                        protocolos_legibles.append('GOOSE')
-                    elif tipo_codigo == 'MODBUS':
-                        protocolos_legibles.append('Modbus')
-                    else:
-                        # Valor desconocido, usar tal cual
-                        protocolos_legibles.append(tipo_codigo)
-                protocolos_str = ", ".join(protocolos_legibles)
-                registrar_evento(request, 'CREACION', f'Protocolos Agregado: {protocolos_str}')
+            registrar_evento(request, 'CREACION', f'Interfaz Creada: {interfaz.get_Tipo_Interfaz_display()}')
             messages.success(request, 'Interfaz creada correctamente')
         
         # Editar interfaz/protocolos
@@ -590,25 +516,7 @@ def protocolo_view(request):
                         messages.error(request, f'Error de validación: {str(e)}')
                         raise
                 messages.success(request, 'Interfaz actualizada correctamente', extra_tags='updated')
-                # Convertir los códigos de tipo de protocolo a sus representaciones legibles para el mensaje de bitácora
-                # Ejemplo: '101' -> 'IEC 101', 'DNP' -> 'DNP3'
-                protocolos_legibles = []
-                for tipo_codigo in tipos_protocolo:
-                    if tipo_codigo == '101':
-                        protocolos_legibles.append('IEC 101')
-                    elif tipo_codigo == '104':
-                        protocolos_legibles.append('IEC 104')
-                    elif tipo_codigo == 'DNP':
-                        protocolos_legibles.append('DNP3')
-                    elif tipo_codigo == 'GOOSE':
-                        protocolos_legibles.append('GOOSE')
-                    elif tipo_codigo == 'MODBUS':
-                        protocolos_legibles.append('Modbus')
-                    else:
-                        # Valor desconocido, usar tal cual
-                        protocolos_legibles.append(tipo_codigo)
-                protocolos_str = ", ".join(protocolos_legibles)
-                registrar_evento(request, 'ACTUALIZACION', f'Protocolos Actualizado: {protocolos_str}')
+                registrar_evento(request, 'ACTUALIZACION', 'Interfaz de Protocolos editada')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
         
@@ -639,27 +547,7 @@ def protocolo_view(request):
                     # Eliminación lógica
                     interfaz.Activo = False
                     interfaz.save()
-                    
-                    # Obtener los nombres legibles de los protocolos asociados para el mensaje de bitácora
-                    protocolos_asociados = interfaz.protocolos.all()
-                    protocolos_legibles = []
-                    for protocolo in protocolos_asociados:
-                        tipo_codigo = protocolo.Tipo
-                        if tipo_codigo == '101':
-                            protocolos_legibles.append('IEC 101')
-                        elif tipo_codigo == '104':
-                            protocolos_legibles.append('IEC 104')
-                        elif tipo_codigo == 'DNP':
-                            protocolos_legibles.append('DNP3')
-                        elif tipo_codigo == 'GOOSE':
-                            protocolos_legibles.append('GOOSE')
-                        elif tipo_codigo == 'MODBUS':
-                            protocolos_legibles.append('Modbus')
-                        else:
-                            # Valor desconocido, usar tal cual
-                            protocolos_legibles.append(tipo_codigo)
-                    protocolos_str = ", ".join(protocolos_legibles) if protocolos_legibles else "Sin protocolos especificados"
-                    registrar_evento(request, 'ELIMINACION', f'Protocolos Eliminado: {protocolos_str}')
+                registrar_evento(request, 'ELIMINACION', f'Interfaz de Protocolos eliminada: {interfaz.get_Tipo_Interfaz_display()}')
                 messages.success(request, 'Protocolos de Telecontrol y Energía eliminados correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
