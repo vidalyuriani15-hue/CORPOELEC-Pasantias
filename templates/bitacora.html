@@ -31,33 +31,44 @@
 
 <div class="table-section">
    <div class="table-header">
-     <h3>Eventos Registrados</h3>
-     <div class="header-actions">
-       <form method="get" id="filterForm" class="filter-form">
-         <!-- Filtro tipo de usuario -->
-         <div class="filter-select-wrapper">
-           <i class="fas fa-users filter-select-icon"></i>
-           <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
-             <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
-             <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
-             <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
-           </select>
-         </div>
-          <!-- Buscador -->
-          <div class="search-wrapper">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" name="q" class="search-input" id="searchInput"
-                   placeholder="Buscar por usuario, vista o descripción..."
-                   value="{{ busqueda }}">
-            {% if busqueda %}
-            <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
-              <i class="fas fa-times"></i>
-            </button>
-            {% endif %}
-          </div>
-       </form>
-     </div>
-   </div>
+      <h3>Eventos Registrados</h3>
+<div class="header-actions">
+         <form method="get" id="filterForm" class="filter-form">
+           <!-- Filtro tipo de usuario -->
+           <div class="filter-select-wrapper">
+             <i class="fas fa-users filter-select-icon"></i>
+             <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
+               <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
+               <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
+               <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
+               <option value="sistema"{% if tipo_usuario == 'sistema' %}selected{% endif %}>Sistema</option>
+             </select>
+           </div>
+            <!-- Buscador -->
+            <div class="search-wrapper">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" name="q" class="search-input" id="searchInput"
+                     placeholder="Buscar por usuario, vista o descripción..."
+                     value="{{ busqueda }}">
+              {% if busqueda %}
+              <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
+                <i class="fas fa-times"></i>
+              </button>
+              {% endif %}
+              <!-- Botón de búsqueda avanzada -->
+              <button type="button" class="advanced-search-btn" id="advancedSearchBtn" title="Búsqueda avanzada" onclick="openAdvancedSearchModal()">
+                <i class="fas fa-filter"></i>
+              </button>
+              <!-- Botón limpiar filtros -->
+              {% if busqueda or subestacion_filtro or mes_filtro or anio_filtro %}
+              <button type="button" class="advanced-search-btn" id="clearFiltersBtn" title="Limpiar filtros" style="background: var(--gray-600);" onclick="window.location.href='{% url 'registro' %}'">
+                <i class="fas fa-times"></i>
+              </button>
+              {% endif %}
+            </div>
+         </form>
+       </div>
+    </div>
 
    {% if page_obj.paginator.count > 0 %}
    <div id="resultCount" class="search-results-info">
@@ -153,7 +164,7 @@
        <ul class="pagination-list">
          {% if page_obj.has_previous %}
          <li class="pagination-item">
-           <a href="?page={{ page_obj.previous_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link pagination-prev" title="Página anterior">
+           <a href="?page={{ page_obj.previous_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}{% if subestacion_filtro %}&subestacion={{ subestacion_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if anio_filtro %}&anio={{ anio_filtro }}{% endif %}" class="pagination-link pagination-prev" title="Página anterior">
              <i class="fas fa-chevron-left"></i> Anterior
            </a>
          </li>
@@ -170,17 +181,17 @@
          </li>
          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
          <li class="pagination-item">
-           <a href="?page={{ num }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link">{{ num }}</a>
+           <a href="?page={{ num }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}{% if subestacion_filtro %}&subestacion={{ subestacion_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if anio_filtro %}&anio={{ anio_filtro }}{% endif %}" class="pagination-link">{{ num }}</a>
          </li>
          {% endif %}
          {% endfor %}
 
-         {% if page_obj.has_next %}
-         <li class="pagination-item">
-           <a href="?page={{ page_obj.next_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="pagination-link pagination-next" title="Página siguiente">
-             Siguiente <i class="fas fa-chevron-right"></i>
-           </a>
-         </li>
+{% if page_obj.has_next %}
+          <li class="pagination-item">
+            <a href="?page={{ page_obj.next_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}{% if subestacion_filtro %}&subestacion={{ subestacion_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if anio_filtro %}&anio={{ anio_filtro }}{% endif %}" class="pagination-link pagination-next" title="Página siguiente">
+              Siguiente <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
          {% else %}
          <li class="pagination-item disabled">
            <span class="pagination-link disabled">Siguiente <i class="fas fa-chevron-right"></i></span>
@@ -189,9 +200,84 @@
        </ul>
      </nav>
    </div>
- </div>
- {% endif %}
 </div>
+ {% endif %}
+ 
+ <!-- Advanced Search Modal -->
+ <div class="advanced-search-modal" id="advancedSearchModal">
+   <div class="advanced-search-content">
+     <div class="advanced-search-header">
+       <h4><i class="fas fa-filter" style="margin-right: 8px;"></i>Búsqueda Avanzada</h4>
+       <button type="button" class="advanced-search-close" onclick="closeAdvancedSearchModal()">&times;</button>
+     </div>
+     <form method="get" id="advancedSearchForm" class="advanced-search-body">
+       <!-- Hidden fields to preserve existing filters -->
+       <input type="hidden" name="tipo_usuario" value="{{ tipo_usuario }}">
+       <input type="hidden" name="q" value="{{ busqueda }}">
+       
+       <div class="modal-filter-group">
+         <label for="subestacionFiltro">Subestación</label>
+         <select name="subestacion" id="subestacionFiltro">
+           <option value="">Todas las subestaciones</option>
+           {% for sub in subestaciones %}
+           <option value="{{ sub }}" {% if subestacion_filtro == sub %}selected{% endif %}>{{ sub }}</option>
+           {% endfor %}
+         </select>
+       </div>
+       
+       <div class="modal-filter-group">
+         <label for="mesFiltro">Mes</label>
+         <select name="mes" id="mesFiltro">
+           <option value="">Todos los meses</option>
+           {% for num, nombre in meses %}
+           <option value="{{ num }}" {% if mes_filtro == num|stringformat:"s" %}selected{% endif %}>{{ nombre }}</option>
+           {% endfor %}
+         </select>
+       </div>
+       
+       <div class="modal-filter-group">
+         <label for="anioFiltro">Año</label>
+         <select name="anio" id="anioFiltro">
+           <option value="">Todos los años</option>
+           {% for anio in anios %}
+           <option value="{{ anio }}" {% if anio_filtro == anio|stringformat:"s" %}selected{% endif %}>{{ anio }}</option>
+           {% endfor %}
+         </select>
+       </div>
+       
+<div class="advanced-search-footer">
+          <button type="button" class="btn btn-secondary" onclick="resetAdvancedSearch()">Limpiar</button>
+          <button type="submit" class="btn btn-primary">Aplicar filtros</button>
+        </div>
+     </form>
+   </div>
+ </div>
+ 
+<script>
+  // Advanced Search Modal functions
+  function openAdvancedSearchModal() {
+    document.getElementById('advancedSearchModal').classList.add('active');
+  }
+  
+  function closeAdvancedSearchModal() {
+    document.getElementById('advancedSearchModal').classList.remove('active');
+  }
+  
+  function resetAdvancedSearch() {
+    document.getElementById('subestacionFiltro').value = '';
+    document.getElementById('mesFiltro').value = '';
+    document.getElementById('anioFiltro').value = '';
+  }
+  
+  // Close modal on outside click
+  document.getElementById('advancedSearchModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeAdvancedSearchModal();
+    }
+  });
+  </script>
+ 
+ </div>
 {% endblock %}
 {% block extra_css %}
 <style>
@@ -439,6 +525,68 @@
   color: var(--gray-600, #6c757d);
 }
 .no-data i { font-size: 3rem; color: #d0d7de; display: block; margin-bottom: 12px; }
+ 
+/* Advanced Search Modal */
+.advanced-search-btn {
+  background: var(--blue-accent, #4DA6FF);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  margin-left: 8px;
+}
+.advanced-search-btn:hover { background: #3d8fe0; }
+ 
+.advanced-search-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+.advanced-search-modal.active { display: flex; }
+ 
+.advanced-search-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+ 
+.advanced-search-header {
+  padding: 20px 25px;
+  border-bottom: 1px solid var(--gray-300);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.advanced-search-header h4 { margin: 0; color: var(--blue-dark); font-weight: 600; }
+.advanced-search-close { background: none; border: none; font-size: 1.5rem; color: var(--gray-600); cursor: pointer; }
+ 
+.advanced-search-body { padding: 20px 25px; }
+ 
+.modal-filter-group { margin-bottom: 16px; }
+.modal-filter-group label { display: block; margin-bottom: 6px; font-weight: 600; color: var(--blue-dark); font-size: 0.9rem; }
+.modal-filter-group select, .modal-filter-group input { width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.95rem; }
+.modal-filter-group select:focus, .modal-filter-group input:focus { outline: none; border-color: var(--blue-accent); box-shadow: 0 0 0 3px rgba(77,166,255,0.12); }
+ 
+.advanced-search-footer { padding: 15px 25px; border-top: 1px solid var(--gray-300); display: flex; justify-content: flex-end; gap: 10px; }
+ 
 </style>
 {% endblock %}
 

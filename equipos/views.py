@@ -1751,6 +1751,9 @@ def bitacora_view(request):
     """Vista de bitácora de eventos del sistema"""
     tipo_usuario = request.GET.get('tipo_usuario', '')
     busqueda = request.GET.get('q', '')
+    subestacion_filtro = request.GET.get('subestacion', '')
+    mes_filtro = request.GET.get('mes', '')
+    anio_filtro = request.GET.get('anio', '')
 
     eventos_list = Evento.objects.exclude(Tipo__in=['LOGIN', 'LOGOUT']).order_by('-Fecha_Hora')
 
@@ -1768,9 +1771,47 @@ def bitacora_view(request):
             Q(Descripcion__icontains=busqueda)
         )
 
+    # Filtro por subestación (busca en descripción o vista)
+    if subestacion_filtro:
+        eventos_list = eventos_list.filter(
+            Q(Descripcion__icontains=subestacion_filtro) |
+            Q(Vista__icontains=subestacion_filtro)
+        )
+
+    # Filtro por mes y año
+    from django.utils import timezone
+    
+    if anio_filtro:
+        try:
+            anio = int(anio_filtro)
+            eventos_list = eventos_list.filter(Fecha_Hora__year=anio)
+        except ValueError:
+            pass
+    
+    if mes_filtro:
+        try:
+            mes = int(mes_filtro)
+            eventos_list = eventos_list.filter(Fecha_Hora__month=mes)
+        except ValueError:
+            pass
+
     paginator = Paginator(eventos_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
+    # Obtener lista de subestaciones para el filtro
+    subestaciones = Subestacion.objects.values_list('Nombre', flat=True).distinct()
+    
+    # Generar años disponibles para filtro
+    current_year = timezone.now().year
+    anios = range(current_year, current_year - 5, -1)
+    
+    # Meses para filtro
+    meses = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
 
     context = {
         'title': 'Bitácora de Eventos',
@@ -1778,6 +1819,12 @@ def bitacora_view(request):
         'is_admin': request.user.is_superuser,
         'tipo_usuario': tipo_usuario,
         'busqueda': busqueda,
+        'subestacion_filtro': subestacion_filtro,
+        'mes_filtro': mes_filtro,
+        'anio_filtro': anio_filtro,
+        'subestaciones': subestaciones,
+        'meses': meses,
+        'anios': anios,
     }
     return render(request, 'bitacora.html', context)
 
