@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.urls import path
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
-from equipos.views import reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, get_user_permisos, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view, admin_backup_download, admin_backup_delete, bitacora_view, custom_login, custom_logout, admin_root_view
+from equipos.views import reles_view, rele_detalle_view, tensiones_view, perfil_view, cambiar_clave_view, usuarios_view, get_user_permisos, subestaciones_view, index_view, interfaces_view, protocolo_view, remotas_view, api_remotas, exportar_tensiones_pdf, exportar_interfaces_pdf, exportar_protocolo_pdf, exportar_subestaciones_pdf, exportar_remotas_pdf, exportar_reles_pdf, exportar_bitacora_pdf, admin_eventos_view, admin_restaurar_view, admin_backup_view, admin_backup_download, admin_backup_delete, bitacora_view, custom_login, custom_logout, admin_root_view
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -36,6 +36,7 @@ urlpatterns = [
     path('reles/<int:pk>/detalle/', rele_detalle_view, name='rele_detalle'),
     path('reles/', reles_view, name='reles'),
     path('reles/exportar-pdf/', exportar_reles_pdf, name='exportar_reles_pdf'),
+    path('bitacora/exportar-pdf/', exportar_bitacora_pdf, name='exportar_bitacora_pdf'),
     path('api/remotas/', api_remotas, name='api_remotas'),
 
     # Rutas del administrador (más específicas primero)

@@ -30,45 +30,49 @@
 </div>
 
 <div class="table-section">
-   <div class="table-header">
-      <h3>Eventos Registrados</h3>
-<div class="header-actions">
-         <form method="get" id="filterForm" class="filter-form">
-           <!-- Filtro tipo de usuario -->
-           <div class="filter-select-wrapper">
-             <i class="fas fa-users filter-select-icon"></i>
-             <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
-               <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
-               <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
-               <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
-               <option value="sistema"{% if tipo_usuario == 'sistema' %}selected{% endif %}>Sistema</option>
-             </select>
-           </div>
-            <!-- Buscador -->
-            <div class="search-wrapper">
-              <i class="fas fa-search search-icon"></i>
-              <input type="text" name="q" class="search-input" id="searchInput"
-                     placeholder="Buscar por usuario, vista o descripción..."
-                     value="{{ busqueda }}">
-              {% if busqueda %}
-              <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
-                <i class="fas fa-times"></i>
-              </button>
-              {% endif %}
-              <!-- Botón de búsqueda avanzada -->
-              <button type="button" class="advanced-search-btn" id="advancedSearchBtn" title="Búsqueda avanzada" onclick="openAdvancedSearchModal()">
-                <i class="fas fa-filter"></i>
-              </button>
-              <!-- Botón limpiar filtros -->
-              {% if busqueda or subestacion_filtro or mes_filtro or anio_filtro %}
-              <button type="button" class="advanced-search-btn" id="clearFiltersBtn" title="Limpiar filtros" style="background: var(--gray-600);" onclick="window.location.href='{% url 'registro' %}'">
-                <i class="fas fa-times"></i>
-              </button>
-              {% endif %}
+    <div class="table-header">
+        <h3>Eventos Registrados</h3>
+        <div class="header-actions">
+           <form method="get" id="filterForm" class="filter-form">
+            <!-- Filtro tipo de usuario -->
+            <div class="filter-select-wrapper">
+              <i class="fas fa-users filter-select-icon"></i>
+              <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
+                <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
+                <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
+                <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
+                <option value="sistema"{% if tipo_usuario == 'sistema' %}selected{% endif %}>Sistema</option>
+              </select>
             </div>
-         </form>
-       </div>
-    </div>
+             <!-- Buscador -->
+             <div class="search-wrapper">
+               <i class="fas fa-search search-icon"></i>
+               <input type="text" name="q" class="search-input" id="searchInput"
+                      placeholder="Buscar por usuario, vista o descripción..."
+                      value="{{ busqueda }}">
+               {% if busqueda %}
+               <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
+                 <i class="fas fa-times"></i>
+               </button>
+               {% endif %}
+<!-- Botón de búsqueda avanzada -->
+               <button type="button" class="advanced-search-btn" id="advancedSearchBtn" title="Búsqueda avanzada" onclick="openAdvancedSearchModal()">
+                 <i class="fas fa-filter"></i>
+               </button>
+               <!-- Botón limpiar filtros -->
+               {% if busqueda or subestacion_filtro or mes_filtro or anio_filtro %}
+               <button type="button" class="advanced-search-btn" id="clearFiltersBtn" title="Limpiar filtros" style="background: var(--gray-600);" onclick="window.location.href='{% url 'registro' %}'">
+                 <i class="fas fa-times"></i>
+               </button>
+               {% endif %}
+               <!-- Botón exportar PDF -->
+               <a href="{% url 'exportar_bitacora_pdf' %}" onclick="this.href=this.href.split('?')[0]+window.location.search" class="advanced-search-btn" title="Exportar a PDF">
+                 <i class="fas fa-file-pdf"></i>
+               </a>
+             </div>
+          </form>
+        </div>
+     </div>
 
    {% if page_obj.paginator.count > 0 %}
    <div id="resultCount" class="search-results-info">
@@ -83,7 +87,7 @@
          <th style="width:150px;">Usuario</th>
          <th style="width:160px;">Vista</th>
          <th>Descripción</th>
-         <th style="width:110px;">Estado</th>
+         <th style="width:110px;">Acción</th>
        </tr>
      </thead>
      <tbody>
@@ -250,34 +254,10 @@
           <button type="submit" class="btn btn-primary">Aplicar filtros</button>
         </div>
      </form>
-   </div>
- </div>
- 
-<script>
-  // Advanced Search Modal functions
-  function openAdvancedSearchModal() {
-    document.getElementById('advancedSearchModal').classList.add('active');
-  }
-  
-  function closeAdvancedSearchModal() {
-    document.getElementById('advancedSearchModal').classList.remove('active');
-  }
-  
-  function resetAdvancedSearch() {
-    document.getElementById('subestacionFiltro').value = '';
-    document.getElementById('mesFiltro').value = '';
-    document.getElementById('anioFiltro').value = '';
-  }
-  
-  // Close modal on outside click
-  document.getElementById('advancedSearchModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-      closeAdvancedSearchModal();
-    }
-  });
-  </script>
- 
- </div>
+</div>
+        </div>
+     </div>
+     </div>
 {% endblock %}
 {% block extra_css %}
 <style>

@@ -1830,6 +1830,185 @@ def bitacora_view(request):
 
 
 @login_required(login_url='/login/')
+def exportar_bitacora_pdf(request):
+    """Exporta los eventos de la bitácora a PDF (aplicando filtros si existen)"""
+    from django.contrib.staticfiles.finders import find
+    from datetime import datetime
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image, PageBreak
+    from reportlab.lib.units import inch
+    from io import BytesIO
+    from django.http import FileResponse
+
+    # Obtener filtros de la query
+    tipo_usuario = request.GET.get('tipo_usuario', '')
+    busqueda = request.GET.get('q', '')
+    subestacion_filtro = request.GET.get('subestacion', '')
+    mes_filtro = request.GET.get('mes', '')
+    anio_filtro = request.GET.get('anio', '')
+
+    # Aplicar los mismos filtros que en bitacora_view
+    eventos_list = Evento.objects.exclude(Tipo__in=['LOGIN', 'LOGOUT']).order_by('-Fecha_Hora')
+
+    if tipo_usuario == 'admin':
+        eventos_list = eventos_list.filter(Usuario__is_superuser=True)
+    elif tipo_usuario == 'regular':
+        eventos_list = eventos_list.filter(Usuario__is_superuser=False, Usuario__isnull=False)
+    elif tipo_usuario == 'sistema':
+        eventos_list = eventos_list.filter(Usuario__isnull=True)
+
+    if busqueda:
+        eventos_list = eventos_list.filter(
+            Q(Usuario__username__icontains=busqueda) |
+            Q(Vista__icontains=busqueda) |
+            Q(Descripcion__icontains=busqueda)
+        )
+
+    if subestacion_filtro:
+        eventos_list = eventos_list.filter(
+            Q(Descripcion__icontains=subestacion_filtro) |
+            Q(Vista__icontains=subestacion_filtro)
+        )
+
+    from django.utils import timezone
+    if anio_filtro:
+        try:
+            anio = int(anio_filtro)
+            eventos_list = eventos_list.filter(Fecha_Hora__year=anio)
+        except ValueError:
+            pass
+
+    if mes_filtro:
+        try:
+            mes = int(mes_filtro)
+            eventos_list = eventos_list.filter(Fecha_Hora__month=mes)
+        except ValueError:
+            pass
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                            rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    elements = []
+    styles = getSampleStyleSheet()
+    NAVY   = colors.HexColor('#1c2e4a')
+    RED    = colors.HexColor('#ED1C24')
+    GREY_L = colors.HexColor('#f5f5f5')
+    GREY_B = colors.HexColor('#cccccc')
+    # Colores alternados para filas
+    ROW_COLORS = [colors.white, GREY_L]
+
+    logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
+    if logo_path:
+        logo_img = Image(logo_path, width=0.6*inch, height=0.6*inch)
+        logo_cell = Table(
+            [[logo_img, Paragraph('<b>CORPOELEC</b>',
+                   ParagraphStyle('corp', parent=styles['Normal'], fontSize=11, leading=13))]],
+            colWidths=[0.7*inch, 1.2*inch])
+        logo_cell.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+    else:
+        logo_cell = Paragraph('<b>CORPOELEC</b>',
+                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=11))
+    title_p = Paragraph('<b>Registro de Eventos</b>',
+                        ParagraphStyle('title', parent=styles['Normal'],
+                                       fontSize=13, leading=15, alignment=1))
+    date_p  = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
+                        ParagraphStyle('date', parent=styles['Normal'],
+                                       fontSize=7, leading=9, alignment=2,
+                                       textColor=colors.HexColor('#555555')))
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[1.9*inch, 3.2*inch, 1.8*inch])
+    hdr.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+        ('TOPPADDING',    (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(hdr)
+    elements.append(Spacer(1, 4))  # Reduced spacer
+    elements.append(HRFlowable(width="100%", thickness=1, color=RED, spaceBefore=0, spaceAfter=6))
+
+    # Configuración de tabla - máximo 18 filas por página para mejor distribución y legibilidad
+    MAX_ROWS_PER_PAGE = 18
+    _pw = letter[0] - 60  # Adjusted for increased margins
+    _ratios = [1.0, 0.8, 1.3, 1.8, 2.5, 1.8]  # Reduced Fecha/Hora, increased Vista/Acción, kept Descripción
+    col_w = [_pw * r / sum(_ratios) for r in _ratios]
+    
+    # Estilos optimizados para mejor legibilidad y distribución con espacio adecuado
+    hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=10, leading=14, textColor=colors.white, alignment=1)
+    cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=9, leading=12, alignment=1)
+
+    # Dividir eventos en grupos de MAX_ROWS_PER_PAGE
+    eventos = list(eventos_list)
+    
+    for page_idx in range(0, len(eventos), MAX_ROWS_PER_PAGE):
+        page_events = eventos[page_idx:page_idx + MAX_ROWS_PER_PAGE]
+        
+        # Encabezados de tabla
+        data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in ['Fecha', 'Hora', 'Usuario', 'Vista', 'Descripción', 'Acción']]]
+        
+        for evento in page_events:
+            fecha = evento.Fecha_Hora.strftime('%d/%m/%Y') if evento.Fecha_Hora else ''
+            hora = evento.Fecha_Hora.strftime('%H:%M:%S') if evento.Fecha_Hora else ''
+            usuario = evento.Usuario.username if evento.Usuario else 'Sistema'
+            vista = evento.Vista or ''
+            desc = evento.Descripcion[:40] + '...' if len(evento.Descripcion) > 40 else evento.Descripcion
+            tipo = evento.get_Tipo_display()
+            data.append([Paragraph(fecha, cell_st), Paragraph(hora, cell_st), Paragraph(usuario, cell_st),
+                         Paragraph(vista, cell_st), Paragraph(desc, cell_st), Paragraph(tipo, cell_st)])
+
+        table = Table(data, colWidths=col_w, repeatRows=1)
+        table.setStyle(TableStyle([
+            # Header styling
+            ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+            ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+            ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+            ('TOPPADDING',    (0, 0), (-1, 0),  8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0),  8),
+            ('INNERGRID',     (0, 0), (-1, 0),  0,   NAVY),
+            ('BOX',           (0, 0), (-1, 0),  0,   NAVY),
+            ('LINEBELOW',     (0, 0), (-1, 0),  1.0, colors.white),
+            # Data rows styling - uniform row heights and compact padding
+            ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE',      (0, 1), (-1, -1), 9),
+            ('TOPPADDING',    (0, 1), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+            ('ROWBACKGROUNDS',(0, 1), (-1, -1), ROW_COLORS),
+            ('LINEBELOW',     (0, 1), (-1, -1), 0.3, GREY_B),
+            ('LINEBEFORE',    (0, 1), (0,  -1), 0.3, GREY_B),
+            ('LINEAFTER',     (-1, 1), (-1, -1), 0.3, GREY_B),
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
+        ]))
+        elements.append(table)
+        
+        # Agregar salto de página si hay más datos
+        if page_idx + MAX_ROWS_PER_PAGE < len(eventos):
+            elements.append(PageBreak())
+
+    # Footer
+    elements.append(Spacer(1, 12))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=GREY_B))
+    elements.append(Spacer(1, 4))
+    elements.append(Paragraph(
+        'Corporación Eléctrica Nacional S.A. — Documento de carácter oficial',
+        ParagraphStyle('foot', parent=styles['Normal'], fontSize=7.5, leading=9,
+                       alignment=1, textColor=colors.HexColor('#666666'))))
+    doc.build(elements)
+
+    buffer.seek(0)
+    return FileResponse(buffer, as_attachment=True, filename=f'bitacora_{datetime.now().strftime("%Y%m%d")}.pdf')
+
+
+@login_required(login_url='/login/')
 def admin_eventos_view(request):
     """Vista de registro de eventos"""
     if not request.user.is_superuser:
