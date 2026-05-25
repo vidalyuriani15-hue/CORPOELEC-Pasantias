@@ -75,23 +75,26 @@
                </select>
              </div>
 
-            <div>
-              <label style="display:block; margin-bottom:10px; font-weight:600; color:#0D2B4D; font-size:0.9rem;">Permisos de Acceso</label>
-              <div style="display:flex; flex-direction:column; gap:6px;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
-                  <input type="checkbox" name="permiso_crear" style="width:16px; height:16px; border:1px solid #adb5bd; border-radius:3px;">
-                  <span><strong>Crear:</strong> Registrar información</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
-                  <input type="checkbox" name="permiso_actualizar" style="width:16px; height:16px; border:1px solid #adb5bd; border-radius:3px;">
-                  <span><strong>Actualizar:</strong> Editar información</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
-                  <input type="checkbox" name="permiso_eliminar" style="width:16px; height:16px; border:1px solid #adb5bd; border-radius:3px;">
-                  <span><strong>Eliminar:</strong> Borrar información</span>
-                </label>
-              </div>
-            </div>
+<div class="permisos-panel">
+               <label class="permisos-title">Permisos de Acceso</label>
+               <div class="permisos-options">
+                 <label class="permiso-card">
+                   <input type="checkbox" name="permiso_crear" class="permiso-checkbox-input" id="crear-create">
+                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                   <span class="permiso-text"><strong>Crear:</strong> Registrar información</span>
+                 </label>
+                 <label class="permiso-card">
+                   <input type="checkbox" name="permiso_actualizar" class="permiso-checkbox-input" id="actualizar-create">
+                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                   <span class="permiso-text"><strong>Actualizar:</strong> Editar información</span>
+                 </label>
+                 <label class="permiso-card">
+                   <input type="checkbox" name="permiso_eliminar" class="permiso-checkbox-input" id="eliminar-create">
+                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                   <span class="permiso-text"><strong>Eliminar:</strong> Borrar información</span>
+                 </label>
+               </div>
+             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
@@ -114,23 +117,28 @@
           {% csrf_token %}
           <input type="hidden" name="editar" value="1">
           <input type="hidden" name="user_id" id="edit_user_id">
-          <div class="modal-body" style="padding:25px 25px 20px;">
-            <label style="display:block; margin-bottom:10px; font-weight:600; color:#0D2B4D; font-size:0.9rem;">Permisos de Acceso</label>
-            <div style="display:flex; flex-direction:column; gap:6px;">
-              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
-                <input type="checkbox" name="permiso_crear" id="edit_permiso_crear" style="width:16px; height:16px; border:1px solid #adb5bd; border-radius:3px;">
-                <span><strong>Crear:</strong> Registrar información</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
-                <input type="checkbox" name="permiso_actualizar" id="edit_permiso_actualizar" style="width:16px; height:16px; border:1px solid #adb5bd; border-radius:3px;">
-                <span><strong>Actualizar:</strong> Editar información</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
-                <input type="checkbox" name="permiso_eliminar" id="edit_permiso_eliminar" style="width:16px; height:16px; border:1px solid #adb5bd; border-radius:3px;">
-                <span><strong>Eliminar:</strong> Borrar información</span>
-              </label>
-            </div>
-          </div>
+<div class="modal-body" style="padding:25px 25px 20px;">
+             <div class="permisos-panel">
+               <label class="permisos-title">Permisos de Acceso</label>
+               <div class="permisos-options">
+                 <label class="permiso-card">
+                   <input type="checkbox" name="permiso_crear" class="permiso-checkbox-input" id="edit_permiso_crear">
+                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                   <span class="permiso-text"><strong>Crear:</strong> Registrar información</span>
+                 </label>
+                 <label class="permiso-card">
+                   <input type="checkbox" name="permiso_actualizar" class="permiso-checkbox-input" id="edit_permiso_actualizar">
+                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                   <span class="permiso-text"><strong>Actualizar:</strong> Editar información</span>
+                 </label>
+                 <label class="permiso-card">
+                   <input type="checkbox" name="permiso_eliminar" class="permiso-checkbox-input" id="edit_permiso_eliminar">
+                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                   <span class="permiso-text"><strong>Eliminar:</strong> Borrar información</span>
+                 </label>
+               </div>
+             </div>
+           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="cerrarModalEditar()">Cancelar</button>
             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Cambios</button>
@@ -222,6 +230,12 @@ function abrirModal() {
 }
 function cerrarModal() {
   document.getElementById('modalCrearUsuario').classList.remove('active');
+  document.getElementById('formCrearUsuario').reset();
+  document.querySelectorAll('.permiso-card').forEach(card => {
+    card.classList.remove('selected');
+    const checkbox = card.querySelector('.permiso-checkbox-input');
+    if (checkbox) checkbox.checked = false;
+  });
 }
 function abrirModalEditar(userId) {
   fetch(`/admin/get-permisos/${userId}/`)
@@ -237,16 +251,32 @@ function abrirModalEditar(userId) {
 function cerrarModalEditar() {
   document.getElementById('modalEditarPermisos').classList.remove('active');
 }
+document.addEventListener('DOMContentLoaded', function() {
+  const permisoCards = document.querySelectorAll('.permiso-card');
+  permisoCards.forEach(card => {
+    const checkbox = card.querySelector('.permiso-checkbox-input');
+    if (checkbox) {
+      checkbox.addEventListener('change', function() {
+        if (this.checked) {
+          card.classList.add('selected');
+        } else {
+          card.classList.remove('selected');
+        }
+      });
+    }
+  });
+});
+
 document.getElementById('modalCrearUsuario').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('active');
+  if (e.target === this) cerrarModal();
 });
 document.getElementById('modalEditarPermisos').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('active');
+  if (e.target === this) cerrarModalEditar();
 });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    document.getElementById('modalCrearUsuario').classList.remove('active');
-    document.getElementById('modalEditarPermisos').classList.remove('active');
+    cerrarModal();
+    cerrarModalEditar();
   }
 });
 </script>
@@ -297,8 +327,87 @@ document.addEventListener('keydown', function(e) {
 .form-control:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
 .form-control::placeholder { color:#adb5bd; }
 
-.permisos-section { margin-top:10px; padding-top:15px; border-top:1px solid #eee; }
-.permisos-title { display:block; margin-bottom:12px; font-weight:600; color:#0D2B4D; font-size:0.9rem; }
+.permisos-panel { margin-top:10px; padding-top:15px; border-top:1px solid #eee; }
+.permisos-title { display:block; margin-bottom:12px; font-weight:600; color:#0D2B4D; font-size:0.9rem; font-family: 'Segoe UI', sans-serif; }
+
+.permisos-options { display:flex; flex-direction:column; gap:8px; }
+
+.permiso-card {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border:1px solid #e0e0e0;
+  border-radius:8px;
+  background:#fafafa;
+  cursor:pointer;
+  transition:all 0.2s ease;
+  position:relative;
+}
+
+.permiso-card:hover {
+  border-color:#4DA6FF;
+  background:#e8f2ff;
+}
+
+.permiso-card.selected {
+  border-color:#4DA6FF;
+  background:#e8f2ff;
+}
+
+.permiso-checkbox-input {
+  position:absolute;
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.permiso-card.selected .permiso-icon {
+  color:#4DA6FF;
+  background:#d9e8ff;
+}
+
+.permiso-checkbox-input {
+  position:absolute;
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.permiso-card.selected .permiso-icon {
+  color:#4DA6FF;
+  background:#e6f4ea;
+}
+
+.permiso-icon {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  border-radius:6px;
+  background:#fff;
+  border:1px solid #d0d0d0;
+  color:#6c757d;
+  flex-shrink:0;
+  transition:all 0.2s ease;
+}
+
+.permiso-icon i {
+  font-size:12px;
+}
+
+.permiso-text {
+  font-family: 'Segoe UI', sans-serif;
+  font-size:0.85rem;
+  color:#333;
+  margin:0;
+}
+
+.permiso-text strong {
+  color:#0D2B4D;
+  font-weight:600;
+}
 
 .btn { padding:10px 20px; border-radius:6px; text-decoration:none; font-size:0.95rem; font-weight:400; cursor:pointer; border:none; transition:background 0.2s; }
 .btn-primary { background:#4DA6FF; color:#fff; }
@@ -310,28 +419,5 @@ document.addEventListener('keydown', function(e) {
 .btn-icon:hover { background:rgba(0,0,0,0.05); }
 .btn-icon.btn-edit:hover { color:#4DA6FF; background:rgba(77,166,255,0.1); }
 .btn-icon.btn-delete:hover { color:#E63946; background:rgba(230,57,70,0.1); }
-
-/* Custom checkbox styles */
-input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-}
-input[type="checkbox"]:checked {
-  background-color: #4DA6FF;
-  border-color: #4DA6FF !important;
-  position: relative;
-}
-input[type="checkbox"]:checked::after {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 4px;
-  height: 8px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
 </style>
 {% endblock %}
