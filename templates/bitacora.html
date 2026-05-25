@@ -574,15 +574,43 @@
 <script>
 function clearSearch() {
     const input = document.getElementById('searchInput');
-    input.value = '';
-    filterTable();
+    if (input) {
+        input.value = '';
+        filterTable();
+    }
+}
+
+// Advanced Search Modal Functions
+function openAdvancedSearchModal() {
+    const modal = document.getElementById('advancedSearchModal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeAdvancedSearchModal() {
+    const modal = document.getElementById('advancedSearchModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+function resetAdvancedSearch() {
+    const form = document.getElementById('advancedSearchForm');
+    if (form) {
+        form.reset();
+        const selects = form.querySelectorAll('select');
+        selects.forEach(select => select.value = '');
+    }
 }
 
 // Live search function
 function filterTable() {
     const input = document.getElementById('searchInput');
-    const filter = input.value.toLowerCase();
     const table = document.querySelector('.data-table tbody');
+    if (!table) return;
+    
+    const filter = input ? input.value.toLowerCase() : '';
     const rows = table.getElementsByTagName('tr');
     
     // Also get the tipo_usuario filter value
@@ -630,6 +658,7 @@ function filterTable() {
 
 function updateResultCount() {
     const table = document.querySelector('.data-table tbody');
+    if (!table) return;
     const rows = table.getElementsByTagName('tr');
     let visibleCount = 0;
     
@@ -651,25 +680,33 @@ function updateResultCount() {
 }
 
 // Event listeners
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    filterTable();
-});
-
-document.getElementById('searchInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        clearSearch();
-    }
-});
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+        filterTable();
+    });
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            clearSearch();
+        }
+    });
+}
 
 // Tipo usuario filter change
-document.getElementById('tipoUsuario').addEventListener('change', function() {
-    filterTable();
-});
+const tipoUsuarioSelect = document.getElementById('tipoUsuario');
+if (tipoUsuarioSelect) {
+    tipoUsuarioSelect.addEventListener('change', function() {
+        filterTable();
+    });
+}
 
 // Clear search button
-document.getElementById('searchClear').addEventListener('click', function() {
-    clearSearch();
-});
+const searchClearBtn = document.getElementById('searchClear');
+if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', function() {
+        clearSearch();
+    });
+}
 
 // Initial filter application on page load
 document.addEventListener('DOMContentLoaded', function() {
