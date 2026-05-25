@@ -230,12 +230,6 @@ function abrirModal() {
 }
 function cerrarModal() {
   document.getElementById('modalCrearUsuario').classList.remove('active');
-  document.getElementById('formCrearUsuario').reset();
-  document.querySelectorAll('.permiso-card').forEach(card => {
-    card.classList.remove('selected');
-    const checkbox = card.querySelector('.permiso-checkbox-input');
-    if (checkbox) checkbox.checked = false;
-  });
 }
 function abrirModalEditar(userId) {
   fetch(`/admin/get-permisos/${userId}/`)
@@ -251,6 +245,8 @@ function abrirModalEditar(userId) {
 function cerrarModalEditar() {
   document.getElementById('modalEditarPermisos').classList.remove('active');
 }
+
+// Handle permiso card selection
 document.addEventListener('DOMContentLoaded', function() {
   const permisoCards = document.querySelectorAll('.permiso-card');
   permisoCards.forEach(card => {
@@ -268,15 +264,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.getElementById('modalCrearUsuario').addEventListener('click', function(e) {
-  if (e.target === this) cerrarModal();
+  if (e.target === this) this.classList.remove('active');
 });
 document.getElementById('modalEditarPermisos').addEventListener('click', function(e) {
-  if (e.target === this) cerrarModalEditar();
+  if (e.target === this) this.classList.remove('active');
 });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    cerrarModal();
-    cerrarModalEditar();
+    document.getElementById('modalCrearUsuario').classList.remove('active');
+    document.getElementById('modalEditarPermisos').classList.remove('active');
   }
 });
 </script>
@@ -347,28 +343,16 @@ document.addEventListener('keydown', function(e) {
 
 .permiso-card:hover {
   border-color:#4DA6FF;
-  background:#e8f2ff;
+  background:#f0f8ff;
 }
 
 .permiso-card.selected {
   border-color:#4DA6FF;
-  background:#e8f2ff;
+  background:#afcbe4;
 }
 
 .permiso-checkbox-input {
-  position:absolute;
-  opacity:0;
-  width:0;
-  height:0;
-}
-
-.permiso-card.selected .permiso-icon {
-  color:#4DA6FF;
-  background:#d9e8ff;
-}
-
-.permiso-checkbox-input {
-  position:absolute;
+  position:absolute;s
   opacity:0;
   width:0;
   height:0;
