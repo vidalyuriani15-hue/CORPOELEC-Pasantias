@@ -30,49 +30,51 @@
 </div>
 
 <div class="table-section">
-    <div class="table-header">
-        <h3>Eventos Registrados</h3>
-        <div class="header-actions">
-           <form method="get" id="filterForm" class="filter-form">
-            <!-- Filtro tipo de usuario -->
-            <div class="filter-select-wrapper">
-              <i class="fas fa-users filter-select-icon"></i>
-              <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
-                <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
-                <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
-                <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
-                <option value="sistema"{% if tipo_usuario == 'sistema' %}selected{% endif %}>Sistema</option>
-              </select>
-            </div>
-             <!-- Buscador -->
-             <div class="search-wrapper">
-               <i class="fas fa-search search-icon"></i>
-               <input type="text" name="q" class="search-input" id="searchInput"
-                      placeholder="Buscar por usuario, vista o descripción..."
-                      value="{{ busqueda }}">
-               {% if busqueda %}
-               <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
-                 <i class="fas fa-times"></i>
-               </button>
-               {% endif %}
+   <div class="table-header">
+       <h3>Eventos Registrados</h3>
+       <div class="header-actions">
+          <form method="get" id="filterForm" class="filter-form">
+           <!-- Filtro tipo de usuario -->
+           <div class="filter-select-wrapper">
+             <i class="fas fa-users filter-select-icon"></i>
+             <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
+               <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
+               <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
+               <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
+               <option value="sistema"{% if tipo_usuario == 'sistema' %}selected{% endif %}>Sistema</option>
+             </select>
+           </div>
+            <!-- Buscador -->
+            <div class="search-wrapper">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" name="q" class="search-input" id="searchInput"
+                     placeholder="Buscar por usuario, vista o descripción..."
+                     value="{{ busqueda }}">
+              {% if busqueda %}
+              <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
+                <i class="fas fa-times"></i>
+              </button>
+              {% endif %}
 <!-- Botón de búsqueda avanzada -->
-               <button type="button" class="advanced-search-btn" id="advancedSearchBtn" title="Búsqueda avanzada" onclick="openAdvancedSearchModal()">
-                 <i class="fas fa-filter"></i>
-               </button>
-               <!-- Botón limpiar filtros -->
-               {% if busqueda or subestacion_filtro or mes_filtro or anio_filtro %}
-               <button type="button" class="advanced-search-btn" id="clearFiltersBtn" title="Limpiar filtros" style="background: var(--gray-600);" onclick="window.location.href='{% url 'registro' %}'">
-                 <i class="fas fa-times"></i>
-               </button>
-               {% endif %}
-               <!-- Botón exportar PDF -->
-               <a href="{% url 'exportar_bitacora_pdf' %}" onclick="this.href=this.href.split('?')[0]+window.location.search" class="advanced-search-btn" title="Exportar a PDF">
-                 <i class="fas fa-file-pdf"></i>
-               </a>
-             </div>
-          </form>
-        </div>
-     </div>
+              <button type="button" class="advanced-search-btn" id="advancedSearchBtn" title="Búsqueda avanzada" onclick="openAdvancedSearchModal()">
+                <i class="fas fa-filter"></i>
+              </button>
+              <!-- Botón limpiar filtros -->
+              {% if busqueda or subestacion_filtro or mes_filtro or anio_filtro %}
+              <button type="button" class="advanced-search-btn" id="clearFiltersBtn" title="Limpiar filtros" style="background: var(--gray-600);" onclick="window.location.href='{% url 'registro' %}'">
+                <i class="fas fa-times"></i>
+              </button>
+              {% endif %}
+              <!-- Botón exportar PDF -->
+              <a href="{% url 'exportar_bitacora_pdf' %}" onclick="this.href=this.href.split('?')[0]+window.location.search" class="advanced-search-btn" title="Exportar a PDF">
+                <i class="fas fa-file-pdf"></i>
+              </a>
+            </div>
+         </form>
+            </div>
+         </form>
+       </div>
+    </div>
 
    {% if page_obj.paginator.count > 0 %}
    <div id="resultCount" class="search-results-info">
@@ -254,14 +256,38 @@
           <button type="submit" class="btn btn-primary">Aplicar filtros</button>
         </div>
      </form>
-</div>
-        </div>
-     </div>
-     </div>
+   </div>
+ </div>
+ 
+<script>
+  // Advanced Search Modal functions
+  function openAdvancedSearchModal() {
+    document.getElementById('advancedSearchModal').classList.add('active');
+  }
+  
+  function closeAdvancedSearchModal() {
+    document.getElementById('advancedSearchModal').classList.remove('active');
+  }
+  
+  function resetAdvancedSearch() {
+    document.getElementById('subestacionFiltro').value = '';
+    document.getElementById('mesFiltro').value = '';
+    document.getElementById('anioFiltro').value = '';
+  }
+  
+  // Close modal on outside click
+  document.getElementById('advancedSearchModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeAdvancedSearchModal();
+    }
+  });
+  </script>
+ 
+ </div>
 {% endblock %}
 {% block extra_css %}
 <style>
-/* ── Badges de estado ── */
+/* ── Badges de acción ── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -574,43 +600,15 @@
 <script>
 function clearSearch() {
     const input = document.getElementById('searchInput');
-    if (input) {
-        input.value = '';
-        filterTable();
-    }
-}
-
-// Advanced Search Modal Functions
-function openAdvancedSearchModal() {
-    const modal = document.getElementById('advancedSearchModal');
-    if (modal) {
-        modal.classList.add('active');
-    }
-}
-
-function closeAdvancedSearchModal() {
-    const modal = document.getElementById('advancedSearchModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-function resetAdvancedSearch() {
-    const form = document.getElementById('advancedSearchForm');
-    if (form) {
-        form.reset();
-        const selects = form.querySelectorAll('select');
-        selects.forEach(select => select.value = '');
-    }
+    input.value = '';
+    filterTable();
 }
 
 // Live search function
 function filterTable() {
     const input = document.getElementById('searchInput');
+    const filter = input.value.toLowerCase();
     const table = document.querySelector('.data-table tbody');
-    if (!table) return;
-    
-    const filter = input ? input.value.toLowerCase() : '';
     const rows = table.getElementsByTagName('tr');
     
     // Also get the tipo_usuario filter value
@@ -621,7 +619,7 @@ function filterTable() {
         const cells = rows[i].getElementsByTagName('td');
         let match = false;
         
-        // Check if row matches text search (columns: Hora, Usuario, Vista, Descripción, Estado)
+        // Check if row matches text search (columns: Hora, Usuario, Vista, Descripción, Accion)
         for (let j = 0; j < cells.length; j++) {
             if (cells[j].textContent.toLowerCase().indexOf(filter) > -1) {
                 match = true;
@@ -658,7 +656,6 @@ function filterTable() {
 
 function updateResultCount() {
     const table = document.querySelector('.data-table tbody');
-    if (!table) return;
     const rows = table.getElementsByTagName('tr');
     let visibleCount = 0;
     
@@ -680,33 +677,25 @@ function updateResultCount() {
 }
 
 // Event listeners
-const searchInput = document.getElementById('searchInput');
-if (searchInput) {
-    searchInput.addEventListener('input', function(e) {
-        filterTable();
-    });
-    searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            clearSearch();
-        }
-    });
-}
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    filterTable();
+});
+
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        clearSearch();
+    }
+});
 
 // Tipo usuario filter change
-const tipoUsuarioSelect = document.getElementById('tipoUsuario');
-if (tipoUsuarioSelect) {
-    tipoUsuarioSelect.addEventListener('change', function() {
-        filterTable();
-    });
-}
+document.getElementById('tipoUsuario').addEventListener('change', function() {
+    filterTable();
+});
 
 // Clear search button
-const searchClearBtn = document.getElementById('searchClear');
-if (searchClearBtn) {
-    searchClearBtn.addEventListener('click', function() {
-        clearSearch();
-    });
-}
+document.getElementById('searchClear').addEventListener('click', function() {
+    clearSearch();
+});
 
 // Initial filter application on page load
 document.addEventListener('DOMContentLoaded', function() {
