@@ -8,7 +8,7 @@
   <h2>Gestión de Interfaces de Comunicación</h2>
 </div>
 
-{% if messages %}pe
+{% if messages %}
 <div class="messages" id="messages-container">
   {% for message in messages %}
   {% if 'deleted' in message.tags %}
@@ -22,6 +22,12 @@
 </div>
 {% endif %}
 
+<!-- Header para impresión con logo -->
+<div class="print-header" style="display: none;">
+  <img src="{% static 'img/logo.jpg' %}" alt="CORPOELEC" style="height: 50px;">
+  <h3>Interfaces de Comunicación</h3>
+</div>
+
 <div class="table-section">
 <div class="table-header">
   <h3>INTERFACES DE COMUNICACIÓN REGISTRADOS</h3>
@@ -33,324 +39,351 @@
     <button class="btn btn-primary btn-add-top" onclick="abrirModal()">
       <i class="fas fa-plus"></i> Añadir
     </button>
-     <a href="{% url 'exportar_interfaces_pdf' %}" class="btn btn-secondary btn-add-top" title="Exportar PDF">
-       <i class="fas fa-file-pdf"></i> Exportar
-     </a>
+    <a href="{% url 'exportar_interfaces_pdf' %}" class="btn btn-secondary btn-add-top" title="Exportar PDF">
+      <i class="fas fa-file-pdf"></i> Exportar
+    </a>
   </div>
 </div>
   
-   {% if page_obj.paginator.count > 0 %}
-   <table class="data-table">
-      <thead>
-          <tr>
-            <th width="50%">Puertos</th>
-            {% if is_admin %}<th width="15%">Creado Por</th>{% endif %}
-            <th width="20%">Fecha de Registro</th>
-            <th width="15%">Acciones</th>
-          </tr>
-      </thead>
-      <tbody>
-        {% for interfaz in page_obj %}
-        <tr>
-          <td>
-            <div class="puertos-container">
-            {% for puerto in interfaz.puertos.all %}
-                <span class="puerto-badge">
-                  <span class="puerto-icon">
-                    {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
-                    {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
-                    {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-                    {% if puerto.Tipo == 'USB' %}<i class="fas fa-usb"></i>{% endif %}
-                    {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
-                  </span>
-                  <span class="puerto-text">{{ puerto.get_Tipo_display }}</span>
+  {% if page_obj.paginator.count > 0 %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th width="50%">Puertos</th>
+        {% if is_admin %}<th width="15%">Creado Por</th>{% endif %}
+        <th width="20%">Fecha de Registro</th>
+        <th width="15%">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for interfaz in page_obj %}
+      <tr>
+        <td>
+          <div class="puertos-container">
+          {% for puerto in interfaz.puertos.all %}
+              <span class="puerto-badge">
+                <span class="puerto-icon">
+                  {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
+                  {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
+                  {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
+                  {% if puerto.Tipo == 'USB' %}<i class="fas fa-usb"></i>{% endif %}
+                  {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
                 </span>
-            {% empty %}
-                <span class="no-data">Sin puertos</span>
-            {% endfor %}
-            </div>
-          </td>
-          {% if is_admin %}<td>{{ interfaz.creado_por.username|default:"Sistema" }}</td>{% endif %}
-          <td><span class="fecha-text">{{ interfaz.Fecha_Reg|date:"d/m/Y" }}</span></td>
-<td class="actions-cell">
-    {% with puertos_list=interfaz.puertos.all %}
-    {% if puede_actualizar %}
-    <button type="button" class="btn-icon btn-edit" title="Editar" onclick="abrirModalEditar({{ interfaz.Id_Interfaz }}, '{% for p in puertos_list %}{{ p.Tipo }}{% if not forloop.last %},{% endif %}{% endfor %}')">
-        <i class="fas fa-edit"></i>
-    </button>
-    {% endif %}
-    <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
-        {% csrf_token %}
-        <input type="hidden" name="eliminar" value="1">
-        <input type="hidden" name="interfaz_id" value="{{ interfaz.Id_Interfaz }}">
-        {% if puede_eliminar %}
-        <button type="submit" class="btn-icon btn-delete" title="Eliminar">
-            <i class="fas fa-trash-alt"></i>
-        </button>
-        {% endif %}
-    </form>
-    {% if not puede_actualizar and not puede_eliminar %}
-    <span style="color:#adb5bd; font-size:0.8rem;">Sin permisos</span>
-    {% endif %}
-{% endwith %}
-</td>
+                <span class="puerto-text">{{ puerto.get_Tipo_display }}</span>
+              </span>
+          {% empty %}
+              <span class="no-data">Sin puertos</span>
+          {% endfor %}
+          </div>
+        </td>
+        {% if is_admin %}<td>{{ interfaz.creado_por.username|default:"Sistema" }}</td>{% endif %}
+        <td><span class="fecha-text">{{ interfaz.Fecha_Reg|date:"d/m/Y" }}</span></td>
+        <td class="actions-cell">
+          {% with puertos_list=interfaz.puertos.all %}
+          {% if puede_actualizar %}
+          <button type="button" class="btn-icon btn-edit" title="Editar" onclick="abrirModalEditar({{ interfaz.Id_Interfaz }}, '{% for p in puertos_list %}{{ p.Tipo }}{% if not forloop.last %},{% endif %}{% endfor %}')">
+            <i class="fas fa-edit"></i>
+          </button>
+          {% endif %}
+          <form method="post" style="display: inline;" onsubmit="return confirmarEliminacion(this);">
+            {% csrf_token %}
+            <input type="hidden" name="eliminar" value="1">
+            <input type="hidden" name="interfaz_id" value="{{ interfaz.Id_Interfaz }}">
+            {% if puede_eliminar %}
+            <button type="submit" class="btn-icon btn-delete" title="Eliminar">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            {% endif %}
+          </form>
+          {% if not puede_actualizar and not puede_eliminar %}
+          <span style="color:#adb5bd; font-size:0.8rem;">Sin permisos</span>
+          {% endif %}
+          {% endwith %}
+        </td>
       </tr>
       {% endfor %}
-      </tbody>
-    </table>
-     {% else %}
-     <p class="no-data">No hay interfaces de comunicación registradas.</p>
-     {% endif %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="no-data">No hay interfaces de comunicación registradas.</p>
+  {% endif %}
 
-     {% if page_obj.paginator.num_pages > 1 %}
-     <div class="pagination-container">
-       <div class="pagination-info-left">
-         <span class="pagination-text">
-           Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
-           | Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-         </span>
-       </div>
-       <div class="pagination-controls-right">
-         <nav class="pagination-nav">
-           <ul class="pagination-list">
-             {% if page_obj.has_previous %}
-               <li class="pagination-item">
-                 <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link pagination-prev" title="Página anterior">
-                   <i class="fas fa-chevron-left"></i> Anterior
-                 </a>
-               </li>
-             {% else %}
-               <li class="pagination-item disabled">
-                 <span class="pagination-link disabled" title="No hay página anterior"><i class="fas fa-chevron-left"></i> Anterior</span>
-               </li>
-             {% endif %}
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="pagination-container">
+    <div class="pagination-info-left">
+      <span class="pagination-text">
+        Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
+        | Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      </span>
+    </div>
+    <div class="pagination-controls-right">
+      <nav class="pagination-nav">
+        <ul class="pagination-list">
+          {% if page_obj.has_previous %}
+            <li class="pagination-item">
+              <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link pagination-prev" title="Página anterior">
+                <i class="fas fa-chevron-left"></i> Anterior
+              </a>
+            </li>
+          {% else %}
+            <li class="pagination-item disabled">
+              <span class="pagination-link disabled" title="No hay página anterior"><i class="fas fa-chevron-left"></i> Anterior</span>
+            </li>
+          {% endif %}
 
-             {% for num in page_obj.paginator.page_range %}
-               {% if page_obj.number == num %}
-                 <li class="pagination-item active">
-                   <span class="pagination-link">{{ num }}</span>
-                 </li>
-               {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                 <li class="pagination-item">
-                   <a href="?page={{ num }}" class="pagination-link">{{ num }}</a>
-                 </li>
-               {% endif %}
-             {% endfor %}
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <li class="pagination-item active">
+                <span class="pagination-link">{{ num }}</span>
+              </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <li class="pagination-item">
+                <a href="?page={{ num }}" class="pagination-link">{{ num }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
 
-             {% if page_obj.has_next %}
-               <li class="pagination-item">
-                 <a href="?page={{ page_obj.next_page_number }}" class="pagination-link pagination-next" title="Página siguiente">
-                   Siguiente <i class="fas fa-chevron-right"></i>
-                 </a>
-               </li>
-             {% else %}
-               <li class="pagination-item disabled">
-                 <span class="pagination-link disabled" title="No hay página siguiente">Siguiente <i class="fas fa-chevron-right"></i></span>
-               </li>
-             {% endif %}
-           </ul>
-         </nav>
-       </div>
-     </div>
-     {% endif %}
-   </div>
-
-  <!-- Modal con checks elegantes -->
-  <div id="modalAgregar" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Agregar Nueva Interfaz</h3>
-        <button type="button" class="close" onclick="cerrarModal()" aria-label="Cerrar">&times;</button>
-      </div>
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="crear" value="1">
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="puertos_checks">Selecciona los Puertos de Comunicación</label>
-            <div class="checks-anchos" id="puertos_checks">
-<label class="check-card">
-                 <input type="checkbox" name="tipos_puerto" value="ETH">
-                 <span class="card-icon-wrapper"><i class="fas fa-network-wired"></i></span>
-                 <div class="card-text-content">
-                   <span class="card-title">Ethernet</span>
-                   <span class="card-sub">Conexión de red estándar</span>
-                 </div>
-               </label>
-               <label class="check-card">
-                 <input type="checkbox" name="tipos_puerto" value="RS232">
-                 <span class="card-icon-wrapper"><i class="fas fa-plug"></i></span>
-                 <div class="card-text-content">
-                   <span class="card-title">Serial RS232</span>
-                   <span class="card-sub">Puerto serial estándar</span>
-                 </div>
-               </label>
-               <label class="check-card">
-                 <input type="checkbox" name="tipos_puerto" value="RS485">
-                 <span class="card-icon-wrapper"><i class="fas fa-exchange-alt"></i></span>
-                 <div class="card-text-content">
-                   <span class="card-title">RS485</span>
-                   <span class="card-sub">Comunicación half-duplex</span>
-                 </div>
-               </label>
-               <label class="check-card">
-                 <input type="checkbox" name="tipos_puerto" value="USB">
-                 <span class="card-icon-wrapper"><i class="fas fa-usb"></i></span>
-                 <div class="card-text-content">
-                   <span class="card-title">USB</span>
-                   <span class="card-sub">Puerto universal serial</span>
-                 </div>
-               </label>
-               <label class="check-card">
-                 <input type="checkbox" name="tipos_puerto" value="FIBRA">
-                 <span class="card-icon-wrapper"><i class="fas fa-bolt"></i></span>
-                 <div class="card-text-content">
-                   <span class="card-title">Fibra Óptica</span>
-                   <span class="card-sub">Transmisión por fibra óptica</span>
-                 </div>
-               </label>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Agregar
-          </button>
-        </div>
-      </form>
+          {% if page_obj.has_next %}
+            <li class="pagination-item">
+              <a href="?page={{ page_obj.next_page_number }}" class="pagination-link pagination-next" title="Página siguiente">
+                Siguiente <i class="fas fa-chevron-right"></i>
+              </a>
+            </li>
+          {% else %}
+            <li class="pagination-item disabled">
+              <span class="pagination-link disabled" title="No hay página siguiente">Siguiente <i class="fas fa-chevron-right"></i></span>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
     </div>
   </div>
-  <!-- Modal para Editar -->
-  <div id="modalEditar" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Editar Interfaz</h3>
-        <button type="button" class="close" onclick="cerrarModalEditar()" aria-label="Cerrar">&times;</button>
-      </div>
-      <form method="post" id="formEditar">
-        {% csrf_token %}
-        <input type="hidden" name="editar" value="1">
-        <input type="hidden" name="interfaz_id" id="edit_interfaz_id" value="">
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="edit_puertos_checks">Selecciona los Puertos de Comunicación</label>
-            <div class="checks-anchos" id="edit_checks_container"></div>
+  {% endif %}
+</div>
+
+<!-- Modal con checks elegantes -->
+<div id="modalAgregar" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Agregar Nueva Interfaz</h3>
+      <button type="button" class="close" onclick="cerrarModal()" aria-label="Cerrar">&times;</button>
+    </div>
+    <form method="post" id="formAgregar">
+      {% csrf_token %}
+      <input type="hidden" name="crear" value="1">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Puertos de Comunicación</label>
+          <div class="checks-anchos" id="puertos_checks">
+            <label class="check-card">
+              <input type="checkbox" name="tipos_puerto" value="ETH">
+              <span class="card-icon-wrapper"><i class="fas fa-network-wired"></i></span>
+              <div class="card-text-content">
+                <span class="card-title">Ethernet</span>
+                <span class="card-sub">Conexión de red estándar</span>
+              </div>
+            </label>
+            <label class="check-card">
+              <input type="checkbox" name="tipos_puerto" value="RS232">
+              <span class="card-icon-wrapper"><i class="fas fa-plug"></i></span>
+              <div class="card-text-content">
+                <span class="card-title">Serial RS232</span>
+                <span class="card-sub">Puerto serial estándar</span>
+              </div>
+            </label>
+            <label class="check-card">
+              <input type="checkbox" name="tipos_puerto" value="RS485">
+              <span class="card-icon-wrapper"><i class="fas fa-exchange-alt"></i></span>
+              <div class="card-text-content">
+                <span class="card-title">RS485</span>
+                <span class="card-sub">Comunicación half-duplex</span>
+              </div>
+            </label>
+            <label class="check-card">
+              <input type="checkbox" name="tipos_puerto" value="USB">
+              <span class="card-icon-wrapper"><i class="fas fa-usb"></i></span>
+              <div class="card-text-content">
+                <span class="card-title">USB</span>
+                <span class="card-sub">Puerto universal serial</span>
+              </div>
+            </label>
+            <label class="check-card">
+              <input type="checkbox" name="tipos_puerto" value="FIBRA">
+              <span class="card-icon-wrapper"><i class="fas fa-bolt"></i></span>
+              <div class="card-text-content">
+                <span class="card-title">Fibra Óptica</span>
+                <span class="card-sub">Transmisión por fibra óptica</span>
+              </div>
+            </label>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="cerrarModalEditar()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> Guardar
-          </button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Agregar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- Modal para Editar -->
+<div id="modalEditar" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Editar Interfaz</h3>
+      <button type="button" class="close" onclick="cerrarModalEditar()" aria-label="Cerrar">&times;</button>
+    </div>
+    <form method="post" id="formEditar">
+      {% csrf_token %}
+      <input type="hidden" name="editar" value="1">
+      <input type="hidden" name="interfaz_id" id="edit_interfaz_id" value="">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Puertos de Comunicación</label>
+          <div class="checks-anchos" id="edit_checks_container"></div>
         </div>
-      </form>
-     </div>
-   </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalEditar()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 
-{% endblock %}
-{% endblock %}
- 
-{% block extra_css %}
 <style>
-   .table-section { background:#f4f7f6; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
-   .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:15px; }
-   .table-header h3 { margin:0; color:#0D2B4D; width:280px; }
-   .search-container { position:relative; display:flex; align-items:center; }
-   .search-icon { position:absolute; left:12px; color:#8c8c8c; font-size:14px; pointer-events:none; }
-   .search-input { width:350px; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
-   .search-input:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
-   .search-input::placeholder { color:#adb5bd; }
-   .btn-icon { background:none; border:none; cursor:pointer; font-size:1.1rem; padding:6px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; transition:all 0.2s; color:#6c757d; margin:0 4px; }
-   .btn-icon:hover { background:rgba(0,0,0,0.05); }
-   .btn-icon.btn-edit:hover { color:#4DA6FF; background:rgba(77,166,255,0.1); }
-   .btn-icon.btn-delete:hover { color:#E63946; background:rgba(230,57,70,0.1); }
-   @media (max-width:768px){ .data-table{display:block;overflow-x:auto;} }
-   .pagination-container { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:15px 20px; background:#fff; border-radius:8px; border:1px solid #e8e8e8; }
-   .pagination-info-left { display:flex; align-items:center; }
-   .pagination-text { font-size:0.9rem; color:#595959; font-weight:500; }
-   .pagination-controls-right { display:flex; align-items:center; }
-   .pagination-nav { display:flex; }
-   .pagination-list { display:flex; list-style:none; margin:0; padding:0; gap:5px; align-items:center; }
-   .pagination-item { display:flex; }
-   .pagination-link { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; font-size:0.9rem; font-weight:500; color:#1890ff; background:#fff; border:1.5px solid #d0d7de; border-radius:6px; text-decoration:none; transition:all 0.2s ease; min-width:40px; }
-   .pagination-link:hover:not(.disabled) { background:#f0f9ff; border-color:#1890ff; color:#1890ff; }
-   .pagination-link.disabled { color:#d9d9d9; background:#f5f5f5; border-color:#e8e8e8; cursor:not-allowed; pointer-events:none; }
-   .pagination-item.active .pagination-link { background:#1890ff; color:#fff; border-color:#1890ff; font-weight:600; }
-   .pagination-prev, .pagination-next { gap:6px; }
-   .pagination-prev i, .pagination-next i { font-size:0.8rem; }
-   @media (max-width:768px){
-     .pagination-container{flex-direction:column;gap:15px;}
-     .pagination-info-left,.pagination-controls-right{justify-content:center;}
-     .pagination-list{flex-wrap:wrap;gap:5px;}
-   }
-   .data-table { width:100%; border-collapse:collapse; }
-   .data-table th, .data-table td { padding:12px 15px; text-align:left; border-bottom:1px solid #dee2e6; }
-   .data-table th { font-weight:600; color:#0D2B4D; font-size:0.9rem; }
-   .data-table tr:hover { background:#f9fafb; }
-   .no-data { text-align:center; color:#8c8c8c; padding:30px; font-size:1rem; }
-   .actions-cell { white-space:nowrap; text-align: right; }
-   .modal { display:none; position:fixed; z-index:1000; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
-   .modal.active { display:flex; }
-   .modal-content { background:#fff; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.15); max-width:600px; width:100%; max-height:85vh; }
-   .modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #f0f0f0; }
-   .modal-header h3 { margin:0; color:#1a1a2e; font-size:1.1rem; font-weight:600; }
-   .close { background:none; border:none; font-size:1.4rem; cursor:pointer; color:#999; line-height:1; padding:4px; border-radius:4px; transition:all 0.2s; }
-   .close:hover { color:#333; background:rgba(0,0,0,0.05); }
-   .modal-body { padding:16px 20px; }
-   .form-group { margin-bottom:16px; }
-   .form-group label { display:block; margin-bottom:10px; font-weight:600; color:#262626; font-size:0.9rem; }
-   .puertos-container { display:flex; flex-wrap:nowrap; gap:6px; overflow-x:auto; padding:4px 0; align-items:center; }
-   .puerto-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; background:#fff; border:1.5px solid #d0d7de; border-radius:5px; font-size:11px; font-weight:600; white-space:nowrap; }
-   .puerto-icon { display:flex; align-items:center; justify-content:center; width:14px; height:14px; font-size:10px; color:#4DA6FF; }
-   .puerto-text { color:#262626; line-height:1; }
-   .modal-footer { padding:16px 20px; border-top:1px solid #f0f0f0; display:flex; justify-content:flex-end; gap:10px; }
-   .btn { padding:10px 20px; border-radius:8px; text-decoration:none; font-size:0.9rem; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; }
-   .btn-primary { background:#4DA6FF; color:#fff; }
-   .btn-primary:hover { background:#3d8fe0; }
-   .btn-secondary { background:#fff; color:#595959; border:1px solid #d9d9d9; }
-   .btn-secondary:hover { background:#f5f5f5; }
-   
-   /* Estilo similar a permiso-card de usuarios */
-   .permisos-panel { margin-top:10px; padding-top:15px; border-top:1px solid #eee; }
-   .permisos-title { display:block; margin-bottom:12px; font-weight:600; color:#0D2B4D; font-size:0.9rem; font-family:'Segoe UI',sans-serif; }
-   .checks-anchos { display:flex; flex-direction:column; gap:8px; }
-   .check-card {
-     display:flex;
-     align-items:center;
-     gap:10px;
-     padding:10px 12px;
-     border:1px solid #e0e0e0;
-     border-radius:8px;
-     background:#fafafa;
-     cursor:pointer;
-     transition:all 0.2s ease;
-     position:relative;
-   }
-   .check-card:hover { border-color:#4DA6FF; background:#f0f8ff; }
-   .check-card.selected { border-color:#4DA6FF; background:#afcbe4; }
-   .check-card input[type="checkbox"] { position:absolute; opacity:0; width:0; height:0; }
-   .check-card.selected .card-icon-wrapper { color:#4DA6FF; background:#e6f4ea; }
-   .card-icon-wrapper {
-     display:flex;
-     align-items:center;
-     justify-content:center;
-     width:28px;
-     height:28px;
-     border-radius:6px;
-     background:#fff;
-     border:1px solid #d0d0d0;
-     color:#6c757d;
-     flex-shrink:0;
-     transition:all 0.2s ease;
-   }
-   .card-icon-wrapper i { font-size:12px; }
-   .card-text-content { display:flex; flex-direction:column; gap:2px; width:100%; }
-   .card-title { font-size:14px; font-weight:700; color:#262626; }
-   .card-sub { font-size:12px; color:#8c8c8c; line-height:1.3; }
+  /* === VARIABLES Y CONFIGURACIÓN === */
+  :root {
+    --primary: #4DA6FF;
+    --primary-dark: #3d8fe0;
+    --dark-blue: #0D2B4D;
+    --border-color: #dee2e6;
+    --bg-light: #f4f7f6;
+  }
+
+  /* === CONTENEDOR Y CABECERA DE TABLA === */
+  .table-section {
+    background: var(--bg-light); padding: 25px; border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
+  }
+  .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px; }
+  .table-header h3 { margin: 0; color: var(--dark-blue); width: 280px; }
+
+  /* === BÚSQUEDA === */
+  .search-container { position: relative; display: flex; align-items: center; }
+  .search-icon { position: absolute; left: 12px; color: #8c8c8c; font-size: 14px; pointer-events: none; }
+  .search-input {
+    width: 350px; padding: 8px 12px 8px 36px; border: 1px solid var(--border-color);
+    border-radius: 6px; font-size: 14px; color: #333; background: #fff; transition: border-color 0.3s ease;
+  }
+  .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(77,166,255,0.1); }
+
+  /* === BOTONES === */
+  .btn { padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; text-decoration: none; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { background: #fff; color: #595959; border: 1px solid #d9d9d9; }
+  .btn-secondary:hover { background: #f5f5f5; }
+
+  .btn-icon { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; color: #6c757d; margin: 0 4px; }
+  .btn-icon:hover { background: rgba(0,0,0,0.05); }
+  .btn-icon.btn-edit:hover { color: var(--primary); background: rgba(77,166,255,0.1); }
+  .btn-icon.btn-delete:hover { color: #E63946; background: rgba(230,57,70,0.1); }
+
+  /* === TABLA DE DATOS === */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th, .data-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+  .data-table th { font-weight: 600; color: var(--dark-blue); font-size: 0.9rem; background: #f8f9fa; }
+  .data-table tr:hover { background: #f9fafb; }
+  .actions-cell { white-space: nowrap; text-align: right; }
+
+  /* === PAGINACIÓN === */
+  .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px 20px; background: #fff; border-radius: 8px; border: 1px solid #e8e8e8; }
+  .pagination-list { display: flex; list-style: none; margin: 0; padding: 0; gap: 5px; align-items: center; }
+  .pagination-link { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; font-size: 0.9rem; font-weight: 500; color: #1890ff; background: #fff; border: 1.5px solid #d0d7de; border-radius: 6px; text-decoration: none; transition: all 0.2s; min-width: 40px; }
+  .pagination-link:hover:not(.disabled) { background: #f0f9ff; border-color: #1890ff; }
+  .pagination-item.active .pagination-link { background: #1890ff; color: #fff; border-color: #1890ff; }
+  .pagination-link.disabled { color: #d9d9d9; background: #f5f5f5; cursor: not-allowed; pointer-events: none; }
+
+  /* === MODAL COMPACTO === */
+  .modal { display: none; position: fixed; z-index: 1000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px; }
+  .modal.active { display: flex; }
+  .modal-content { background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid #f0f0f0; }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px; }
+  .close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #999; padding: 4px; border-radius: 4px; }
+  .close:hover { color: #333; background: rgba(0,0,0,0.05); }
+
+  /* === FORMULARIOS Y TARJETAS DE PUERTO === */
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #262626; font-size: 0.9rem; }
+
+  .checks-anchos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .check-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .check-card:hover { border-color: #4DA6FF; background: #f0f8ff; }
+  .check-card.selected { border-color: #4DA6FF; background: #afcbe4; }
+  .check-card input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+  .check-card.selected .card-icon-wrapper { color: #4DA6FF; background: #e6f4ea; }
+
+  .card-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid #d0d0d0;
+    color: #6c757d;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+  .card-icon-wrapper i { font-size: 12px; }
+  .card-text-content { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+  .card-title { font-size: 14px; font-weight: 700; color: #262626; }
+  .card-sub { font-size: 12px; color: #8c8c8c; line-height: 1.3; }
+
+  /* === PUERTOS BADGES === */
+  .puertos-container { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; padding: 4px 0; align-items: center; }
+  .puerto-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: #fff; border: 1.5px solid #d0d7de; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .puerto-icon { color: var(--primary); font-size: 10px; }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 768px) {
+    .search-input { width: 100%; }
+    .pagination-container { flex-direction: column; gap: 15px; }
+    .checks-anchos { grid-template-columns: 1fr; }
+    .data-table { display: block; overflow-x: auto; }
+  }
+
+  /* === IMPRESIÓN === */
+  @media print {
+    @page { size: A4 landscape; margin: 1cm; }
+    body * { visibility: hidden; }
+    .print-header, .table-section, .table-section * { visibility: visible; }
+    .table-section { position: absolute; top: 90px; left: 0; width: 100%; background: white !important; }
+    .table-header, .pagination-container, .actions-cell, .modal, .btn-icon, .search-container { display: none !important; }
+    .data-table th { background: var(--dark-blue) !important; color: #fff !important; -webkit-print-color-adjust: exact; }
+    .data-table td { border: 1.5px solid var(--dark-blue); }
+  }
 </style>
 {% endblock %}
- 
+
 {% block extra_js %}
 <script>
   const OPCIONES_PUERTOS = [
@@ -361,18 +394,26 @@
     { value: 'FIBRA', icon: 'fas fa-bolt', title: 'Fibra Óptica', sub: 'Transmisión por fibra óptica' }
   ];
 
+  function resetearCheckboxes(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = false);
+      const cards = container.querySelectorAll('.check-card');
+      cards.forEach(card => card.classList.remove('selected'));
+    }
+  }
+
   function abrirModal() {
     document.getElementById('modalAgregar').classList.add('active');
+    resetearCheckboxes('puertos_checks');
   }
-function cerrarModal() {
-  document.getElementById('modalAgregar').classList.remove('active');
-  document.getElementById('formAgregar').reset();
-  document.querySelectorAll('.check-card').forEach(card => {
-    card.classList.remove('selected');
-    const checkbox = card.querySelector('input[type="checkbox"]');
-    if (checkbox) checkbox.checked = false;
-  });
-}
+
+  function cerrarModal() {
+    resetearCheckboxes('puertos_checks');
+    document.getElementById('modalAgregar').classList.remove('active');
+  }
+
   function abrirModalEditar(interfazId, puertosStr) {
     const modal = document.getElementById('modalEditar');
     const container = document.getElementById('edit_checks_container');
@@ -384,6 +425,7 @@ function cerrarModal() {
       const label = document.createElement('label');
       label.className = 'check-card';
       const checked = puertosExistentes.includes(opcion.value) ? 'checked' : '';
+      if (checked) label.classList.add('selected');
       label.innerHTML = `
         <input type="checkbox" name="tipos_puerto" value="${opcion.value}" ${checked}>
         <span class="card-icon-wrapper"><i class="${opcion.icon}"></i></span>
@@ -396,9 +438,17 @@ function cerrarModal() {
     });
     modal.classList.add('active');
   }
+
   function cerrarModalEditar() {
+    const container = document.getElementById('edit_checks_container');
+    if (container) {
+      const cards = container.querySelectorAll('.check-card');
+      cards.forEach(card => card.classList.remove('selected'));
+      container.innerHTML = '';
+    }
     document.getElementById('modalEditar').classList.remove('active');
   }
+
   function filterTable() {
     const input = document.getElementById('searchInput');
     const filter = input.value.toLowerCase();
@@ -416,19 +466,66 @@ function cerrarModal() {
       rows[i].style.display = match ? '' : 'none';
     }
   }
+
+  // Evento click fuera del modal
   window.onclick = function(event) {
     const modales = document.querySelectorAll('.modal');
-    modales.forEach(modal => { if (event.target === modal) { modal.classList.remove('active'); } });
-  }
-document.addEventListener('keydown', function(e) {
+    modales.forEach(modal => {
+      if (event.target === modal) {
+        const modalId = modal.id;
+        if (modalId === 'modalAgregar') {
+          cerrarModal();
+        } else if (modalId === 'modalEditar') {
+          cerrarModalEditar();
+        } else {
+          modal.classList.remove('active');
+        }
+      }
+    });
+  };
+
+  // Escape para cerrar modales
+  document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-      document.getElementById('modalAgregar').classList.remove('active');
-      document.getElementById('modalEditar').classList.remove('active');
+      cerrarModal();
+      cerrarModalEditar();
     }
   });
-   document.querySelectorAll('.modal .close').forEach(btn => {
-      btn.addEventListener('click', function() { this.closest('.modal').classList.remove('active'); });
-    });
- </script>
-{% endblock %}
 
+  // DOM Listo
+  document.addEventListener('DOMContentLoaded', function() {
+    // Manejo de checkboxes en contenedores de checks
+    document.querySelectorAll('.checks-anchos').forEach(container => {
+      container.addEventListener('change', function(e) {
+        if (e.target.type === 'checkbox') {
+          const card = e.target.closest('.check-card');
+          if (card) {
+            if (e.target.checked) {
+              card.classList.add('selected');
+            } else {
+              card.classList.remove('selected');
+            }
+          }
+        }
+      });
+    });
+
+    // Botones cerrar (×)
+    document.querySelectorAll('.modal .close').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const modal = this.closest('.modal');
+        if (modal) {
+          const modalId = modal.id;
+          if (modalId === 'modalAgregar') {
+            cerrarModal();
+          } else if (modalId === 'modalEditar') {
+            cerrarModalEditar();
+          } else {
+            modal.classList.remove('active');
+          }
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}
