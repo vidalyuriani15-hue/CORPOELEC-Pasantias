@@ -244,13 +244,20 @@
                 <label>Interfaces de Comunicación</label>
                 <div id="puertosContainer" class="checks-grid">
                     {% for pt in puertos %}
-                    <label class="check-card-elegant">
-                        <input type="checkbox" name="puertos" value="{{ pt.Id_Puerto }}">
-                        <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
-                        <div class="check-content">
-                            <span class="check-title">{{ pt.get_Tipo_display }}</span>
-                        </div>
-                    </label>
+                    <div class="puerto-item">
+                      <label class="check-card-elegant">
+                          <input type="checkbox" name="puertos" value="{{ pt.Id_Puerto }}" data-tipo="{{ pt.Tipo }}" onchange="togglePuertoIp(this)">
+                          <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
+                          <div class="check-content">
+                              <span class="check-title">{{ pt.get_Tipo_display }}</span>
+                          </div>
+                      </label>
+                      {% if pt.Tipo == 'ETH' %}
+                      <div class="ip-field" data-ip-for="puerto" style="display:none; margin-top:6px;">
+                        <input type="text" name="puerto_ip_{{ pt.Id_Puerto }}" placeholder="Dirección IP (0.0.0.0)" class="ip-input">
+                      </div>
+                      {% endif %}
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -316,19 +323,26 @@
                   <div id="remotaInterfacesContainer" class="checks-grid">
                     {% for iface in interfaces_disponibles %}
                       {% for puerto in iface.puertos.all %}
-                        <label class="check-card-elegant">
-                          <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}">
-                          <span class="check-icon-wrapper">
-                            {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
-                            {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
-                            {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-                            {% if puerto.Tipo == 'USB' %}<i class="fas fa-usb"></i>{% endif %}
-                            {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
-                          </span>
-                          <div class="check-content">
-                            <span class="check-title">{{ puerto.get_Tipo_display }}</span>
+                        <div class="puerto-item">
+                          <label class="check-card-elegant">
+                            <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}" data-tipo="{{ puerto.Tipo }}" onchange="toggleRemotaIp(this)">
+                            <span class="check-icon-wrapper">
+                              {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
+                              {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
+                              {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
+                              {% if puerto.Tipo == 'USB' %}<i class="fas fa-usb"></i>{% endif %}
+                              {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
+                            </span>
+                            <div class="check-content">
+                              <span class="check-title">{{ puerto.get_Tipo_display }}</span>
+                            </div>
+                          </label>
+                          {% if puerto.Tipo == 'ETH' %}
+                          <div class="ip-field" data-ip-for="remota" style="display:none; margin-top:6px;">
+                            <input type="text" name="remota_ip_{{ iface.Id_Interfaz }}_{{ puerto.Id_Puerto }}" placeholder="Dirección IP (0.0.0.0)" class="ip-input">
                           </div>
-                        </label>
+                          {% endif %}
+                        </div>
                       {% empty %}
                         <label class="check-card-elegant disabled">
                           <input type="checkbox" disabled>
@@ -445,6 +459,16 @@
   .form-group input[type="file"]:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
   .form-text { display:block; margin-top:4px; font-size:0.75rem; color:#6c757d; }
    .checks-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
+   .puerto-item { display: flex; flex-direction: column; }
+   .ip-field input.ip-input {
+     width: 100%;
+     padding: 8px 10px;
+     border: 1px solid #dee2e6;
+     border-radius: 6px;
+     font-size: 0.85rem;
+     background: #f8fafc;
+   }
+   .ip-field input.ip-input:focus { outline: none; border-color: #4DA6FF; box-shadow: 0 0 0 3px rgba(77,166,255,0.1); background: #fff; }
     .check-card-elegant {
       position: relative;
       display: flex;
@@ -766,6 +790,7 @@ function abrirModal() {
    document.getElementById('imagenInput').value = '';
    document.getElementById('esRemotoSelect').value = 'no';
    document.getElementById('remotaOptionsContainer').style.display = 'none';
+     syncIpFieldsVisibility();
      // Cargar datos de remotas para el modal de agregar
      loadRemotaDatos();
    }
@@ -913,12 +938,15 @@ function marcarCheckboxesRemota(data) {
            
            // Filtrar interfaces según remota seleccionada
            filtrarInterfacesPorRemota(data.remota_id);
-           
+
+           syncIpFieldsVisibility();
+
            // Mostrar modal después de restaurar toda la selección
            document.getElementById('modalReles').classList.add('active');
          });
       } else {
         remotaContainer.style.display = 'none';
+        syncIpFieldsVisibility();
         document.getElementById('modalReles').classList.add('active');
       }
     })
@@ -952,6 +980,54 @@ function marcarCheckboxesRemota(data) {
   document.querySelectorAll('#modalReles .close').forEach(btn => {
     btn.addEventListener('click', function() {
       cerrarModal();
+    });
+  });
+
+  function syncIpFieldsVisibility() {
+    document.querySelectorAll('#formReles .puerto-item').forEach(function(item) {
+      var cb = item.querySelector('input[type="checkbox"][data-tipo="ETH"]');
+      var ipField = item.querySelector('.ip-field');
+      if (!cb || !ipField) return;
+      ipField.style.display = cb.checked ? 'block' : 'none';
+      if (!cb.checked) {
+        var input = ipField.querySelector('input');
+        if (input) input.value = '';
+      }
+    });
+  }
+
+  function togglePuertoIp(checkbox) {
+    if (checkbox.dataset.tipo !== 'ETH') return;
+    var item = checkbox.closest('.puerto-item');
+    if (!item) return;
+    var ipField = item.querySelector('.ip-field');
+    if (!ipField) return;
+    ipField.style.display = checkbox.checked ? 'block' : 'none';
+    if (!checkbox.checked) {
+      var input = ipField.querySelector('input');
+      if (input) input.value = '';
+    }
+  }
+
+  function toggleRemotaIp(checkbox) {
+    if (checkbox.dataset.tipo !== 'ETH') return;
+    var item = checkbox.closest('.puerto-item');
+    if (!item) return;
+    var ipField = item.querySelector('.ip-field');
+    if (!ipField) return;
+    ipField.style.display = checkbox.checked ? 'block' : 'none';
+    if (!checkbox.checked) {
+      var input = ipField.querySelector('input');
+      if (input) input.value = '';
+    }
+  }
+
+  // Default 0.0.0.0 for any visible IP field left empty
+  document.getElementById('formReles').addEventListener('submit', function() {
+    document.querySelectorAll('#formReles .ip-field').forEach(function(field) {
+      if (field.style.display === 'none') return;
+      var input = field.querySelector('input.ip-input');
+      if (input && !input.value.trim()) input.value = '0.0.0.0';
     });
   });
 
