@@ -265,114 +265,132 @@
    </div>
 
 <style>
-    /* === VARIABLES Y CONFIGURACIÓN === */
-    :root {
-        --primary: #4DA6FF;
-        --primary-dark: #3d8fe0;
-        --dark-blue: #0D2B4D;
-        --border-color: #dee2e6;
-        --bg-light: #f4f7f6;
-    }
+     /* === VARIABLES Y CONFIGURACIÓN === */
+     :root {
+         --primary: #4DA6FF;
+         --primary-dark: #3d8fe0;
+         --dark-blue: #0D2B4D;
+         --border-color: #dee2e6;
+         --bg-light: #f4f7f6;
+     }
 
-    /* === CONTENEDOR Y CABECERA DE TABLA === */
-    .table-section { 
-        background: var(--bg-light); padding: 25px; border-radius: 12px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; 
-    }
-    .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px; }
-    .table-header h3 { margin: 0; color: var(--dark-blue); width: 280px; }
+     /* === CONTENEDOR Y CABECERA DE TABLA === */
+     .table-section {
+         background: var(--bg-light); padding: 25px; border-radius: 12px;
+         box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
+     }
+     .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px; }
+     .table-header h3 { margin: 0; color: var(--dark-blue); width: 280px; }
 
-    /* === BÚSQUEDA === */
-    .search-container { position: relative; display: flex; align-items: center; }
-    .search-icon { position: absolute; left: 12px; color: #8c8c8c; font-size: 14px; pointer-events: none; }
-    .search-input { 
-        width: 350px; padding: 8px 12px 8px 36px; border: 1px solid var(--border-color); 
-        border-radius: 6px; font-size: 14px; color: #333; background: #fff; transition: border-color 0.3s ease; 
-    }
-    .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(77,166,255,0.1); }
+     /* === BÚSQUEDA === */
+     .search-container { position: relative; display: flex; align-items: center; }
+     .search-icon { position: absolute; left: 12px; color: #8c8c8c; font-size: 14px; pointer-events: none; }
+     .search-input {
+         width: 350px; padding: 8px 12px 8px 36px; border: 1px solid var(--border-color);
+         border-radius: 6px; font-size: 14px; color: #333; background: #fff; transition: border-color 0.3s ease;
+     }
+     .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(77,166,255,0.1); }
 
-    /* === BOTONES === */
-    .btn { padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; text-decoration: none; }
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-dark); }
-    .btn-secondary { background: #fff; color: #595959; border: 1px solid #d9d9d9; }
-    .btn-secondary:hover { background: #f5f5f5; }
+     /* === BOTONES === */
+     .btn { padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; text-decoration: none; }
+     .btn-primary { background: var(--primary); color: #fff; }
+     .btn-primary:hover { background: var(--primary-dark); }
+     .btn-secondary { background: #fff; color: #595959; border: 1px solid #d9d9d9; }
+     .btn-secondary:hover { background: #f5f5f5; }
 
-    .btn-icon { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; color: #6c757d; margin: 0 4px; }
-    .btn-icon:hover { background: rgba(0,0,0,0.05); }
-    .btn-icon.btn-edit:hover { color: var(--primary); background: rgba(77,166,255,0.1); }
-    .btn-icon.btn-delete:hover { color: #E63946; background: rgba(230,57,70,0.1); }
+     .btn-icon { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; color: #6c757d; margin: 0 4px; }
+     .btn-icon:hover { background: rgba(0,0,0,0.05); }
+     .btn-icon.btn-edit:hover { color: var(--primary); background: rgba(77,166,255,0.1); }
+     .btn-icon.btn-delete:hover { color: #E63946; background: rgba(230,57,70,0.1); }
 
-    /* === TABLA DE DATOS === */
-    .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th, .data-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-    .data-table th { font-weight: 600; color: var(--dark-blue); font-size: 0.9rem; background: #f8f9fa; }
-    .data-table tr:hover { background: #f9fafb; }
-    .actions-cell { white-space: nowrap; text-align: right; }
+     /* === TABLA DE DATOS === */
+     .data-table { width: 100%; border-collapse: collapse; }
+     .data-table th, .data-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+     .data-table th { font-weight: 600; color: var(--dark-blue); font-size: 0.9rem; background: #f8f9fa; }
+     .data-table tr:hover { background: #f9fafb; }
+     .actions-cell { white-space: nowrap; text-align: right; }
 
-    /* === PAGINACIÓN === */
-    .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px 20px; background: #fff; border-radius: 8px; border: 1px solid #e8e8e8; }
-    .pagination-list { display: flex; list-style: none; margin: 0; padding: 0; gap: 5px; align-items: center; }
-    .pagination-link { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; font-size: 0.9rem; font-weight: 500; color: #1890ff; background: #fff; border: 1.5px solid #d0d7de; border-radius: 6px; text-decoration: none; transition: all 0.2s; min-width: 40px; }
-    .pagination-link:hover:not(.disabled) { background: #f0f9ff; border-color: #1890ff; }
-    .pagination-item.active .pagination-link { background: #1890ff; color: #fff; border-color: #1890ff; }
-    .pagination-link.disabled { color: #d9d9d9; background: #f5f5f5; cursor: not-allowed; pointer-events: none; }
+     /* === PAGINACIÓN === */
+     .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px 20px; background: #fff; border-radius: 8px; border: 1px solid #e8e8e8; }
+     .pagination-list { display: flex; list-style: none; margin: 0; padding: 0; gap: 5px; align-items: center; }
+     .pagination-link { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; font-size: 0.9rem; font-weight: 500; color: #1890ff; background: #fff; border: 1.5px solid #d0d7de; border-radius: 6px; text-decoration: none; transition: all 0.2s; min-width: 40px; }
+     .pagination-link:hover:not(.disabled) { background: #f0f9ff; border-color: #1890ff; }
+     .pagination-item.active .pagination-link { background: #1890ff; color: #fff; border-color: #1890ff; }
+     .pagination-link.disabled { color: #d9d9d9; background: #f5f5f5; cursor: not-allowed; pointer-events: none; }
 
-    /* === MODAL COMPACTO === */
-    .modal { display: none; position: fixed; z-index: 1000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px; }
-    .modal.active { display: flex; }
-      .modal-content { background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; }
-      .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid #f0f0f0; }
-      .modal-body { padding: 20px; }
-      .modal-footer { padding: 14px 20px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px; }
-    .close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #999; padding: 4px; border-radius: 4px; }
-    .close:hover { color: #333; background: rgba(0,0,0,0.05); }
+     /* === MODAL COMPACTO === */
+     .modal { display: none; position: fixed; z-index: 1000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px; }
+     .modal.active { display: flex; }
+       .modal-content { background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; }
+       .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid #f0f0f0; }
+       .modal-body { padding: 20px; }
+       .modal-footer { padding: 14px 20px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px; }
+     .close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #999; padding: 4px; border-radius: 4px; }
+     .close:hover { color: #333; background: rgba(0,0,0,0.05); }
 
-    /* === FORMULARIOS Y TARJETAS DE PUERTO === */
-     .form-group { margin-bottom: 14px; }
-     .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #262626; font-size: 0.9rem; }
-    
- .checks-anchos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .check-card {
-      position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;
-      padding: 14px 12px; background: #fafafa; border: 1.5px solid #e5e5e5; border-radius: 8px;
-      cursor: pointer; transition: all 0.2s ease; text-align: center;
-  }
-  .check-card:hover { border-color: #4a90e2; background: #f5f9ff; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(74,144,226,0.12); }
-  .check-card input[type="checkbox"] { position: absolute; top: 6px; right: 6px; width: 16px; height: 16px; accent-color: #1890ff; }
-     .check-card input[type="checkbox"]:checked ~ .card-text-content .card-title { color: #1890ff; }
+     /* === FORMULARIOS Y TARJETAS DE PROTOCOLO === */
+      .form-group { margin-bottom: 14px; }
+      .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #262626; font-size: 0.9rem; }
 
-  .card-icon-wrapper { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; background: #fff; border: 2px solid #d0d7de; border-radius: 8px; transition: all 0.2s; }
-     .check-card:hover .card-icon-wrapper { border-color: #1890ff; }
-     .check-card input[type="checkbox"]:checked + .card-icon-wrapper { border-color: #1890ff; background: #e6f2ff; }
+      .checks-anchos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .check-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: #fafafa;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+      }
+      .check-card:hover { border-color: #4DA6FF; background: #f0f8ff; }
+      .check-card.selected { border-color: #4DA6FF; background: #afcbe4; }
+      .check-card input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+      .check-card.selected .card-icon-wrapper { color: #4DA6FF; background: #e6f4ea; }
 
-  .card-text-content { display: flex; flex-direction: column; gap: 3px; width: 100%; }
-  .card-title { font-size: 14px; font-weight: 700; color: #262626; }
-  .card-sub { font-size: 12px; color: #8c8c8c; line-height: 1.3; }
+      .card-icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: #fff;
+        border: 1px solid #d0d0d0;
+        color: #6c757d;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+      }
+      .card-icon-wrapper i { font-size: 12px; }
+      .card-text-content { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+      .card-title { font-size: 14px; font-weight: 700; color: #262626; }
+      .card-sub { font-size: 12px; color: #8c8c8c; line-height: 1.3; }
 
-     /* === PROTOCOLOS BADGES === */
-     .protocolos-container { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; padding: 4px 0; align-items: center; }
-     .protocolo-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: #fff; border: 1.5px solid #d0d7de; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-     .protocolo-icon { color: var(--primary); font-size: 10px; }
+      /* === PROTOCOLOS BADGES === */
+      .protocolos-container { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; padding: 4px 0; align-items: center; }
+      .protocolo-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: #fff; border: 1.5px solid #d0d7de; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+      .protocolo-icon { color: var(--primary); font-size: 10px; }
 
-    /* === RESPONSIVE === */
-    @media (max-width: 768px) {
-        .search-input { width: 100%; }
-        .pagination-container { flex-direction: column; gap: 15px; }
-        .checks-anchos { grid-template-columns: 1fr; }
-        .data-table { display: block; overflow-x: auto; }
-    }
+     /* === RESPONSIVE === */
+     @media (max-width: 768px) {
+         .search-input { width: 100%; }
+         .pagination-container { flex-direction: column; gap: 15px; }
+         .checks-anchos { grid-template-columns: 1fr; }
+         .data-table { display: block; overflow-x: auto; }
+     }
 
-    /* === IMPRESIÓN === */
-    @media print {
-        @page { size: A4 landscape; margin: 1cm; }
-        body * { visibility: hidden; }
-        .print-header, .table-section, .table-section * { visibility: visible; }
-        .table-section { position: absolute; top: 90px; left: 0; width: 100%; background: white !important; }
-        .table-header, .pagination-container, .actions-cell, .modal, .btn-icon, .search-container { display: none !important; }
-        .data-table th { background: var(--dark-blue) !important; color: #fff !important; -webkit-print-color-adjust: exact; }
-        .data-table td { border: 1.5px solid var(--dark-blue); }
-    }
+     /* === IMPRESIÓN === */
+     @media print {
+         @page { size: A4 landscape; margin: 1cm; }
+         body * { visibility: hidden; }
+         .print-header, .table-section, .table-section * { visibility: visible; }
+         .table-section { position: absolute; top: 90px; left: 0; width: 100%; background: white !important; }
+         .table-header, .pagination-container, .actions-cell, .modal, .btn-icon, .search-container { display: none !important; }
+         .data-table th { background: var(--dark-blue) !important; color: #fff !important; -webkit-print-color-adjust: exact; }
+         .data-table td { border: 1.5px solid var(--dark-blue); }
+     }
 </style>
 {% endblock %}
 
@@ -386,59 +404,61 @@
      { value: 'MODBUS', icon: 'fas fa-bolt', title: 'Modbus', sub: 'Protocolo industrial estándar' }
    ];
 
-   function resetearCheckboxes(containerId) {
-     const container = document.getElementById(containerId);
-     if (container) {
-       const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-       checkboxes.forEach(cb => cb.checked = false);
-     }
-   }
+function resetearCheckboxes(containerId) {
+      const container = document.getElementById(containerId);
+      if (container) {
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+        const cards = container.querySelectorAll('.check-card');
+        cards.forEach(card => card.classList.remove('selected'));
+      }
+    }
 
-   function abrirModal() {
-     document.getElementById('modalAgregar').classList.add('active');
-     // Resetear checkboxes al abrir modal de agregar
-     resetearCheckboxes('protocolos_checks');
-   }
+    function abrirModal() {
+      document.getElementById('modalAgregar').classList.add('active');
+      resetearCheckboxes('protocolos_checks');
+    }
 
-   function cerrarModal() {
-     // Resetear checkboxes al cerrar
-     resetearCheckboxes('protocolos_checks');
-     document.getElementById('modalAgregar').classList.remove('active');
-   }
+    function cerrarModal() {
+      resetearCheckboxes('protocolos_checks');
+      document.getElementById('modalAgregar').classList.remove('active');
+    }
 
-   function abrirModalEditar(interfazId, protocolosStr) {
-     const modal = document.getElementById('modalEditar');
-     const container = document.getElementById('edit_checks_container');
-     const inputId = document.getElementById('edit_interfaz_id');
-     inputId.value = interfazId;
-     container.innerHTML = '';
-     const protocolosExistentes = protocolosStr ? protocolosStr.split(',') : [];
-     OPCIONES_PROTOCOLOS.forEach(opcion => {
-       const label = document.createElement('label');
-       label.className = 'check-card';
-       const checked = protocolosExistentes.includes(opcion.value) ? 'checked' : '';
-       label.innerHTML = `
-         <input type="checkbox" name="tipos_protocolo" value="${opcion.value}" ${checked}>
-         <span class="card-icon-wrapper"><i class="${opcion.icon}"></i></span>
-         <div class="card-text-content">
-           <span class="card-title">${opcion.title}</span>
-           <span class="card-sub">${opcion.sub}</span>
-         </div>
-       `;
-       container.appendChild(label);
-     });
-     modal.classList.add('active');
-   }
+    function abrirModalEditar(interfazId, protocolosStr) {
+      const modal = document.getElementById('modalEditar');
+      const container = document.getElementById('edit_checks_container');
+      const inputId = document.getElementById('edit_interfaz_id');
+      inputId.value = interfazId;
+      container.innerHTML = '';
+      const protocolosExistentes = protocolosStr ? protocolosStr.split(',') : [];
+      OPCIONES_PROTOCOLOS.forEach(opcion => {
+        const label = document.createElement('label');
+        label.className = 'check-card';
+        const checked = protocolosExistentes.includes(opcion.value) ? 'checked' : '';
+        if (checked) label.classList.add('selected');
+        label.innerHTML = `
+          <input type="checkbox" name="tipos_protocolo" value="${opcion.value}" ${checked}>
+          <span class="card-icon-wrapper"><i class="${opcion.icon}"></i></span>
+          <div class="card-text-content">
+            <span class="card-title">${opcion.title}</span>
+            <span class="card-sub">${opcion.sub}</span>
+          </div>
+        `;
+        container.appendChild(label);
+      });
+      modal.classList.add('active');
+    }
 
-   function cerrarModalEditar() {
-     // Limpiar y resetear checkboxes al cerrar modal editar
-     const container = document.getElementById('edit_checks_container');
-     if (container) {
-       container.innerHTML = '';
-     }
-     document.getElementById('modalEditar').classList.remove('active');
-   }
-  function filterTable() {
+    function cerrarModalEditar() {
+      const container = document.getElementById('edit_checks_container');
+      if (container) {
+        const cards = container.querySelectorAll('.check-card');
+        cards.forEach(card => card.classList.remove('selected'));
+        container.innerHTML = '';
+      }
+      document.getElementById('modalEditar').classList.remove('active');
+    }
+function filterTable() {
     const input = document.getElementById('searchInput');
     const filter = input.value.toLowerCase();
     const table = document.querySelector('.data-table tbody');
@@ -455,30 +475,52 @@
       rows[i].style.display = match ? '' : 'none';
     }
   }
-   window.onclick = function(event) {
-     const modales = document.querySelectorAll('.modal');
-     modales.forEach(modal => {
-       if (event.target === modal) {
-         const modalId = modal.id;
-         if (modalId === 'modalAgregar') {
-           cerrarModal();
-         } else if (modalId === 'modalEditar') {
-           cerrarModalEditar();
-         } else {
-           modal.classList.remove('active');
-         }
-       }
-     });
-   }
 
-   document.addEventListener('keydown', function(e) {
-     if (e.key === 'Escape') {
-       cerrarModal();
-       cerrarModalEditar();
-     }
-   });
+  // Evento click fuera del modal
+  window.onclick = function(event) {
+    const modales = document.querySelectorAll('.modal');
+    modales.forEach(modal => {
+      if (event.target === modal) {
+        const modalId = modal.id;
+        if (modalId === 'modalAgregar') {
+          cerrarModal();
+        } else if (modalId === 'modalEditar') {
+          cerrarModalEditar();
+        } else {
+          modal.classList.remove('active');
+        }
+      }
+    });
+  };
 
-document.querySelectorAll('.modal .close').forEach(btn => {
+  // Escape para cerrar modales
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      cerrarModal();
+      cerrarModalEditar();
+    }
+  });
+
+  // DOM Listo
+  document.addEventListener('DOMContentLoaded', function() {
+    // Manejo de checkboxes en contenedores de checks
+    document.querySelectorAll('.checks-anchos').forEach(container => {
+      container.addEventListener('change', function(e) {
+        if (e.target.type === 'checkbox') {
+          const card = e.target.closest('.check-card');
+          if (card) {
+            if (e.target.checked) {
+              card.classList.add('selected');
+            } else {
+              card.classList.remove('selected');
+            }
+          }
+        }
+      });
+    });
+
+    // Botones cerrar (×)
+    document.querySelectorAll('.modal .close').forEach(btn => {
       btn.addEventListener('click', function() {
         const modal = this.closest('.modal');
         if (modal) {
@@ -493,6 +535,7 @@ document.querySelectorAll('.modal .close').forEach(btn => {
         }
       });
     });
- </script>
+  });
+</script>
 {% endblock %}
 
