@@ -66,6 +66,8 @@ class Rele(models.Model):
     # Relación con remota vía ForeignKey
     EsRemoto = models.BooleanField(default=False, verbose_name='¿Posee Remota?')  # Indica si tiene remota asociada
     Remota = models.ForeignKey("Remota", on_delete=models.SET_NULL, null=True, blank=True, related_name='reles_asociados', verbose_name='Remota asociada')
+    Puertos_IPs = models.JSONField(default=dict, blank=True, verbose_name='IPs por puerto ETH del relé')
+    Remota_IPs = models.JSONField(default=dict, blank=True, verbose_name='IPs por puerto ETH de la remota')
     
     class Meta:
         verbose_name = 'Relé'

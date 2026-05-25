@@ -247,7 +247,13 @@
                     <div class="puerto-item">
                       <label class="check-card-elegant">
                           <input type="checkbox" name="puertos" value="{{ pt.Id_Puerto }}" data-tipo="{{ pt.Tipo }}" onchange="togglePuertoIp(this)">
-                          <span class="check-icon-wrapper"><i class="fas fa-network-wired"></i></span>
+                          <span class="check-icon-wrapper">
+                            {% if pt.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
+                            {% if pt.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
+                            {% if pt.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
+                            {% if pt.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
+                            {% if pt.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
+                          </span>
                           <div class="check-content">
                               <span class="check-title">{{ pt.get_Tipo_display }}</span>
                           </div>
@@ -330,7 +336,7 @@
                               {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
                               {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
                               {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-                              {% if puerto.Tipo == 'USB' %}<i class="fas fa-usb"></i>{% endif %}
+                              {% if puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
                               {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
                             </span>
                             <div class="check-content">
@@ -881,6 +887,12 @@ function marcarCheckboxesRemota(data) {
         var cb = document.querySelector('input[name="puertos"][value="' + data.puertos[i] + '"]');
         if (cb) cb.checked = true;
       }
+      // Restaurar IPs guardadas por puerto
+      var puertosIps = data.puertos_ips || {};
+      Object.keys(puertosIps).forEach(function(pid) {
+        var input = document.querySelector('input[name="puerto_ip_' + pid + '"]');
+        if (input) input.value = puertosIps[pid];
+      });
       var currentImageContainer = document.getElementById('currentImageContainer');
       var currentImage = document.getElementById('currentImage');
       var imagePreview = document.getElementById('imagePreview');
@@ -938,6 +950,13 @@ function marcarCheckboxesRemota(data) {
            
            // Filtrar interfaces según remota seleccionada
            filtrarInterfacesPorRemota(data.remota_id);
+
+           // Restaurar IPs guardadas de la remota
+           var remotaIps = data.remota_ips || {};
+           Object.keys(remotaIps).forEach(function(key) {
+             var input = document.querySelector('input[name="remota_ip_' + key + '"]');
+             if (input) input.value = remotaIps[key];
+           });
 
            syncIpFieldsVisibility();
 
@@ -1022,12 +1041,10 @@ function marcarCheckboxesRemota(data) {
     }
   }
 
-  // Default 0.0.0.0 for any visible IP field left empty
+  // Default 0.0.0.0 for any IP field left empty (visible or hidden)
   document.getElementById('formReles').addEventListener('submit', function() {
-    document.querySelectorAll('#formReles .ip-field').forEach(function(field) {
-      if (field.style.display === 'none') return;
-      var input = field.querySelector('input.ip-input');
-      if (input && !input.value.trim()) input.value = '0.0.0.0';
+    document.querySelectorAll('#formReles input.ip-input').forEach(function(input) {
+      if (!input.value.trim()) input.value = '0.0.0.0';
     });
   });
 
@@ -1115,7 +1132,6 @@ function loadModelosByMarca() {
     modeloSelect.appendChild(option);
   });
 
-  limpiarInterfaces();
   return Promise.resolve();
 }
 
@@ -1123,39 +1139,22 @@ function loadModelosByMarca() {
    var modeloSelect = document.getElementById('remota_modelo_select');
    var remotaId = modeloSelect.value;
    document.getElementById('remota_id_hidden').value = remotaId;
-   if (remotaId) {
-     filtrarInterfacesPorRemota(remotaId);
-   } else {
-     limpiarInterfaces();
-   }
  }
 
 function filtrarInterfacesPorRemota(remotaId) {
-  var ifaceChecks = document.querySelectorAll('#remotaInterfacesContainer .check-card-elegant');
-  var interfacesRemota = window.interfacesPorRemota[parseInt(remotaId)] || [];
-
-  ifaceChecks.forEach(function(card) {
-    var input = card.querySelector('input[type="checkbox"]');
-    var ifaceId = parseInt(input.value);
-    if (interfacesRemota.length > 0) {
-      if (interfacesRemota.includes(ifaceId)) {
-        card.style.display = '';
-      } else {
-        card.style.display = 'none';
-        input.checked = false;
-      }
-    } else {
-      card.style.display = '';
-    }
-  });
+  // Sin filtrado: se muestran todas las interfaces disponibles.
+  var items = document.querySelectorAll('#remotaInterfacesContainer .puerto-item, #remotaInterfacesContainer > .check-card-elegant');
+  items.forEach(function(item) { item.style.display = ''; });
 }
 
 function limpiarInterfaces() {
-  var ifaceChecks = document.querySelectorAll('#remotaInterfacesContainer .check-card-elegant');
-  ifaceChecks.forEach(function(card) {
-    card.style.display = '';
-    card.querySelector('input[type="checkbox"]').checked = false;
+  var items = document.querySelectorAll('#remotaInterfacesContainer .puerto-item, #remotaInterfacesContainer > .check-card-elegant');
+  items.forEach(function(item) {
+    item.style.display = '';
+    var cb = item.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = false;
   });
+  syncIpFieldsVisibility();
 }
 
 function setRemotaId() {

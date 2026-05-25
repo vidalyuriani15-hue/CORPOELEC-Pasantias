@@ -645,6 +645,37 @@ def remotas_view(request):
     }
     return render(request, 'remotas.html', context)
 
+def _extract_puerto_ips(post, puertos_list):
+    """Extrae {puerto_id: ip} solo para puertos ETH seleccionados."""
+    ips = {}
+    selected = set(str(p) for p in puertos_list)
+    for key, value in post.items():
+        if not key.startswith('puerto_ip_'):
+            continue
+        pid = key[len('puerto_ip_'):]
+        if pid not in selected:
+            continue
+        ip = (value or '').strip() or '0.0.0.0'
+        ips[pid] = ip
+    return ips
+
+
+def _extract_remota_ips(post, interfaces_list):
+    """Extrae {iface_id_puerto_id: ip} solo para interfaces seleccionadas."""
+    ips = {}
+    selected = set(str(i) for i in interfaces_list)
+    for key, value in post.items():
+        if not key.startswith('remota_ip_'):
+            continue
+        rest = key[len('remota_ip_'):]
+        iface_id = rest.split('_', 1)[0]
+        if iface_id not in selected:
+            continue
+        ip = (value or '').strip() or '0.0.0.0'
+        ips[rest] = ip
+    return ips
+
+
 @login_required(login_url='/login/')
 def reles_view(request):
     """Vista de relés"""
@@ -680,6 +711,8 @@ def reles_view(request):
             'imagen_url': rele.Imagen.url if rele.Imagen else None,
             'protocolos': [pid for pid in rele.Protocolos.values_list('Id_Protocolo', flat=True) if pid in valid_protocolo_ids],
             'puertos': [pid for pid in rele.Puertos.values_list('Id_Puerto', flat=True) if pid in valid_puerto_ids],
+            'puertos_ips': rele.Puertos_IPs or {},
+            'remota_ips': rele.Remota_IPs or {},
         }
         data.update(remota_data)
         return JsonResponse(data)
@@ -738,30 +771,36 @@ def reles_view(request):
                     print(f"DEBUG: Assigning Puertos to Rele: {puertos_list}", file=sys.stderr)
                     rele.Protocolos.set(protocolos_list)
                     rele.Puertos.set(puertos_list)
-                    
+
+                    # Persist per-puerto IPs (only for selected ETH puertos)
+                    rele.Puertos_IPs = _extract_puerto_ips(request.POST, puertos_list)
+
                     # Handle remote association and remote M2M
                     es_remoto = request.POST.get('es_remoto') == 'si'
                     rele.EsRemoto = es_remoto
-                    
+
                     if es_remoto and request.POST.get('remota_id'):
                         remota = Remota.objects.get(Id_Remota=request.POST.get('remota_id'))
                         rele.Remota = remota
-                        
+
                         # Update Remota's M2M fields
                         remota_niveles = request.POST.getlist('remota_nivel_tension')
                         remota_protocolos = request.POST.getlist('remota_protocolos')
                         remota_interfaces = request.POST.getlist('remota_interfaces')
-                        
+
                         print(f"DEBUG: Updating Remota {remota.Id_Remota} - Niveles: {remota_niveles}, Protocolos: {remota_protocolos}, Interfaces: {remota_interfaces}", file=sys.stderr)
-                        
+
                         remota.Niveles_Ten.set(remota_niveles)
                         remota.Protocolos.set(remota_protocolos)
                         remota.Interfaces.set(remota_interfaces)
                         remota.save()
+
+                        rele.Remota_IPs = _extract_remota_ips(request.POST, remota_interfaces)
                     else:
                         # Clear remote association if unchecked
                         rele.Remota = None
-                    
+                        rele.Remota_IPs = {}
+
                     rele.save()
                     print(f"DEBUG: Rele {rele_id} saved successfully. EsRemoto={es_remoto}", file=sys.stderr)
                     registrar_evento(request, 'ACTUALIZACION', f'Relé actualizado: {rele.Id_Sub_est.Nombre}')
@@ -800,27 +839,31 @@ def reles_view(request):
                     print(f"DEBUG: Assigning Puertos to Rele: {puertos_list}", file=sys.stderr)
                     rele.Protocolos.set(protocolos_list)
                     rele.Puertos.set(puertos_list)
-                    
+
+                    rele.Puertos_IPs = _extract_puerto_ips(request.POST, puertos_list)
+
                     # Handle remote association and remote M2M
                     es_remoto = request.POST.get('es_remoto') == 'si'
                     rele.EsRemoto = es_remoto
-                    
+
                     if es_remoto and request.POST.get('remota_id'):
                         remota = Remota.objects.get(Id_Remota=request.POST.get('remota_id'))
                         rele.Remota = remota
-                        
+
                         # Update Remota's M2M fields
                         remota_niveles = request.POST.getlist('remota_nivel_tension')
                         remota_protocolos = request.POST.getlist('remota_protocolos')
                         remota_interfaces = request.POST.getlist('remota_interfaces')
-                        
+
                         print(f"DEBUG: Updating Remota {remota.Id_Remota} - Niveles: {remota_niveles}, Protocolos: {remota_protocolos}, Interfaces: {remota_interfaces}", file=sys.stderr)
-                        
+
                         remota.Niveles_Ten.set(remota_niveles)
                         remota.Protocolos.set(remota_protocolos)
                         remota.Interfaces.set(remota_interfaces)
                         remota.save()
-                    
+
+                        rele.Remota_IPs = _extract_remota_ips(request.POST, remota_interfaces)
+
                     rele.save()
                     print(f"DEBUG: Rele created. EsRemoto={es_remoto}, Remota_id={request.POST.get('remota_id')}", file=sys.stderr)
                     

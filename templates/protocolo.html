@@ -66,7 +66,7 @@
                   {% if protocolo.Tipo == '104' %}<i class="fas fa-network-wired"></i>{% endif %}
                   {% if protocolo.Tipo == 'DNP' %}<i class="fas fa-plug"></i>{% endif %}
                   {% if protocolo.Tipo == 'GOOSE' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-                  {% if protocolo.Tipo == '101' %}<i class="fas fa-usb"></i>{% endif %}
+                  {% if protocolo.Tipo == '101' %}<i class="fab fa-usb"></i>{% endif %}
                   {% if protocolo.Tipo == 'MODBUS' %}<i class="fas fa-bolt"></i>{% endif %}
                 </span>
                 <span class="protocolo-text">{{ protocolo.get_Tipo_display }}</span>
@@ -208,7 +208,7 @@
                <label class="check-card">
                  <input type="checkbox" name="tipos_protocolo" value="101">
                  <span class="card-icon-wrapper">
-                   <i class="fas fa-usb"></i>
+                   <i class="fab fa-usb"></i>
                  </span>
                  <div class="card-text-content">
                    <span class="card-title">IEC 101</span>
@@ -400,7 +400,7 @@
      { value: '104', icon: 'fas fa-network-wired', title: 'IEC 104', sub: 'Protocolo estándar SCADA IEC' },
      { value: 'DNP', icon: 'fas fa-plug', title: 'DNP3', sub: 'Distributed Network Protocol' },
      { value: 'GOOSE', icon: 'fas fa-exchange-alt', title: 'GOOSE', sub: 'Generic Object Oriented Substation' },
-     { value: '101', icon: 'fas fa-usb', title: 'IEC 101', sub: 'Protocolo telemando IEC' },
+     { value: '101', icon: 'fab fa-usb', title: 'IEC 101', sub: 'Protocolo telemando IEC' },
      { value: 'MODBUS', icon: 'fas fa-bolt', title: 'Modbus', sub: 'Protocolo industrial estándar' }
    ];
 

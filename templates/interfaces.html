@@ -66,7 +66,7 @@
                   {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
                   {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
                   {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-                  {% if puerto.Tipo == 'USB' %}<i class="fas fa-usb"></i>{% endif %}
+                  {% if puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
                   {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
                 </span>
                 <span class="puerto-text">{{ puerto.get_Tipo_display }}</span>
@@ -201,7 +201,7 @@
             </label>
             <label class="check-card">
               <input type="checkbox" name="tipos_puerto" value="USB">
-              <span class="card-icon-wrapper"><i class="fas fa-usb"></i></span>
+              <span class="card-icon-wrapper"><i class="fab fa-usb"></i></span>
               <div class="card-text-content">
                 <span class="card-title">USB</span>
                 <span class="card-sub">Puerto universal serial</span>
@@ -390,7 +390,7 @@
     { value: 'ETH', icon: 'fas fa-network-wired', title: 'Ethernet', sub: 'Conexión de red estándar' },
     { value: 'RS232', icon: 'fas fa-plug', title: 'RS232', sub: 'Puerto serial estándar' },
     { value: 'RS485', icon: 'fas fa-exchange-alt', title: 'RS485', sub: 'Comunicación half-duplex' },
-    { value: 'USB', icon: 'fas fa-usb', title: 'USB', sub: 'Puerto universal serial' },
+    { value: 'USB', icon: 'fab fa-usb', title: 'USB', sub: 'Puerto universal serial' },
     { value: 'FIBRA', icon: 'fas fa-bolt', title: 'Fibra Óptica', sub: 'Transmisión por fibra óptica' }
   ];
 
