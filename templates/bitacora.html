@@ -8,7 +8,6 @@
   <h2 style="margin: 0;">Registro de Eventos</h2>
 </div>
 
-<div style="padding-top: 0;">
 {% if messages %}
 <div class="messages" id="messages-container">
   {% for message in messages %}
@@ -30,53 +29,51 @@
 </div>
 
 <div class="table-section">
-   <div class="table-header">
-       <h3>Eventos Registrados</h3>
-       <div class="header-actions">
-          <form method="get" id="filterForm" class="filter-form">
-           <!-- Filtro tipo de usuario -->
-           <div class="filter-select-wrapper">
-             <i class="fas fa-users filter-select-icon"></i>
-             <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
-               <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
-               <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
-               <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
-               <option value="sistema"{% if tipo_usuario == 'sistema' %}selected{% endif %}>Sistema</option>
-             </select>
-           </div>
-            <!-- Buscador -->
-            <div class="search-wrapper">
-              <i class="fas fa-search search-icon"></i>
-              <input type="text" name="q" class="search-input" id="searchInput"
-                     placeholder="Buscar por usuario, vista o descripción..."
-                     value="{{ busqueda }}">
-              {% if busqueda %}
-              <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
-                <i class="fas fa-times"></i>
-              </button>
-              {% endif %}
-<!-- Botón de búsqueda avanzada -->
-              <button type="button" class="advanced-search-btn" id="advancedSearchBtn" title="Búsqueda avanzada" onclick="openAdvancedSearchModal()">
-                <i class="fas fa-filter"></i>
-              </button>
-              <!-- Botón limpiar filtros -->
-              {% if busqueda or subestacion_filtro or mes_filtro or anio_filtro %}
-              <button type="button" class="advanced-search-btn" id="clearFiltersBtn" title="Limpiar filtros" style="background: var(--gray-600);" onclick="window.location.href='{% url 'registro' %}'">
-                <i class="fas fa-times"></i>
-              </button>
-              {% endif %}
-              <!-- Botón exportar PDF -->
-              <a href="{% url 'exportar_bitacora_pdf' %}" onclick="this.href=this.href.split('?')[0]+window.location.search" class="advanced-search-btn" title="Exportar a PDF">
-                <i class="fas fa-file-pdf"></i>
-              </a>
-            </div>
-         </form>
-            </div>
-         </form>
-       </div>
-    </div>
+  <div class="table-header">
+    <h3>Eventos Registrados</h3>
+    <div class="header-actions">
+      <form method="get" id="filterForm" class="filter-form">
+        <!-- Filtro tipo de usuario -->
+        <div class="filter-select-wrapper">
+          <i class="fas fa-users filter-select-icon"></i>
+          <select name="tipo_usuario" id="tipoUsuario" class="filter-select" onchange="this.form.submit()">
+            <option value=""       {% if not tipo_usuario %}selected{% endif %}>Todos los usuarios</option>
+            <option value="admin"  {% if tipo_usuario == 'admin' %}selected{% endif %}>Administrador</option>
+            <option value="regular"{% if tipo_usuario == 'regular' %}selected{% endif %}>Usuario regular</option>
+            <option value="sistema"{% if tipo_usuario == 'sistema' %}selected{% endif %}>Sistema</option>
+          </select>
+        </div>
+        <!-- Buscador -->
+        <div class="search-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" name="q" class="search-input" id="searchInput"
+                 placeholder="Buscar por usuario, vista o descripción..."
+                 value="{{ busqueda }}">
+          {% if busqueda %}
+          <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" title="Limpiar búsqueda">
+            <i class="fas fa-times"></i>
+          </button>
+          {% endif %}
+          <!-- Botón de búsqueda avanzada -->
+          <button type="button" class="advanced-search-btn" id="advancedSearchBtn" title="Búsqueda avanzada" onclick="openAdvancedSearchModal()">
+            <i class="fas fa-filter"></i>
+          </button>
+          <!-- Botón limpiar filtros -->
+          {% if busqueda or subestacion_filtro or mes_filtro or anio_filtro %}
+          <button type="button" class="advanced-search-btn" id="clearFiltersBtn" title="Limpiar filtros" style="background: var(--gray-600);" onclick="window.location.href='{% url 'registro' %}'">
+            <i class="fas fa-times"></i>
+          </button>
+          {% endif %}
+          <!-- Botón exportar PDF -->
+          <a href="{% url 'exportar_bitacora_pdf' %}" onclick="this.href=this.href.split('?')[0]+window.location.search" class="advanced-search-btn" title="Exportar a PDF">
+            <i class="fas fa-file-pdf"></i>
+          </a>
+        </div>
+      </form>
+</div>
+  </div>
 
-   {% if page_obj.paginator.count > 0 %}
+  {% if page_obj.paginator.count > 0 %}
    <div id="resultCount" class="search-results-info">
      {% if busqueda or tipo_usuario %}
      <span>{{ page_obj.paginator.count }} evento{{ page_obj.paginator.count|pluralize }} encontrado{{ page_obj.paginator.count|pluralize }}</span>
@@ -129,21 +126,21 @@
          </td>
          <td class="desc-cell">{{ evento.Descripcion }}</td>
          <td>
-           {% if evento.Tipo == 'CREACION' %}
-             <span class="badge badge-success"><i class="fas fa-plus-circle"></i>Agregó</span>
-           {% elif evento.Tipo == 'ACTUALIZACION' %}
-             <span class="badge badge-info"><i class="fas fa-pen"></i>Editó</span>
-           {% elif evento.Tipo == 'ELIMINACION' %}
-             <span class="badge badge-warning"><i class="fas fa-trash"></i>Eliminó</span>
-           {% elif evento.Tipo == 'LOGIN' %}
-             <span class="badge badge-login"><i class="fas fa-sign-in-alt"></i>Ingresó</span>
-           {% elif evento.Tipo == 'LOGOUT' %}
-             <span class="badge badge-logout"><i class="fas fa-sign-out-alt"></i>Salió</span>
-           {% elif evento.Tipo == 'ERROR' %}
-             <span class="badge badge-error"><i class="fas fa-exclamation-circle"></i>Error</span>
-           {% else %}
-             <span class="badge badge-secondary">Otro</span>
-           {% endif %}
+{% if evento.Tipo == 'CREACION' %}
+              <span class="badge badge-success"><i class="fas fa-plus-circle"></i>Agregó</span>
+            {% elif evento.Tipo == 'ACTUALIZACION' %}
+              <span class="badge badge-warning"><i class="fas fa-pen"></i>Editó</span>
+            {% elif evento.Tipo == 'ELIMINACION' %}
+              <span class="badge badge-error"><i class="fas fa-trash"></i>Eliminó</span>
+            {% elif evento.Tipo == 'LOGIN' %}
+              <span class="badge badge-login"><i class="fas fa-sign-in-alt"></i>Ingresó</span>
+            {% elif evento.Tipo == 'LOGOUT' %}
+              <span class="badge badge-logout"><i class="fas fa-sign-out-alt"></i>Salió</span>
+            {% elif evento.Tipo == 'ERROR' %}
+              <span class="badge badge-error"><i class="fas fa-exclamation-circle"></i>Error</span>
+            {% else %}
+              <span class="badge badge-secondary">Otro</span>
+            {% endif %}
          </td>
        </tr>
        {% endfor %}
@@ -157,109 +154,109 @@
    {% endif %}
  </div>
 
- {% if page_obj.paginator.num_pages > 1 %}
- <div class="pagination-container">
-   <div class="pagination-info-left">
-     <span class="pagination-text">
-       Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
-       | Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-     </span>
-   </div>
-   <div class="pagination-controls-right">
-     <nav class="pagination-nav">
-       <ul class="pagination-list">
-         {% if page_obj.has_previous %}
-         <li class="pagination-item">
-           <a href="?page={{ page_obj.previous_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}{% if subestacion_filtro %}&subestacion={{ subestacion_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if anio_filtro %}&anio={{ anio_filtro }}{% endif %}" class="pagination-link pagination-prev" title="Página anterior">
-             <i class="fas fa-chevron-left"></i> Anterior
-           </a>
-         </li>
-         {% else %}
-         <li class="pagination-item disabled">
-           <span class="pagination-link disabled"><i class="fas fa-chevron-left"></i> Anterior</span>
-         </li>
-         {% endif %}
+{% if page_obj.paginator.num_pages > 1 %}
+  <div class="pagination-container">
+    <div class="pagination-info-left">
+      <span class="pagination-text">
+        Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
+        | Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      </span>
+    </div>
+    <div class="pagination-controls-right">
+      <nav class="pagination-nav">
+        <ul class="pagination-list">
+          {% if page_obj.has_previous %}
+          <li class="pagination-item">
+            <a href="?page={{ page_obj.previous_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}{% if subestacion_filtro %}&subestacion={{ subestacion_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if anio_filtro %}&anio={{ anio_filtro }}{% endif %}" class="pagination-link pagination-prev" title="Página anterior">
+              <i class="fas fa-chevron-left"></i> Anterior
+            </a>
+          </li>
+          {% else %}
+          <li class="pagination-item disabled">
+            <span class="pagination-link disabled" title="No hay página anterior"><i class="fas fa-chevron-left"></i> Anterior</span>
+          </li>
+          {% endif %}
+          
+          {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="pagination-item active">
+            <span class="pagination-link">{{ num }}</span>
+          </li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="pagination-item">
+            <a href="?page={{ num }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}{% if subestacion_filtro %}&subestacion={{ subestacion_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if anio_filtro %}&anio={{ anio_filtro }}{% endif %}" class="pagination-link">{{ num }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
 
-         {% for num in page_obj.paginator.page_range %}
-         {% if page_obj.number == num %}
-         <li class="pagination-item active">
-           <span class="pagination-link">{{ num }}</span>
-         </li>
-         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-         <li class="pagination-item">
-           <a href="?page={{ num }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}{% if subestacion_filtro %}&subestacion={{ subestacion_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if anio_filtro %}&anio={{ anio_filtro }}{% endif %}" class="pagination-link">{{ num }}</a>
-         </li>
-         {% endif %}
-         {% endfor %}
-
-{% if page_obj.has_next %}
+          {% if page_obj.has_next %}
           <li class="pagination-item">
             <a href="?page={{ page_obj.next_page_number }}{% if tipo_usuario %}&tipo_usuario={{ tipo_usuario }}{% endif %}{% if busqueda %}&q={{ busqueda }}{% endif %}{% if subestacion_filtro %}&subestacion={{ subestacion_filtro }}{% endif %}{% if mes_filtro %}&mes={{ mes_filtro }}{% endif %}{% if anio_filtro %}&anio={{ anio_filtro }}{% endif %}" class="pagination-link pagination-next" title="Página siguiente">
               Siguiente <i class="fas fa-chevron-right"></i>
             </a>
           </li>
-         {% else %}
-         <li class="pagination-item disabled">
-           <span class="pagination-link disabled">Siguiente <i class="fas fa-chevron-right"></i></span>
-         </li>
-         {% endif %}
-       </ul>
-     </nav>
-   </div>
-</div>
- {% endif %}
- 
- <!-- Advanced Search Modal -->
- <div class="advanced-search-modal" id="advancedSearchModal">
-   <div class="advanced-search-content">
-     <div class="advanced-search-header">
-       <h4><i class="fas fa-filter" style="margin-right: 8px;"></i>Búsqueda Avanzada</h4>
-       <button type="button" class="advanced-search-close" onclick="closeAdvancedSearchModal()">&times;</button>
-     </div>
-     <form method="get" id="advancedSearchForm" class="advanced-search-body">
-       <!-- Hidden fields to preserve existing filters -->
-       <input type="hidden" name="tipo_usuario" value="{{ tipo_usuario }}">
-       <input type="hidden" name="q" value="{{ busqueda }}">
-       
-       <div class="modal-filter-group">
-         <label for="subestacionFiltro">Subestación</label>
-         <select name="subestacion" id="subestacionFiltro">
-           <option value="">Todas las subestaciones</option>
-           {% for sub in subestaciones %}
-           <option value="{{ sub }}" {% if subestacion_filtro == sub %}selected{% endif %}>{{ sub }}</option>
-           {% endfor %}
-         </select>
-       </div>
-       
-       <div class="modal-filter-group">
-         <label for="mesFiltro">Mes</label>
-         <select name="mes" id="mesFiltro">
-           <option value="">Todos los meses</option>
-           {% for num, nombre in meses %}
-           <option value="{{ num }}" {% if mes_filtro == num|stringformat:"s" %}selected{% endif %}>{{ nombre }}</option>
-           {% endfor %}
-         </select>
-       </div>
-       
-       <div class="modal-filter-group">
-         <label for="anioFiltro">Año</label>
-         <select name="anio" id="anioFiltro">
-           <option value="">Todos los años</option>
-           {% for anio in anios %}
-           <option value="{{ anio }}" {% if anio_filtro == anio|stringformat:"s" %}selected{% endif %}>{{ anio }}</option>
-           {% endfor %}
-         </select>
-       </div>
-       
-<div class="advanced-search-footer">
+          {% else %}
+          <li class="pagination-item disabled">
+            <span class="pagination-link disabled" title="No hay página siguiente">Siguiente <i class="fas fa-chevron-right"></i></span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Advanced Search Modal -->
+  <div class="advanced-search-modal" id="advancedSearchModal">
+    <div class="advanced-search-content">
+      <div class="advanced-search-header">
+        <h4><i class="fas fa-filter" style="margin-right: 8px;"></i>Búsqueda Avanzada</h4>
+        <button type="button" class="advanced-search-close" onclick="closeAdvancedSearchModal()">&times;</button>
+      </div>
+      <form method="get" id="advancedSearchForm" class="advanced-search-body">
+        <!-- Hidden fields to preserve existing filters -->
+        <input type="hidden" name="tipo_usuario" value="{{ tipo_usuario }}">
+        <input type="hidden" name="q" value="{{ busqueda }}">
+        
+        <div class="modal-filter-group">
+          <label for="subestacionFiltro">Subestación</label>
+          <select name="subestacion" id="subestacionFiltro">
+            <option value="">Todas las subestaciones</option>
+            {% for sub in subestaciones %}
+            <option value="{{ sub }}" {% if subestacion_filtro == sub %}selected{% endif %}>{{ sub }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="modal-filter-group">
+          <label for="mesFiltro">Mes</label>
+          <select name="mes" id="mesFiltro">
+            <option value="">Todos los meses</option>
+            {% for num, nombre in meses %}
+            <option value="{{ num }}" {% if mes_filtro == num|stringformat:"s" %}selected{% endif %}>{{ nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="modal-filter-group">
+          <label for="anioFiltro">Año</label>
+          <select name="anio" id="anioFiltro">
+            <option value="">Todos los años</option>
+            {% for anio in anios %}
+            <option value="{{ anio }}" {% if anio_filtro == anio|stringformat:"s" %}selected{% endif %}>{{ anio }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="advanced-search-footer">
           <button type="button" class="btn btn-secondary" onclick="resetAdvancedSearch()">Limpiar</button>
           <button type="submit" class="btn btn-primary">Aplicar filtros</button>
         </div>
-     </form>
-   </div>
- </div>
- 
-<script>
+      </form>
+    </div>
+  </div>
+  
+  <script>
   // Advanced Search Modal functions
   function openAdvancedSearchModal() {
     document.getElementById('advancedSearchModal').classList.add('active');
@@ -282,11 +279,11 @@
     }
   });
   </script>
- 
- </div>
 {% endblock %}
+
 {% block extra_css %}
 <style>
+.table-section { background:#fff; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
 /* ── Badges de acción ── */
 .badge {
   display: inline-flex;
@@ -300,7 +297,6 @@
   letter-spacing: 0.3px;
 }
 .badge-success  { background: #e6f4ea; color: #1e7e34; border: 1px solid #b7dfbe; }
-.badge-info     { background: #e8f4fd; color: #0d6a9f; border: 1px solid #b8ddf5; }
 .badge-warning  { background: #fff4e0; color: #9a6000; border: 1px solid #ffd98a; }
 .badge-error    { background: #fdecea; color: #a61c00; border: 1px solid #f7b8b0; }
 .badge-login    { background: #e8eaf6; color: #3040a0; border: 1px solid #c5c9e8; }
@@ -309,8 +305,8 @@
 
 /* ── Fila coloreada por tipo (borde izquierdo) ── */
 .row-creacion      { border-left: 3px solid #28a745; }
-.row-actualizacion { border-left: 3px solid #17a2b8; }
-.row-eliminacion   { border-left: 3px solid #ffc107; }
+.row-actualizacion { border-left: 3px solid #ffc107; }
+.row-eliminacion   { border-left: 3px solid #dc3545; }
 .row-login         { border-left: 3px solid #4DA6FF; }
 .row-logout        { border-left: 3px solid #adb5bd; }
 .row-error         { border-left: 3px solid #dc3545; }
@@ -500,29 +496,42 @@
   justify-content: space-between;
   align-items: center;
   margin-top: 20px;
-  padding: 0 4px;
-  flex-wrap: wrap;
-  gap: 12px;
+  padding: 15px 20px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
 }
-.pagination-text { font-size: 13px; color: var(--gray-600, #6c757d); }
-.pagination-list { display: flex; list-style: none; gap: 4px; }
+.pagination-info-left { display: flex; align-items: center; }
+.pagination-text { font-size: 0.9rem; color: #595959; font-weight: 500; }
+.pagination-controls-right { display: flex; align-items: center; }
+.pagination-nav { display: flex; }
+.pagination-list { display: flex; list-style: none; margin: 0; padding: 0; gap: 5px; align-items: center; }
+.pagination-item { display: flex; }
 .pagination-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
+  justify-content: center;
+  padding: 8px 14px;
+  font-size: 0.9rem;
   font-weight: 500;
-  color: var(--blue-dark, #0D2B4D);
+  color: #1890ff;
   background: #fff;
-  border: 1px solid var(--gray-300, #dee2e6);
+  border: 1.5px solid #d0d7de;
+  border-radius: 6px;
   text-decoration: none;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  min-width: 40px;
 }
-.pagination-link:hover { background: var(--blue-accent, #4DA6FF); color: #fff; border-color: var(--blue-accent, #4DA6FF); }
-.pagination-item.active .pagination-link { background: var(--blue-dark, #0D2B4D); color: #fff; border-color: var(--blue-dark, #0D2B4D); }
-.pagination-item.disabled .pagination-link { color: #aaa; cursor: not-allowed; pointer-events: none; }
+.pagination-link:hover:not(.disabled) { background: #f0f9ff; border-color: #1890ff; color: #1890ff; }
+.pagination-link.disabled { color: #d9d9d9; background: #f5f5f5; border-color: #e8e8e8; cursor: not-allowed; pointer-events: none; }
+.pagination-item.active .pagination-link { background: #1890ff; color: #fff; border-color: #1890ff; font-weight: 600; }
+.pagination-prev, .pagination-next { gap: 6px; }
+.pagination-prev i, .pagination-next i { font-size: 0.8rem; }
+@media (max-width: 768px) {
+  .pagination-container { flex-direction: column; gap: 15px; }
+  .pagination-info-left, .pagination-controls-right { justify-content: center; }
+  .pagination-list { flex-wrap: wrap; gap: 5px; }
+}
 
 /* ── Sin datos ── */
 .no-data {

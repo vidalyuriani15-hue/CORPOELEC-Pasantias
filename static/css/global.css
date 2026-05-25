@@ -29,6 +29,13 @@ h1, h2, h3, .welcome-text h2 {
   color: #444 !important;
   letter-spacing: 0.8px;
   padding: 12px 16px !important;
+  background: #f8f9fa !important;
+  border-top: 1px solid #dee2e6 !important;
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+.data-table thead {
+  background: #f8f9fa !important;
 }
 
 /* Contenido de tabla (celdas) */
@@ -37,6 +44,8 @@ h1, h2, h3, .welcome-text h2 {
   font-weight: 400 !important;
   color: #333 !important;
   padding: 12px 16px !important;
+  background: #fff !important;
+  border-bottom: 1px solid #dee2e6 !important;
 }
 
 /* Datos clave en celdas (ID, Nivel, etc.) */
@@ -84,10 +93,12 @@ h1, h2, h3, .welcome-text h2 {
 .data-table {
   border-collapse: collapse;
   width: 100%;
+  background: #fff;
 }
 
 .data-table tbody tr {
   transition: background 0.15s ease;
+  background: #fff;
 }
 
 /* Padding vertical entre filas */
