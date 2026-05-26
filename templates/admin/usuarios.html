@@ -162,7 +162,7 @@
     <tbody>
       {% for u in usuarios %}
       <tr>
-        <td><strong>{{ u.username }}</strong></td>
+        <td>{{ u.username }}</td>
         <td>{{ u.first_name }} {{ u.last_name }}</td>
         <td>{{ u.email|default:"-" }}</td>
         <td>

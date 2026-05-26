@@ -1,301 +1,471 @@
 {% load usuario_filters %}
 <div class="rele-detalle-grid">
-  <div class="rele-detalle-seccion">
-    <h4>Información General</h4>
-    <div class="rele-detalle-grid-cols">
-      <div class="rele-detalle-item">
-        <label>Subestación</label>
-        <span>{{ rele.Id_Sub_est.Nombre }}</span>
-        <small>{{ rele.Id_Sub_est.Ubicación }}</small>
+
+  <div class="rele-detalle-top">
+    <div class="rele-detalle-seccion rele-detalle-info">
+      <div class="seccion-header">
+        <span class="seccion-icon"><i class="fas fa-info-circle"></i></span>
+        <h4>Información General</h4>
       </div>
-      <div class="rele-detalle-item">
-        <label>Nivel de Tensión</label>
-         <span>{{ rele.Id_Ten.get_Tipo_ten_display }} - {{ rele.Id_Ten.get_Nivel_display }}</span>
+      <dl class="rele-info-list">
+        <div class="info-row">
+          <dt>Subestación</dt>
+          <dd>{{ rele.Id_Sub_est.Nombre }}</dd>
+        </div>
+        <div class="info-row">
+          <dt>Nivel de Tensión</dt>
+          <dd>{{ rele.Id_Ten.get_Tipo_ten_display }} - {{ rele.Id_Ten.get_Nivel_display }}</dd>
+        </div>
+        <div class="info-row">
+          <dt>Marca</dt>
+          <dd>{{ rele.Marca }}</dd>
+        </div>
+        <div class="info-row">
+          <dt>Modelo</dt>
+          <dd>{{ rele.Modelo }}</dd>
+        </div>
+        <div class="info-row">
+          <dt>Estado</dt>
+          <dd><span class="estado-badge estado-{{ rele.Estado|lower }}">{{ rele.Estado }}</span></dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="rele-detalle-seccion rele-detalle-imagen-card">
+      <div class="seccion-header">
+        <span class="seccion-icon"><i class="fas fa-image"></i></span>
+        <h4>Imagen</h4>
       </div>
-      <div class="rele-detalle-item">
-        <label>Marca</label>
-        <span><strong>{{ rele.Marca }}</strong></span>
+      {% if rele.Imagen and rele.Imagen.name %}
+      <div class="rele-detalle-image-container">
+        <img src="{{ rele.Imagen.url }}" alt="Imagen del relé">
       </div>
-      <div class="rele-detalle-item">
-        <label>Modelo</label>
-        <span>{{ rele.Modelo }}</span>
+      {% else %}
+      <div class="rele-no-data">
+        <i class="fas fa-image"></i>
+        <span>No hay imagen disponible</span>
       </div>
-      <div class="rele-detalle-item">
-        <label>Estado</label>
-        <span class="badge {% if rele.Estado == 'Activo' %}badge-success{% elif rele.Estado == 'Inactivo' %}badge-secondary{% elif rele.Estado == 'Mantenimiento' %}badge-info{% else %}badge-warning{% endif %}">
-          {{ rele.Estado }}
-        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="rele-detalle-row">
+    <div class="rele-detalle-seccion">
+      <div class="seccion-header">
+        <span class="seccion-icon"><i class="fas fa-network-wired"></i></span>
+        <h4>Protocolos</h4>
+      </div>
+      <div class="puertos-container">
+        {% for proto in rele.Protocolos.all %}
+          <span class="puerto-badge">
+            <span class="puerto-icon"><i class="fas fa-microchip"></i></span>
+            <span class="puerto-text">{{ proto.get_Tipo_display }}</span>
+          </span>
+        {% empty %}
+          <span class="no-data">— Ninguno —</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="rele-detalle-seccion">
+      <div class="seccion-header">
+        <span class="seccion-icon"><i class="fas fa-plug"></i></span>
+        <h4>Interfaces de Comunicación</h4>
+      </div>
+      <div class="puertos-container">
+        {% for puerto in rele.Puertos.all %}
+          <span class="puerto-badge {% if puerto.Tipo == 'ETH' %}puerto-eth{% endif %}">
+            <span class="puerto-icon">
+              {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
+              {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
+              {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
+              {% if puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
+              {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
+            </span>
+            <span class="puerto-text">
+              {{ puerto.get_Tipo_display }}
+              {% if puerto.Tipo == 'ETH' %}
+                {% with ip=rele.Puertos_IPs|dict_get:puerto.Id_Puerto %}
+                  <span class="ip-chip">IP: {{ ip|default:"0.0.0.0" }}</span>
+                {% endwith %}
+              {% endif %}
+            </span>
+          </span>
+        {% empty %}
+          <span class="no-data">— Ninguno —</span>
+        {% endfor %}
       </div>
     </div>
   </div>
 
-   <div class="rele-detalle-seccion">
-     <h4>Imagen</h4>
-     {% if rele.Imagen and rele.Imagen.name %}
-     <div class="rele-detalle-image-container" style="text-align:center; margin-bottom:15px;">
-       <img src="{{ rele.Imagen.url }}" alt="Imagen del relé" style="max-width:180px; max-height:180px; border-radius:8px; border:1px solid #dee2e6; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-     </div>
-     {% else %}
-     <div class="rele-no-data" style="text-align:center; color:#8c8c8c; font-style:italic;">No hay imagen disponible</div>
-     {% endif %}
-   </div>
-
-   <div class="rele-detalle-seccion">
-     <h4>Protocolos</h4>
-     <div class="puertos-container">
-       {% for proto in rele.Protocolos.all %}
-         <span class="puerto-badge">
-           <span class="puerto-icon"><i class="fas fa-microchip"></i></span>
-           <span class="puerto-text">{{ proto.get_Tipo_display }}</span>
-         </span>
-       {% empty %}
-         <span class="no-data">— Ninguno —</span>
-       {% endfor %}
-     </div>
-   </div>
-
-   <div class="rele-detalle-seccion">
-     <h4>Interfaces de Comunicación</h4>
-     <div class="puertos-container">
-       {% for puerto in rele.Puertos.all %}
-         <span class="puerto-badge">
-           <span class="puerto-icon">
-             {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
-             {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
-             {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-             {% if puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
-             {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
-           </span>
-           <span class="puerto-text">
-             {{ puerto.get_Tipo_display }}
-             {% if puerto.Tipo == 'ETH' %}
-               {% with ip=rele.Puertos_IPs|dict_get:puerto.Id_Puerto %}
-                 {% if ip %}<small style="color:#4DA6FF; font-weight:600; margin-left:6px;">[{{ ip }}]</small>{% endif %}
-               {% endwith %}
-             {% endif %}
-           </span>
-         </span>
-       {% empty %}
-         <span class="no-data">— Ninguno —</span>
-       {% endfor %}
-     </div>
-   </div>
-
-<div class="rele-detalle-seccion">
+  <div class="rele-detalle-seccion">
+    <div class="seccion-header">
+      <span class="seccion-icon"><i class="fas fa-satellite-dish"></i></span>
       <h4>Remota</h4>
-      {% if rele.EsRemoto and rele.Remota %}
-        <div class="rele-detalle-grid-cols">
-          <div class="rele-detalle-item">
-            <label>Nivel de Tensión</label>
-            <span>{{ rele.Remota.Id_Ten.get_Tipo_ten_display }} - {{ rele.Remota.Id_Ten.get_Nivel_display }}</span>
-          </div>
-          <div class="rele-detalle-item">
-            <label>Marca</label>
-            <span>{{ rele.Remota.Marca }}</span>
-          </div>
-          <div class="rele-detalle-item">
-            <label>Modelo</label>
-            <span>{{ rele.Remota.Modelo }}</span>
-          </div>
-        </div>
-        <div style="margin-top:12px;">
-          <label style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:#8c8c8c; margin-bottom:6px;">Protocolos</label>
-          <div class="puertos-container">
-            {% for proto in rele.Remota.Protocolos.all %}
-              <span class="puerto-badge">
-                <span class="puerto-icon"><i class="fas fa-microchip"></i></span>
-                <span class="puerto-text">{{ proto.get_Tipo_display }}</span>
-              </span>
-            {% empty %}
-              <span class="no-data">— Ninguno —</span>
-            {% endfor %}
-          </div>
-        </div>
-        <div style="margin-top:12px;">
-          <label style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:#8c8c8c; margin-bottom:6px;">Interfaces de Comunicación</label>
-          <div class="puertos-container">
-            {% for iface in rele.Remota.Interfaces.all %}
-              {% for puerto in iface.puertos.all %}
-                <span class="puerto-badge">
-                  <span class="puerto-icon">
-                    {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
-                    {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
-                    {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-                    {% if puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
-                    {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
-                  </span>
-                  <span class="puerto-text">
-                    {{ puerto.get_Tipo_display }}
-                    {% if puerto.Tipo == 'ETH' %}
-                      {% with pid=puerto.Id_Puerto|stringformat:"s" %}
-                        {% with ipkey=iface.Id_Interfaz|stringformat:"s"|add:"_"|add:pid %}
-                          {% with ip=rele.Remota_IPs|dict_get:ipkey %}
-                            {% if ip %}<small style="color:#4DA6FF; font-weight:600; margin-left:6px;">[{{ ip }}]</small>{% endif %}
-                          {% endwith %}
-                        {% endwith %}
-                      {% endwith %}
-                    {% endif %}
-                  </span>
-                </span>
-              {% endfor %}
-            {% empty %}
-              <span class="no-data">— Ninguno —</span>
-            {% endfor %}
-          </div>
-        </div>
-      {% else %}
-        <div class="rele-detalle-item">
-          <span style="color:#6c757d; font-style:italic;">No tiene</span>
-        </div>
-      {% endif %}
     </div>
+    {% if rele.EsRemoto and rele.Remota %}
+      <dl class="rele-info-list">
+        <div class="info-row">
+          <dt>Nivel de Tensión</dt>
+          <dd>{{ rele.Remota.Id_Ten.get_Tipo_ten_display }} - {{ rele.Remota.Id_Ten.get_Nivel_display }}</dd>
+        </div>
+        <div class="info-row">
+          <dt>Marca</dt>
+          <dd>{{ rele.Remota.Marca }}</dd>
+        </div>
+        <div class="info-row">
+          <dt>Modelo</dt>
+          <dd>{{ rele.Remota.Modelo }}</dd>
+        </div>
+        <div class="info-row">
+          <dt>Protocolos</dt>
+          <dd>
+            {% for proto in rele.Remota.Protocolos.all %}
+              {{ proto.get_Tipo_display }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              <span class="no-data">— Ninguno —</span>
+            {% endfor %}
+          </dd>
+        </div>
+        <div class="info-row">
+          <dt>Interfaces de Comunicación</dt>
+          <dd>
+            {% for p in remota_puertos_unicos %}
+              {{ p.tipo_display }}{% if p.is_eth %} <span class="ip-chip">IP: {{ p.ip }}</span>{% endif %}{% if not forloop.last %} · {% endif %}
+            {% empty %}
+              <span class="no-data">— Ninguno —</span>
+            {% endfor %}
+          </dd>
+        </div>
+      </dl>
+    {% else %}
+      <div class="sin-remota">
+        <i class="fas fa-times-circle"></i>
+        <span>Este relé no posee remota asociada</span>
+      </div>
+    {% endif %}
+  </div>
 
-   <div class="rele-detalle-seccion">
-     <h4>Observaciones</h4>
-     <div class="rele-detalle-obs">{{ rele.Observaciones|default:"Sin observaciones" }}</div>
-   </div>
+  <div class="rele-detalle-seccion">
+    <div class="seccion-header">
+      <span class="seccion-icon"><i class="fas fa-clipboard"></i></span>
+      <h4>Observaciones</h4>
+    </div>
+    <p class="rele-detalle-obs-text">{{ rele.Observaciones|default:"Sin observaciones" }}</p>
+  </div>
 
-   <div class="rele-detalle-footer">
-     Registrado el {{ rele.Fecha_Reg|date:"d/m/Y" }}
-   </div>
+  <div class="rele-detalle-footer">
+    <i class="fas fa-calendar-alt"></i>
+    Registrado el <strong>{{ rele.Fecha_Reg|date:"d/m/Y" }}</strong>
+  </div>
 </div>
 
-
-
 <style>
-.rele-detalle-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-  max-height: 540px;
-  overflow-y: auto;
-  padding-right: 12px; /* Increased for better scrollbar visibility */
-}
-.rele-detalle-grid::-webkit-scrollbar {
-  width: 10px;
-}
-.rele-detalle-grid::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 5px;
-}
-.rele-detalle-grid::-webkit-scrollbar-thumb {
-  background-color: #6c757d;
-  border-radius: 5px;
-  border: 2px solid #f1f1f1;
-}
-.rele-detalle-grid::-webkit-scrollbar-thumb:hover {
-  background-color: #5a6268;
-}
-.rele-detalle-seccion {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
-  border: 1px solid #e9ecef;
-}
-.rele-detalle-seccion h4 {
-  margin: 0 0 12px 0;
-  color: #0D2B4D;
-  font-size: 0.95rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.rele-detalle-grid-cols {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-}
-.rele-detalle-item {
-  background: #fff;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #eef2f5;
-}
-.rele-detalle-item label {
-  display: block;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #8c8c8c;
-  margin-bottom: 4px;
-}
-.rele-detalle-item span {
-  display: block;
-  font-size: 0.88rem;
-  color: #1a1a2e;
-  font-weight: 500;
-}
-.rele-detalle-item small {
-  color: #6c757d;
-  font-size: 0.78rem;
-}
-.rele-detalle-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.rele-detalle-seccion .puertos-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 4px 0;
-  align-items: center;
-}
-.rele-detalle-seccion .puerto-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: #fff;
-  border: 1.5px solid #d0d7de;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #1F2937;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  transition: all 0.2s ease;
-}
-.rele-detalle-seccion .puerto-badge:hover {
-  border-color: #4DA6FF;
-  box-shadow: 0 2px 6px rgba(77,166,255,0.15);
-  transform: translateY(-1px);
-}
-.rele-detalle-seccion .puerto-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  background: #f0f9ff;
-  color: #4DA6FF;
-  font-size: 0.78rem;
-}
-.rele-detalle-seccion .puerto-text {
-  color: #1F2937;
-  line-height: 1;
-}
-.rele-detalle-seccion .no-data {
-  color: #8c8c8c;
-  font-style: italic;
-  font-size: 0.85rem;
-}
-.rele-detalle-obs {
-  background: #fff;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #eef2f5;
-  color: #495057;
-  line-height: 1.5;
-  font-size: 0.9rem;
-  min-height: 48px;
-}
-.rele-detalle-footer {
-  text-align: center;
-  color: #8c8c8c;
-  font-size: 0.8rem;
-  padding-top: 8px;
-  border-top: 1px solid #eee;
-}
+  .rele-detalle-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 4px 12px 4px 4px;
+  }
+  .rele-detalle-grid::-webkit-scrollbar { width: 8px; }
+  .rele-detalle-grid::-webkit-scrollbar-track { background: #f4f7f6; border-radius: 4px; }
+  .rele-detalle-grid::-webkit-scrollbar-thumb { background: #4DA6FF; border-radius: 4px; }
+  .rele-detalle-grid::-webkit-scrollbar-thumb:hover { background: #0D2B4D; }
+
+  .rele-detalle-top {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 16px;
+  }
+  .rele-detalle-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .rele-detalle-seccion {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px 18px;
+    border: 1px solid #e8eaf6;
+  }
+
+  .seccion-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  .seccion-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #f0f9ff;
+    color: #4DA6FF;
+    font-size: 0.85rem;
+  }
+  .seccion-header h4 {
+    margin: 0;
+    color: #0D2B4D;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .rele-detalle-grid-cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+  }
+
+  .rele-info-list {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .info-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    align-items: baseline;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row dt {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #0D2B4D;
+    font-weight: 600;
+    margin: 0;
+  }
+  .info-row dd {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: 300;
+  }
+  .info-row dd small {
+    display: block;
+    color: #8c8c8c;
+    font-size: 0.75rem;
+    font-weight: 400;
+    margin-top: 2px;
+  }
+  .rele-detalle-item {
+    background: #f4f7f6;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #e8eaf6;
+  }
+  .rele-detalle-item label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .rele-detalle-item span {
+    display: block;
+    font-size: 0.88rem;
+    color: #0D2B4D;
+    font-weight: 600;
+  }
+  .rele-detalle-item small {
+    display: block;
+    color: #8c8c8c;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  .estado-badge {
+    display: inline-block !important;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    background: #f4f7f6;
+    color: #6c757d;
+  }
+  .estado-activo { background: #e6f7ed; color: #1e7a3a; }
+  .estado-inactivo { background: #f4f7f6; color: #6c757d; }
+  .estado-mantenimiento { background: #e6f2ff; color: #1a56db; }
+
+  .puertos-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .puerto-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: #ffffff;
+    border: 1px solid #e8eaf6;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #0D2B4D;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .puerto-badge:hover {
+    border-color: #4DA6FF;
+    box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.08);
+  }
+  .puerto-badge.puerto-eth {
+    border-color: #4DA6FF;
+  }
+  .puerto-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    background: #f0f9ff;
+    color: #4DA6FF;
+    font-size: 0.78rem;
+  }
+  .puerto-text {
+    color: #0D2B4D;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ip-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: #0D2B4D;
+    color: #ffffff;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: 'Consolas', 'Monaco', monospace;
+    letter-spacing: 0.3px;
+  }
+  .no-data {
+    color: #8c8c8c;
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+
+  .subseccion-row {
+    margin-top: 14px;
+  }
+  .subseccion {
+    background: #f4f7f6;
+    border: 1px solid #e8eaf6;
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .subseccion-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    font-weight: 600;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e8eaf6;
+  }
+
+  .sin-remota {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    background: #f4f7f6;
+    border: 1px dashed #d0d7de;
+    border-radius: 6px;
+    color: #6c757d;
+    font-size: 0.88rem;
+    font-style: italic;
+  }
+  .sin-remota i { font-size: 1rem; color: #8c8c8c; }
+
+  .rele-detalle-imagen-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .rele-detalle-image-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: #f4f7f6;
+    border-radius: 6px;
+    border: 1px solid #e8eaf6;
+    min-height: 200px;
+  }
+  .rele-detalle-image-container img {
+    width: 100%;
+    height: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .rele-no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 28px;
+    background: #f4f7f6;
+    border: 1px dashed #d0d7de;
+    border-radius: 6px;
+    color: #8c8c8c;
+  }
+  .rele-no-data i { font-size: 1.8rem; opacity: 0.4; }
+  .rele-no-data span { font-style: italic; font-size: 0.85rem; }
+
+  .rele-detalle-obs-text {
+    margin: 0;
+    padding: 4px 2px 0;
+    color: #1a1a2e;
+    line-height: 1.5;
+    font-size: 0.9rem;
+  }
+
+  .rele-detalle-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+    color: #6c757d;
+    font-size: 0.82rem;
+    padding: 12px;
+    background: #f4f7f6;
+    border-radius: 6px;
+    border: 1px solid #e8eaf6;
+  }
+  .rele-detalle-footer i { color: #4DA6FF; }
+  .rele-detalle-footer strong { color: #0D2B4D; font-weight: 600; }
+
+  @media (max-width: 768px) {
+    .rele-detalle-top,
+    .rele-detalle-row {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>

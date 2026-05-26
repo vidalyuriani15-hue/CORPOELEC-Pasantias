@@ -646,24 +646,40 @@ def remotas_view(request):
     return render(request, 'remotas.html', context)
 
 def _extract_puerto_ips(post, puertos_list):
-    """Extrae {puerto_id: ip} solo para puertos ETH seleccionados."""
+    """Extrae {puerto_id: ip} para puertos ETH seleccionados.
+    Si un puerto ETH está seleccionado pero no hay IP en el POST (o está vacía),
+    se guarda '0.0.0.0' por defecto.
+    """
     ips = {}
-    selected = set(str(p) for p in puertos_list)
+    selected = [str(p) for p in puertos_list]
+
+    # IPs explícitas del formulario
     for key, value in post.items():
         if not key.startswith('puerto_ip_'):
             continue
         pid = key[len('puerto_ip_'):]
         if pid not in selected:
             continue
-        ip = (value or '').strip() or '0.0.0.0'
-        ips[pid] = ip
+        ips[pid] = (value or '').strip() or '0.0.0.0'
+
+    # Asegurar default 0.0.0.0 para todos los puertos ETH seleccionados
+    eth_ids = PuertoComunicacion.objects.filter(
+        Id_Puerto__in=selected, Tipo='ETH'
+    ).values_list('Id_Puerto', flat=True)
+    for pid in eth_ids:
+        ips.setdefault(str(pid), '0.0.0.0')
+
     return ips
 
 
 def _extract_remota_ips(post, interfaces_list):
-    """Extrae {iface_id_puerto_id: ip} solo para interfaces seleccionadas."""
+    """Extrae {iface_id_puerto_id: ip} para interfaces ETH de la remota.
+    Si la interfaz contiene un puerto ETH y no hay IP, se guarda '0.0.0.0'.
+    """
     ips = {}
-    selected = set(str(i) for i in interfaces_list)
+    selected = [str(i) for i in interfaces_list]
+
+    # IPs explícitas del formulario
     for key, value in post.items():
         if not key.startswith('remota_ip_'):
             continue
@@ -671,8 +687,16 @@ def _extract_remota_ips(post, interfaces_list):
         iface_id = rest.split('_', 1)[0]
         if iface_id not in selected:
             continue
-        ip = (value or '').strip() or '0.0.0.0'
-        ips[rest] = ip
+        ips[rest] = (value or '').strip() or '0.0.0.0'
+
+    # Default 0.0.0.0 para cada puerto ETH de las interfaces seleccionadas
+    eth_puertos = PuertoComunicacion.objects.filter(
+        Id_Interfaz__in=selected, Tipo='ETH'
+    ).values_list('Id_Interfaz', 'Id_Puerto')
+    for iface_id, puerto_id in eth_puertos:
+        key = f'{iface_id}_{puerto_id}'
+        ips.setdefault(key, '0.0.0.0')
+
     return ips
 
 
@@ -932,13 +956,50 @@ def reles_view(request):
 def rele_detalle_view(request, pk):
     """Vista de detalle de un relé"""
     rele = get_object_or_404(Rele, Id_relé=pk)
-    
+
+    # Para Remota: aplanar y deduplicar puertos por Tipo.
+    # Para ETH se conservan todos los puertos distintos (mantienen su IP propia),
+    # pero deduplicados por la clave (iface_id, puerto_id).
+    remota_puertos_unicos = []
+    if rele.Remota_id and rele.EsRemoto:
+        seen_non_eth = set()
+        seen_eth_keys = set()
+        for iface in rele.Remota.Interfaces.all():
+            for puerto in iface.puertos.all():
+                if puerto.Tipo == 'ETH':
+                    key = (iface.Id_Interfaz, puerto.Id_Puerto)
+                    if key in seen_eth_keys:
+                        continue
+                    seen_eth_keys.add(key)
+                    ipkey = f'{iface.Id_Interfaz}_{puerto.Id_Puerto}'
+                    ip = (rele.Remota_IPs or {}).get(ipkey) or '0.0.0.0'
+                    remota_puertos_unicos.append({
+                        'tipo': puerto.Tipo,
+                        'tipo_display': puerto.get_Tipo_display(),
+                        'is_eth': True,
+                        'ip': ip,
+                    })
+                else:
+                    if puerto.Tipo in seen_non_eth:
+                        continue
+                    seen_non_eth.add(puerto.Tipo)
+                    remota_puertos_unicos.append({
+                        'tipo': puerto.Tipo,
+                        'tipo_display': puerto.get_Tipo_display(),
+                        'is_eth': False,
+                        'ip': None,
+                    })
+
     if request.GET.get('modal') == '1':
-        return render(request, 'rele_detalle_partial.html', {'rele': rele})
-    
+        return render(request, 'rele_detalle_partial.html', {
+            'rele': rele,
+            'remota_puertos_unicos': remota_puertos_unicos,
+        })
+
     context = {
         'title': f'Detalle de Relé {rele.Id_relé}',
-        'rele': rele
+        'rele': rele,
+        'remota_puertos_unicos': remota_puertos_unicos,
     }
     return render(request, 'rele_detalle.html', context)
 
@@ -1544,167 +1605,14 @@ def exportar_remotas_pdf(request):
     return response
 
 def exportar_reles_pdf(request):
-    """Exporta todos los relés a PDF"""
-    from django.contrib.staticfiles.finders import find
-    from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
-    from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
-    from reportlab.lib.units import inch
-    from io import BytesIO
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
-                            rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
-    elements = []
-    styles = getSampleStyleSheet()
-
-    NAVY   = colors.HexColor('#1c2e4a')
-    RED    = colors.HexColor('#ED1C24')
-    GREY_L = colors.HexColor('#f5f5f5')
-    GREY_B = colors.HexColor('#cccccc')
-
-    # ── Header ───────────────────────────────────────────────────────────────
-    logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
-
-    if logo_path:
-        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
-        logo_cell = Table(
-            [[logo_img, Paragraph('<b>CORPOELEC</b>',
-                                  ParagraphStyle('corp', parent=styles['Normal'],
-                                                 fontSize=13, leading=15))]],
-            colWidths=[0.8*inch, 1.4*inch])
-        logo_cell.setStyle(TableStyle([
-            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
-            ('TOPPADDING',    (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ]))
-    else:
-        logo_cell = Paragraph('<b>CORPOELEC</b>',
-                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=13))
-
-    title_p = Paragraph('<b>Relés Registrados</b>',
-                        ParagraphStyle('title', parent=styles['Normal'],
-                                       fontSize=14, leading=17, alignment=1))
-    date_p = Paragraph(
-        f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
-        ParagraphStyle('date', parent=styles['Normal'],
-                       fontSize=8, leading=10, alignment=2,
-                       textColor=colors.HexColor('#555555')))
-
-    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
-    hdr.setStyle(TableStyle([
-        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
-        ('TOPPADDING',    (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
-    elements.append(hdr)
-    elements.append(Spacer(1, 6))
-    elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
-
-    # ── Data ─────────────────────────────────────────────────────────────────
+    """Exporta todos los relés a PDF con estilo similar al modal de detalle."""
+    from ._reles_pdf_helper import build_reles_pdf
     reles = (Rele.objects
              .select_related('Id_Ten', 'Id_Sub_est', 'creado_por', 'Remota', 'Remota__Id_Ten')
-             .prefetch_related('Protocolos', 'Puertos')
+             .prefetch_related('Protocolos', 'Puertos',
+                               'Remota__Protocolos', 'Remota__Interfaces__puertos')
              .order_by('Id_relé'))
-
-    cell_st = ParagraphStyle('cell', parent=styles['Normal'], fontSize=7, leading=9, alignment=1)
-
-    def wrap(txt):
-        return Paragraph(str(txt) if txt else '—', cell_st)
-
-    hdr_st = ParagraphStyle('hdr', parent=styles['Normal'],
-                             fontSize=7.5, leading=9, textColor=colors.white, alignment=1)
-    col_names = ['Subestación', 'Marca', 'Modelo', 'Nivel (kV)',
-                 'Protocolos', 'Puertos', 'Estado',
-                 'Remota', 'Marca Remota', 'Modelo Remota', 'Niv. Remota',
-                 'Creado Por', 'Fecha Reg.']
-    data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in col_names]]
-
-    for rele in reles:
-        nivel = ''
-        if rele.Id_Ten:
-            tipo = rele.Id_Ten.get_Tipo_ten_display() if hasattr(rele.Id_Ten, 'get_Tipo_ten_display') else ''
-            niv  = rele.Id_Ten.get_Nivel_display()    if hasattr(rele.Id_Ten, 'get_Nivel_display')    else str(rele.Id_Ten.Nivel)
-            nivel = f"{tipo} - {niv}" if tipo else niv
-
-        protos  = ', '.join(p.get_Tipo_display() for p in rele.Protocolos.all()) or '—'
-        puertos = ', '.join(str(p) for p in rele.Puertos.all()) or '—'
-
-        rem      = rele.Remota
-        es_rem   = 'Sí' if rele.EsRemoto and rem else 'No'
-        marc_rem = rem.Marca  if rem else '—'
-        mod_rem  = rem.Modelo if rem else '—'
-        niv_rem  = '—'
-        if rem and rem.Id_Ten:
-            niv_rem = rem.Id_Ten.get_Nivel_display() if hasattr(rem.Id_Ten, 'get_Nivel_display') else str(rem.Id_Ten.Nivel)
-
-        fecha  = rele.Fecha_Reg.strftime('%d/%m/%Y') if rele.Fecha_Reg else '—'
-        creado = rele.creado_por.username if rele.creado_por else '—'
-
-        data.append([
-            wrap(rele.Id_Sub_est.Nombre if rele.Id_Sub_est else '—'),
-            wrap(rele.Marca), wrap(rele.Modelo), wrap(nivel),
-            wrap(protos), wrap(puertos), wrap(rele.Estado),
-            wrap(es_rem), wrap(marc_rem), wrap(mod_rem), wrap(niv_rem),
-            wrap(creado), wrap(fecha),
-        ])
-
-    from reportlab.lib.pagesizes import landscape, letter as _letter
-    _pw = landscape(_letter)[0] - 50  # ancho total menos márgenes (25+25)
-    _ratios = [1.0, 0.7, 0.7, 0.9, 0.8, 0.7, 0.75, 0.5, 0.75, 0.75, 0.65, 0.65, 0.65]
-    _total  = sum(_ratios)
-    col_w   = [_pw * r / _total for r in _ratios]
-
-    table = Table(data, colWidths=col_w, repeatRows=1)
-    table.setStyle(TableStyle([
-        # header fondo y texto
-        ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
-        ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
-        ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
-        ('TOPPADDING',    (0, 0), (-1, 0),  6),
-        ('BOTTOMPADDING', (0, 0), (-1, 0),  6),
-        # sin bordes verticales en el header
-        ('INNERGRID',     (0, 0), (-1, 0),  0,   NAVY),
-        ('BOX',           (0, 0), (-1, 0),  0,   NAVY),
-        # línea separadora header / datos
-        ('LINEBELOW',     (0, 0), (-1, 0),  1.0, colors.white),
-        # filas de datos
-        ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE',      (0, 1), (-1, -1), 7),
-        ('TOPPADDING',    (0, 1), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
-        ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, GREY_L]),
-        # sólo líneas horizontales entre filas de datos
-        ('LINEBELOW',     (0, 1), (-1, -1), 0.4, GREY_B),
-        ('LINEBEFORE',    (0, 1), (0, -1),  0.4, GREY_B),
-        ('LINEAFTER',     (-1, 1),(-1, -1), 0.4, GREY_B),
-        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
-    ]))
-    elements.append(table)
-    elements.append(Spacer(1, 12))
-
-    # ── Footer ───────────────────────────────────────────────────────────────
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=GREY_B))
-    elements.append(Spacer(1, 4))
-    elements.append(Paragraph(
-        'Corporación Eléctrica Nacional S.A. — Documento de carácter oficial',
-        ParagraphStyle('foot', parent=styles['Normal'],
-                       fontSize=7.5, leading=9, alignment=1,
-                       textColor=colors.HexColor('#666666'))))
-
-    doc.build(elements)
-    buffer.seek(0)
-    response = FileResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="reles.pdf"'
-    return response
+    return build_reles_pdf(reles)
 
 
 _VISTA_NOMBRES = {
