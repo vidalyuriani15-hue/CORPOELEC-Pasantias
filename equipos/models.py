@@ -164,7 +164,7 @@ class PuertoComunicacion(models.Model):
 class Remota(models.Model):
     """Modelo para gestionar remotas de protección eléctrica"""
     Id_Remota = models.AutoField(primary_key=True)  # Identificador único
-    Id_Ten = models.ForeignKey(NivelTension, on_delete=models.CASCADE, related_name='remotas')  # Nivel de tensión asociado
+    Id_Ten = models.ForeignKey(NivelTension, on_delete=models.SET_NULL, null=True, blank=True, related_name='remotas')  # Nivel de tensión asociado (opcional)
     Marca = models.CharField(max_length=100)  # Marca del fabricante
     Modelo = models.CharField(max_length=100)  # Modelo específico de la remota
     Fecha_Reg = models.DateField(auto_now_add=True)  # Fecha de registro automática
