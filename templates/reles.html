@@ -178,107 +178,132 @@
         <input type="hidden" id="inputCrear" name="crear" value="1">
         <input type="hidden" id="inputReleId" name="rele_id" value="">
         <div class="modal-body">
-          <div class="modal-form-grid">
-            <div class="form-group">
-              <label>Subestación *</label>
-              <select name="id_sub_est" required>
-                <option value="">Seleccionar</option>
-                {% for sub in subestaciones %}
-                <option value="{{ sub.Id_Sub_est }}">{{ sub.Nombre }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Nivel de Tensión *</label>
-              <select name="id_ten" required>
-                <option value="">Seleccionar</option>
-                {% for ten in tensiones %}
-                <option value="{{ ten.Id_Ten }}">{{ ten.get_Tipo_ten_display }} - {{ ten.get_Nivel_display }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Marca *</label>
-              <input type="text" name="marca" required placeholder="Marca del relé">
-            </div>
-            <div class="form-group">
-              <label>Modelo *</label>
-              <input type="text" name="modelo" required placeholder="Modelo del relé">
-            </div>
-            <div class="form-group">
-              <label>Estado *</label>
-              <select name="estado" required>
-                <option value="">Seleccionar</option>
-                <option value="Activo">Activo</option>
-                <option value="Inactivo">Inactivo</option>
-                <option value="Mantenimiento">Mantenimiento</option>
-              </select>
-            </div>
-<div class="form-group">
-              <label>Imagen</label>
-              <input type="file" name="imagen" id="imagenInput" accept="image/*">
-              <div id="currentImageContainer" style="display:none; margin-top:8px;">
-                <img id="currentImage" src="" alt="Imagen actual" style="max-width:150px; max-height:150px; border-radius:6px;">
-              </div>
-              <div id="imagePreview" style="display:none; margin-top:8px;">
-                <img src="" alt="Vista previa" style="max-width:150px; max-height:150px; border-radius:6px;">
-              </div>
-            </div>
+          <div class="form-sections">
 
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label class="form-label">Señales</label>
-                <div class="senales-grid">
-                    <div class="senal-item">
-                        <label>Entrada Digital</label>
-                        <input type="number" name="entradas_digitales" min="0" value="0">
+            <details class="form-section" open>
+              <summary class="form-section-header">
+                <span class="form-section-icon"><i class="fas fa-info-circle"></i></span>
+                <span class="form-section-title">Información General</span>
+                <span class="form-section-chevron"><i class="fas fa-chevron-down"></i></span>
+              </summary>
+              <div class="form-section-body">
+                <div class="modal-form-grid">
+                  <div class="form-group">
+                    <label>Subestación *</label>
+                    <select name="id_sub_est" required>
+                      <option value="">Seleccionar</option>
+                      {% for sub in subestaciones %}
+                      <option value="{{ sub.Id_Sub_est }}">{{ sub.Nombre }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Nivel de Tensión *</label>
+                    <select name="id_ten" required>
+                      <option value="">Seleccionar</option>
+                      {% for ten in tensiones %}
+                      <option value="{{ ten.Id_Ten }}">{{ ten.get_Tipo_ten_display }} - {{ ten.get_Nivel_display }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Marca *</label>
+                    <input type="text" name="marca" required placeholder="Marca del relé">
+                  </div>
+                  <div class="form-group">
+                    <label>Modelo *</label>
+                    <input type="text" name="modelo" required placeholder="Modelo del relé">
+                  </div>
+                  <div class="form-group">
+                    <label>Estado *</label>
+                    <select name="estado" required>
+                      <option value="">Seleccionar</option>
+                      <option value="Activo">Activo</option>
+                      <option value="Inactivo">Inactivo</option>
+                      <option value="Mantenimiento">Mantenimiento</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Imagen</label>
+                    <input type="file" name="imagen" id="imagenInput" accept="image/*">
+                    <div id="currentImageContainer" style="display:none; margin-top:8px;">
+                      <img id="currentImage" src="" alt="Imagen actual" style="max-width:150px; max-height:150px; border-radius:6px;">
                     </div>
-                    <div class="senal-item">
-                        <label>Salida Digital</label>
-                        <input type="number" name="salidas_digitales" min="0" value="0">
+                    <div id="imagePreview" style="display:none; margin-top:8px;">
+                      <img src="" alt="Vista previa" style="max-width:150px; max-height:150px; border-radius:6px;">
                     </div>
-                    <div class="senal-item">
-                        <label>Entrada Analógica</label>
-                        <input type="number" name="entradas_analogicas" min="0" value="0">
-                    </div>
-                    <div class="senal-item">
-                        <label>Contadores</label>
-                        <input type="number" name="contadores" min="0" value="0">
-                    </div>
+                  </div>
                 </div>
-            </div>
+              </div>
+            </details>
 
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label>Protocolos de TeleControl y Energía</label>
-                <div id="protocolosContainer" class="checks-grid">
+            <details class="form-section">
+              <summary class="form-section-header">
+                <span class="form-section-icon"><i class="fas fa-wave-square"></i></span>
+                <span class="form-section-title">Señales</span>
+                <span class="form-section-chevron"><i class="fas fa-chevron-down"></i></span>
+              </summary>
+              <div class="form-section-body">
+                <div class="senales-grid">
+                  <div class="senal-item">
+                    <label>Entrada Digital</label>
+                    <input type="number" name="entradas_digitales" min="0" value="0">
+                  </div>
+                  <div class="senal-item">
+                    <label>Salida Digital</label>
+                    <input type="number" name="salidas_digitales" min="0" value="0">
+                  </div>
+                  <div class="senal-item">
+                    <label>Entrada Analógica</label>
+                    <input type="number" name="entradas_analogicas" min="0" value="0">
+                  </div>
+                  <div class="senal-item">
+                    <label>Contadores</label>
+                    <input type="number" name="contadores" min="0" value="0">
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <details class="form-section">
+              <summary class="form-section-header">
+                <span class="form-section-icon"><i class="fas fa-network-wired"></i></span>
+                <span class="form-section-title">Comunicación del Relé</span>
+                <span class="form-section-chevron"><i class="fas fa-chevron-down"></i></span>
+              </summary>
+              <div class="form-section-body">
+                <div class="form-group" style="margin-bottom:18px;">
+                  <label>Protocolos de TeleControl y Energía</label>
+                  <div id="protocolosContainer" class="checks-grid">
                     {% for p in protocolos %}
                     <label class="check-card-elegant">
-                        <input type="checkbox" name="protocolos" value="{{ p.Id_Protocolo }}">
-                        <span class="check-icon-wrapper"><i class="fas fa-microchip"></i></span>
-                        <div class="check-content">
-                            <span class="check-title">{{ p.get_Tipo_display }}</span>
-                        </div>
+                      <input type="checkbox" name="protocolos" value="{{ p.Id_Protocolo }}">
+                      <span class="check-icon-wrapper"><i class="fas fa-microchip"></i></span>
+                      <div class="check-content">
+                        <span class="check-title">{{ p.get_Tipo_display }}</span>
+                      </div>
                     </label>
                     {% endfor %}
+                  </div>
                 </div>
-            </div>
 
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label>Interfaces de Comunicación</label>
-                <div id="puertosContainer" class="checks-grid">
+                <div class="form-group">
+                  <label>Interfaces de Comunicación</label>
+                  <div id="puertosContainer" class="checks-grid">
                     {% for pt in puertos %}
                     <div class="puerto-item">
                       <label class="check-card-elegant">
-                          <input type="checkbox" name="puertos" value="{{ pt.Id_Puerto }}" data-tipo="{{ pt.Tipo }}" onchange="togglePuertoIp(this)">
-                          <span class="check-icon-wrapper">
-                            {% if pt.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
-                            {% if pt.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
-                            {% if pt.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-                            {% if pt.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
-                            {% if pt.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
-                          </span>
-                          <div class="check-content">
-                              <span class="check-title">{{ pt.get_Tipo_display }}</span>
-                          </div>
+                        <input type="checkbox" name="puertos" value="{{ pt.Id_Puerto }}" data-tipo="{{ pt.Tipo }}" onchange="togglePuertoIp(this)">
+                        <span class="check-icon-wrapper">
+                          {% if pt.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
+                          {% if pt.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
+                          {% if pt.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
+                          {% if pt.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
+                          {% if pt.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
+                        </span>
+                        <div class="check-content">
+                          <span class="check-title">{{ pt.get_Tipo_display }}</span>
+                        </div>
                       </label>
                       {% if pt.Tipo == 'ETH' %}
                       <div class="ip-field" data-ip-for="puerto" style="display:none; margin-top:6px;">
@@ -287,109 +312,128 @@
                       {% endif %}
                     </div>
                     {% endfor %}
+                  </div>
                 </div>
-            </div>
+              </div>
+            </details>
 
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label class="form-label">¿Posee Remota?</label>
-                <select id="esRemotoSelect" name="es_remoto" onchange="toggleRemotaFields()">
+            <details class="form-section">
+              <summary class="form-section-header">
+                <span class="form-section-icon"><i class="fas fa-satellite-dish"></i></span>
+                <span class="form-section-title">Remota</span>
+                <span class="form-section-chevron"><i class="fas fa-chevron-down"></i></span>
+              </summary>
+              <div class="form-section-body">
+                <div class="form-group">
+                  <label class="form-label">¿Posee Remota?</label>
+                  <select id="esRemotoSelect" name="es_remoto" onchange="toggleRemotaFields()">
                     <option value="no">No</option>
                     <option value="si">Sí</option>
-                </select>
-            </div>
-
-            <div id="remotaOptionsContainer" style="display:none; grid-column: 1 / -1;">
-              <div style="display:flex; gap:20px; margin-bottom:15px;">
-                <div class="form-group" style="flex:1; margin-bottom:0;">
-                  <label>Marca de Remota *</label>
-                  <select id="remota_marca_select" onchange="loadModelosByMarca()">
-                    <option value="">Seleccionar Marca</option>
                   </select>
                 </div>
-                <div class="form-group" style="flex:1; margin-bottom:0;">
-                  <label>Modelo de Remota *</label>
-                  <select id="remota_modelo_select" onchange="onModeloChange()">
-                    <option value="">Seleccionar Modelo</option>
-                  </select>
-                </div>
-              </div>
 
-              <input type="hidden" id="remota_id_hidden" name="remota_id" value="">
-
-                <div class="form-group" style="grid-column: 1 / -1;">
-                  <label class="form-label">Nivel de Tensión</label>
-                  <div class="checks-grid">
-                    {% for ten in tensiones %}
-                    <label class="check-card-elegant">
-                      <input type="checkbox" name="remota_nivel_tension" value="{{ ten.Id_Ten }}">
-                      <span class="check-icon-wrapper"><i class="fas fa-bolt"></i></span>
-                      <div class="check-content">
-                        <span class="check-title">{{ ten.get_Tipo_ten_display }} - {{ ten.get_Nivel_display }}</span>
-                      </div>
-                    </label>
-                    {% endfor %}
-                  </div>
-                </div>
-
-              <div class="form-group" style="grid-column: 1 / -1;">
-                <label class="form-label">Protocolos de TeleControl y Energía</label>
-                <div id="remotaProtocolosContainer" class="checks-grid">
-                  {% for p in protocolos %}
-                  <label class="check-card-elegant">
-                    <input type="checkbox" name="remota_protocolos" value="{{ p.Id_Protocolo }}">
-                    <span class="check-icon-wrapper"><i class="fas fa-microchip"></i></span>
-                    <div class="check-content">
-                      <span class="check-title">{{ p.get_Tipo_display }}</span>
+                <div id="remotaOptionsContainer" style="display:none;">
+                  <div style="display:flex; gap:20px; margin-bottom:15px;">
+                    <div class="form-group" style="flex:1; margin-bottom:0;">
+                      <label>Marca de Remota *</label>
+                      <select id="remota_marca_select" onchange="loadModelosByMarca()">
+                        <option value="">Seleccionar Marca</option>
+                      </select>
                     </div>
-                  </label>
-                  {% endfor %}
-                </div>
-              </div>
+                    <div class="form-group" style="flex:1; margin-bottom:0;">
+                      <label>Modelo de Remota *</label>
+                      <select id="remota_modelo_select" onchange="onModeloChange()">
+                        <option value="">Seleccionar Modelo</option>
+                      </select>
+                    </div>
+                  </div>
 
-                <div class="form-group" style="grid-column: 1 / -1;">
-                  <label class="form-label">Interfaces de Comunicación</label>
-                  <div id="remotaInterfacesContainer" class="checks-grid">
-                    {% for iface in interfaces_disponibles %}
-                      {% for puerto in iface.puertos.all %}
-                        <div class="puerto-item">
-                          <label class="check-card-elegant">
-                            <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}" data-tipo="{{ puerto.Tipo }}" onchange="toggleRemotaIp(this)">
-                            <span class="check-icon-wrapper">
-                              {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
-                              {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
-                              {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-                              {% if puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
-                              {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
-                            </span>
+                  <input type="hidden" id="remota_id_hidden" name="remota_id" value="">
+
+                  <div class="form-group">
+                    <label class="form-label">Nivel de Tensión</label>
+                    <div class="checks-grid">
+                      {% for ten in tensiones %}
+                      <label class="check-card-elegant">
+                        <input type="checkbox" name="remota_nivel_tension" value="{{ ten.Id_Ten }}">
+                        <span class="check-icon-wrapper"><i class="fas fa-bolt"></i></span>
+                        <div class="check-content">
+                          <span class="check-title">{{ ten.get_Tipo_ten_display }} - {{ ten.get_Nivel_display }}</span>
+                        </div>
+                      </label>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Protocolos de TeleControl y Energía</label>
+                    <div id="remotaProtocolosContainer" class="checks-grid">
+                      {% for p in protocolos %}
+                      <label class="check-card-elegant">
+                        <input type="checkbox" name="remota_protocolos" value="{{ p.Id_Protocolo }}">
+                        <span class="check-icon-wrapper"><i class="fas fa-microchip"></i></span>
+                        <div class="check-content">
+                          <span class="check-title">{{ p.get_Tipo_display }}</span>
+                        </div>
+                      </label>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Interfaces de Comunicación</label>
+                    <div id="remotaInterfacesContainer" class="checks-grid">
+                      {% for iface in interfaces_disponibles %}
+                        {% for puerto in iface.puertos.all %}
+                          <div class="puerto-item">
+                            <label class="check-card-elegant">
+                              <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}" data-tipo="{{ puerto.Tipo }}" onchange="toggleRemotaIp(this)">
+                              <span class="check-icon-wrapper">
+                                {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
+                                {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
+                                {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
+                                {% if puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
+                                {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
+                              </span>
+                              <div class="check-content">
+                                <span class="check-title">{{ puerto.get_Tipo_display }}</span>
+                              </div>
+                            </label>
+                            {% if puerto.Tipo == 'ETH' %}
+                            <div class="ip-field" data-ip-for="remota" style="display:none; margin-top:6px;">
+                              <input type="text" name="remota_ip_{{ iface.Id_Interfaz }}_{{ puerto.Id_Puerto }}" placeholder="Dirección IP (0.0.0.0)" class="ip-input">
+                            </div>
+                            {% endif %}
+                          </div>
+                        {% empty %}
+                          <label class="check-card-elegant disabled">
+                            <input type="checkbox" disabled>
+                            <span class="check-icon-wrapper"><i class="fas fa-times"></i></span>
                             <div class="check-content">
-                              <span class="check-title">{{ puerto.get_Tipo_display }}</span>
+                              <span class="check-title">Sin puertos</span>
                             </div>
                           </label>
-                          {% if puerto.Tipo == 'ETH' %}
-                          <div class="ip-field" data-ip-for="remota" style="display:none; margin-top:6px;">
-                            <input type="text" name="remota_ip_{{ iface.Id_Interfaz }}_{{ puerto.Id_Puerto }}" placeholder="Dirección IP (0.0.0.0)" class="ip-input">
-                          </div>
-                          {% endif %}
-                        </div>
-                      {% empty %}
-                        <label class="check-card-elegant disabled">
-                          <input type="checkbox" disabled>
-                          <span class="check-icon-wrapper"><i class="fas fa-times"></i></span>
-                          <div class="check-content">
-                            <span class="check-title">Sin puertos</span>
-                          </div>
-                        </label>
+                        {% endfor %}
                       {% endfor %}
-                    {% endfor %}
+                    </div>
                   </div>
                 </div>
-            </div>
+              </div>
+            </details>
 
-            <div class="form-group" style="grid-column: 1 / -1;">
-              <label>Observaciones</label>
-              <textarea name="observaciones" rows="3" placeholder="Observaciones adicionales (opcional)"></textarea>
-            </div>
-            </div>
+            <details class="form-section">
+              <summary class="form-section-header">
+                <span class="form-section-icon"><i class="fas fa-clipboard"></i></span>
+                <span class="form-section-title">Observaciones</span>
+                <span class="form-section-chevron"><i class="fas fa-chevron-down"></i></span>
+              </summary>
+              <div class="form-section-body">
+                <div class="form-group">
+                  <textarea name="observaciones" rows="3" placeholder="Observaciones adicionales (opcional)"></textarea>
+                </div>
+              </div>
+            </details>
+
           </div>
          <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
@@ -487,6 +531,18 @@
   .form-group input[type="file"]:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
   .form-text { display:block; margin-top:4px; font-size:0.75rem; color:#6c757d; }
    .checks-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
+   .form-sections { display:flex; flex-direction:column; gap:12px; }
+   .form-section { background:#ffffff; border:1px solid #e8eaf6; border-radius:10px; overflow:hidden; transition:border-color 0.2s ease, box-shadow 0.2s ease; }
+   .form-section[open] { border-color:#4DA6FF; box-shadow:0 2px 8px rgba(77,166,255,0.08); }
+   .form-section-header { display:flex; align-items:center; gap:12px; padding:14px 18px; cursor:pointer; user-select:none; list-style:none; background:#f8fafc; transition:background 0.2s ease; }
+   .form-section-header::-webkit-details-marker { display:none; }
+   .form-section-header:hover { background:#f0f9ff; }
+   .form-section[open] > .form-section-header { background:#f0f9ff; border-bottom:1px solid #e8eaf6; }
+   .form-section-icon { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:#fff; color:#4DA6FF; font-size:0.95rem; border:1px solid #e8eaf6; }
+   .form-section-title { flex:1; font-size:0.95rem; font-weight:600; color:#0D2B4D; letter-spacing:0.2px; }
+   .form-section-chevron { color:#4DA6FF; font-size:0.8rem; transition:transform 0.25s ease; }
+   .form-section[open] > .form-section-header .form-section-chevron { transform:rotate(180deg); }
+   .form-section-body { padding:18px; }
    .senales-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; }
    .senal-item { display:flex; flex-direction:column; background:#f8fafc; border:1px solid #e8eaf6; border-radius:8px; padding:12px 14px; transition:border-color 0.2s ease, box-shadow 0.2s ease; }
    .senal-item:focus-within { border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
@@ -943,6 +999,8 @@ function marcarCheckboxesRemota(data) {
       
       if (data.es_remoto) {
         remotaContainer.style.display = 'block';
+        var remotaSection = esRemotoSelect.closest('details.form-section');
+        if (remotaSection) remotaSection.open = true;
         
         // Cargar datos de remotas y luego restaurar selección
         loadRemotaDatos().then(function() {
@@ -1104,6 +1162,8 @@ function marcarCheckboxesRemota(data) {
 
    if (select.value === 'si') {
      container.style.display = 'block';
+     var section = select.closest('details.form-section');
+     if (section) section.open = true;
    } else {
      container.style.display = 'none';
    }
