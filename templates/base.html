@@ -1732,6 +1732,10 @@
     
     /* Footer */
     .footer {
+      position: fixed;
+      bottom: 0;
+      left: 260px;
+      right: 0;
       background: var(--white);
       padding: 15px 30px;
       display: flex;
@@ -1740,6 +1744,8 @@
       font-size: 0.85rem;
       color: var(--gray-600);
       border-top: 1px solid var(--gray-300);
+      z-index: 100;
+      transition: left 0.3s ease;
     }
     
     .footer-left {
@@ -2040,12 +2046,21 @@
       const sidebar = document.getElementById('sidebar');
       const mainContent = document.getElementById('mainContent');
       const backdrop = document.getElementById('sidebarBackdrop');
+      const footer = document.querySelector('.footer');
       if (window.innerWidth <= 768) {
         sidebar.classList.toggle('active');
         backdrop.classList.toggle('active');
       } else {
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('expanded');
+        // Ajustar footer según estado del sidebar
+        if (footer) {
+          if (sidebar.classList.contains('collapsed')) {
+            footer.style.left = '90px';
+          } else {
+            footer.style.left = '260px';
+          }
+        }
       }
       // Close dropdowns when sidebar collapses/expands
       if (!sidebar.classList.contains('collapsed') && window.innerWidth > 768) {
