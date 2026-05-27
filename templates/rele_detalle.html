@@ -217,7 +217,7 @@ body {
             <div class="form-row">
               <div class="form-group">
                 <label>Nivel de tensión de la remota</label>
-                <input type="text" value="{% if rele.Remota.Id_Ten %}{{ rele.Remota.Id_Ten.get_Tipo_ten_display }} - {{ rele.Remota.Id_Ten.get_Nivel_display }}{% else %}Sin asignar{% endif %}" readonly>
+                <input type="text" value="{% for nivel in rele.Remota.Niveles_Ten.all %}{{ nivel.get_Tipo_ten_display }} - {{ nivel.get_Nivel_display }}{% if not forloop.last %}, {% endif %}{% empty %}Sin asignar{% endfor %}" readonly>
               </div>
             </div>
             <div class="form-row">

@@ -36,7 +36,7 @@
     <input type="text" class="search-input" id="searchInput" placeholder="Buscar niveles..." onkeyup="filterTable()">
   </div>
   <div class="action-buttons">
-    <button type="button" class="btn btn-primary btn-add-top" onclick="document.getElementById('addModal').style.display='flex'">
+    <button type="button" class="btn btn-primary btn-add-top" onclick="abrirAddModal()">
       <i class="fas fa-plus"></i> Añadir
     </button>
     <a href="{% url 'exportar_tensiones_pdf' %}" class="btn btn-secondary btn-add-top">
@@ -150,7 +150,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Agregar Nivel de Tensión</h5>
-        <button type="button" class="close" onclick="document.getElementById('addModal').style.display='none'">&times;</button>
+        <button type="button" class="close" onclick="cerrarAddModal()">&times;</button>
       </div>
       <div class="modal-body">
         <form method="post" id="addNivelForm">
@@ -167,7 +167,7 @@
           </div>
            <div class="form-group">
              <label>Nivel</label>
-             <select name="nivel" id="edit_nivel" class="form-control" required>
+             <select name="nivel" id="add_nivel" class="form-control" required>
                <option value="">Seleccionar nivel</option>
                {% for value, display in nivel_choices_simple %}
                <option value="{{ value }}">{{ display }}</option>
@@ -177,7 +177,7 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addModal').style.display='none'">Cancelar</button>
+        <button type="button" class="btn btn-secondary" onclick="cerrarAddModal()">Cancelar</button>
         <button type="button" class="btn btn-primary" onclick="document.getElementById('addNivelForm').submit()">Guardar</button>
       </div>
     </div>
@@ -393,8 +393,18 @@ function openEditModal(id, tipo_ten, nivel) {
   document.getElementById('editModal').style.display = 'flex';
 }
 
-function cerrarModal() {
+function abrirAddModal() {
+  document.getElementById('addNivelForm').reset();
+  document.getElementById('addModal').style.display = 'flex';
+}
+
+function cerrarAddModal() {
   document.getElementById('addModal').style.display = 'none';
+  document.getElementById('addNivelForm').reset();
+}
+
+function cerrarModal() {
+  cerrarAddModal();
   document.getElementById('editModal').style.display = 'none';
 }
 

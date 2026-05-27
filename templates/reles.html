@@ -387,7 +387,7 @@
                         {% for puerto in iface.puertos.all %}
                           <div class="puerto-item">
                             <label class="check-card-elegant">
-                              <input type="checkbox" name="remota_interfaces" value="{{ iface.Id_Interfaz }}" data-tipo="{{ puerto.Tipo }}" onchange="toggleRemotaIp(this)">
+                              <input type="checkbox" name="remota_puerto_sel" value="{{ iface.Id_Interfaz }}_{{ puerto.Id_Puerto }}" data-tipo="{{ puerto.Tipo }}" data-iface="{{ iface.Id_Interfaz }}" onchange="toggleRemotaIp(this)">
                               <span class="check-icon-wrapper">
                                 {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
                                 {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
@@ -995,10 +995,11 @@ function marcarCheckboxesRemota(data) {
     protoChecks[i].checked = (data.remota_protocolos || []).includes(parseInt(protoChecks[i].value));
   }
   
-  // Interfaces
-  var ifaceChecks = document.querySelectorAll('input[name="remota_interfaces"]');
+  // Interfaces (selección a nivel de puerto, claves 'iface_puerto')
+  var selPuertos = (data.remota_puertos_sel || []).map(String);
+  var ifaceChecks = document.querySelectorAll('input[name="remota_puerto_sel"]');
   for (var i = 0; i < ifaceChecks.length; i++) {
-    ifaceChecks[i].checked = (data.remota_interfaces || []).includes(parseInt(ifaceChecks[i].value));
+    ifaceChecks[i].checked = selPuertos.includes(ifaceChecks[i].value);
   }
 }
 

@@ -36,7 +36,7 @@
     <input type="text" class="search-input" id="searchInput" placeholder="Buscar remotas..." onkeyup="filterTable()">
   </div>
   <div class="action-buttons">
-    <button type="button" class="btn btn-primary btn-add-top" onclick="document.getElementById('addModal').classList.add('active')">
+    <button type="button" class="btn btn-primary btn-add-top" onclick="abrirAddModal()">
       <i class="fas fa-plus"></i> Añadir
     </button>
     <a href="{% url 'exportar_remotas_pdf' %}" class="btn btn-secondary btn-add-top">
@@ -310,10 +310,21 @@ function openEditModal(id, marca, modelo, id_ten) {
   document.getElementById('editModal').classList.add('active');
 }
 
+function resetAddForm() {
+  var f = document.getElementById('addRemotaForm');
+  if (f) f.reset();
+}
+
+function abrirAddModal() {
+  resetAddForm();
+  document.getElementById('addModal').classList.add('active');
+}
+
 document.querySelectorAll('[data-modal]').forEach(function(btn) {
   btn.addEventListener('click', function() {
     var modalId = this.getAttribute('data-modal');
     document.getElementById(modalId).classList.remove('active');
+    if (modalId === 'addModal') resetAddForm();
   });
 });
 
@@ -322,6 +333,7 @@ document.querySelectorAll('[data-action="close"]').forEach(function(btn) {
     var modalId = this.getAttribute('data-modal');
     if (modalId) {
       document.getElementById(modalId).classList.remove('active');
+      if (modalId === 'addModal') resetAddForm();
     }
   });
 });
@@ -330,12 +342,16 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     document.getElementById('addModal').classList.remove('active');
     document.getElementById('editModal').classList.remove('active');
+    resetAddForm();
   }
 });
 
 document.querySelectorAll('.modal').forEach(function(modal) {
   modal.addEventListener('click', function(e) {
-    if (e.target === modal) modal.classList.remove('active');
+    if (e.target === modal) {
+      modal.classList.remove('active');
+      if (modal.id === 'addModal') resetAddForm();
+    }
   });
 });
 

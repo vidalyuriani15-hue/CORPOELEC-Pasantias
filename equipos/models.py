@@ -68,6 +68,7 @@ class Rele(models.Model):
     Remota = models.ForeignKey("Remota", on_delete=models.SET_NULL, null=True, blank=True, related_name='reles_asociados', verbose_name='Remota asociada')
     Puertos_IPs = models.JSONField(default=dict, blank=True, verbose_name='IPs por puerto ETH del relé')
     Remota_IPs = models.JSONField(default=dict, blank=True, verbose_name='IPs por puerto ETH de la remota')
+    Remota_Puertos = models.JSONField(default=list, blank=True, verbose_name='Puertos de la remota seleccionados (claves iface_puerto)')
     Entradas_Digitales = models.PositiveIntegerField(default=0, verbose_name='Entradas Digitales')
     Salidas_Digitales = models.PositiveIntegerField(default=0, verbose_name='Salidas Digitales')
     Entradas_Analogicas = models.PositiveIntegerField(default=0, verbose_name='Entradas Analógicas')

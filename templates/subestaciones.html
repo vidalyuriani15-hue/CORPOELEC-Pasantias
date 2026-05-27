@@ -38,7 +38,7 @@
     <input type="text" class="search-input" id="searchInput" placeholder="Buscar subestaciones..." onkeyup="filterTable()">
   </div>
   <div class="action-buttons">
-    <button type="button" class="btn btn-primary btn-add-top" onclick="document.getElementById('addModal').classList.add('active')">
+    <button type="button" class="btn btn-primary btn-add-top" onclick="abrirAddModal()">
       <i class="fas fa-plus"></i> Añadir
     </button>
     <a href="{% url 'exportar_subestaciones_pdf' %}" class="btn btn-secondary btn-add-top">
@@ -250,6 +250,14 @@
     function closeEditModal() {
       document.getElementById('editModal').classList.remove('active');
     }
+    function resetAddForm() {
+      var f = document.getElementById('addSubestacionForm');
+      if (f) f.reset();
+    }
+    function abrirAddModal() {
+      resetAddForm();
+      document.getElementById('addModal').classList.add('active');
+    }
     function submitEditForm() {
       document.getElementById('editSubestacionForm').submit();
     }
@@ -260,7 +268,7 @@
       console.log('Botón Añadir encontrado - conectando listener');
       openAddBtn.addEventListener('click', function() {
         console.log('Botón Añadir clickeado - abriendo modal');
-        document.getElementById('addModal').classList.add('active');
+        abrirAddModal();
       });
     } else {
       console.error('Botón openAddModal NO encontrado');
@@ -278,13 +286,17 @@
       if (e.key === 'Escape') {
         document.getElementById('addModal').classList.remove('active');
         document.getElementById('editModal').classList.remove('active');
+        resetAddForm();
       }
     });
 
     // Cerrar al hacer click fuera de modal
     document.querySelectorAll('.modal').forEach(function(modal) {
       modal.addEventListener('click', function(e) {
-        if (e.target === modal) modal.classList.remove('active');
+        if (e.target === modal) {
+          modal.classList.remove('active');
+          if (modal.id === 'addModal') resetAddForm();
+        }
       });
     });
     // Cerrar modales - usando data attributes
@@ -292,6 +304,7 @@
       btn.addEventListener('click', function() {
         var modalId = this.getAttribute('data-modal');
         document.getElementById(modalId).classList.remove('active');
+        if (modalId === 'addModal') resetAddForm();
       });
     });
 
@@ -300,6 +313,7 @@
         var modalId = this.getAttribute('data-modal');
         if (modalId) {
           document.getElementById(modalId).classList.remove('active');
+          if (modalId === 'addModal') resetAddForm();
         }
       });
     });

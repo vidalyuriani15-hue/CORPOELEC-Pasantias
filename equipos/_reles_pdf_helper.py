@@ -15,6 +15,8 @@ from reportlab.platypus import (
     Table, TableStyle,
 )
 
+from .models import PuertoComunicacion
+
 
 # ── Paleta ─────────────────────────────────────────────────────────────────
 NAVY      = colors.HexColor('#0D2B4D')
@@ -44,17 +46,17 @@ def _styles():
                                      textColor=NAVY, fontName='Helvetica-Bold'),
         'rele_h':     ParagraphStyle('rh',  parent=s['Normal'], fontSize=10, leading=12,
                                      textColor=NAVY, fontName='Helvetica-Bold'),
-        'section':    ParagraphStyle('sec', parent=s['Normal'], fontSize=9.5, leading=11,
+        'section':    ParagraphStyle('sec', parent=s['Normal'], fontSize=8.5, leading=10,
                                      textColor=NAVY, fontName='Helvetica-Bold'),
-        'label':      ParagraphStyle('lbl', parent=s['Normal'], fontSize=6.5, leading=8,
+        'label':      ParagraphStyle('lbl', parent=s['Normal'], fontSize=6, leading=7,
                                      textColor=MUTED, fontName='Helvetica-Bold'),
-        'value':      ParagraphStyle('val', parent=s['Normal'], fontSize=8.5, leading=10,
+        'value':      ParagraphStyle('val', parent=s['Normal'], fontSize=8, leading=9,
                                      textColor=INK, fontName='Helvetica'),
-        'small':      ParagraphStyle('sm',  parent=s['Normal'], fontSize=6.5, leading=8,
+        'small':      ParagraphStyle('sm',  parent=s['Normal'], fontSize=6, leading=7,
                                      textColor=MUTED),
-        'obs':        ParagraphStyle('obs', parent=s['Normal'], fontSize=8, leading=10,
+        'obs':        ParagraphStyle('obs', parent=s['Normal'], fontSize=7.5, leading=9,
                                      textColor=TEXT),
-        'no_data':    ParagraphStyle('nd',  parent=s['Normal'], fontSize=7.5, leading=9,
+        'no_data':    ParagraphStyle('nd',  parent=s['Normal'], fontSize=7, leading=8,
                                      textColor=MUTED, fontName='Helvetica-Oblique'),
         'badge_txt':  ParagraphStyle('bdg', parent=s['Normal'], fontSize=7, leading=9,
                                      textColor=INK, fontName='Helvetica-Bold'),
@@ -132,8 +134,10 @@ def _section_header(title, icon_letter, st):
     return tbl
 
 
-def _card(body_flowables, width):
-    """Envuelve flowables en una "card" blanca con borde y radio sutil."""
+def _card(body_flowables, width, pad=12):
+    """Envuelve flowables en una "card" blanca con borde y radio sutil.
+    `pad` controla el padding vertical superior/inferior interno.
+    """
     rows = [[fl] for fl in body_flowables]
     tbl = Table(rows, colWidths=[width])
     tbl.setStyle(TableStyle([
@@ -144,8 +148,8 @@ def _card(body_flowables, width):
         ('RIGHTPADDING',  (0,0), (-1,-1), 12),
         ('TOPPADDING',    (0,0), (-1,-1), 0),
         ('BOTTOMPADDING', (0,0), (-1,-1), 0),
-        ('TOPPADDING',    (0,0), (0,0), 12),
-        ('BOTTOMPADDING', (0,-1), (-1,-1), 12),
+        ('TOPPADDING',    (0,0), (0,0), pad),
+        ('BOTTOMPADDING', (0,-1), (-1,-1), pad),
     ]))
     return tbl
 
@@ -168,8 +172,8 @@ def _info_rows(items, st):
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('LEFTPADDING', (0,0), (-1,-1), 0),
         ('RIGHTPADDING',(0,0), (-1,-1), 0),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
     ]
     # Línea fina entre filas
     for i in range(len(rows) - 1):
@@ -323,6 +327,60 @@ def _plain_list(items, st):
     return tbl
 
 
+def _senales_row(items, width, st):
+    """Fila de 4 métricas (señales) en una sola línea.
+    items: lista de (label, value). El valor se muestra grande y el label debajo.
+    """
+    gap = 8
+    n = len(items)
+    cell_w = (width - gap * (n - 1)) / n if n else width
+
+    value_st = ParagraphStyle('senal_val', parent=st['value'], fontSize=10,
+                              leading=12, alignment=TA_CENTER, textColor=NAVY)
+    label_st = ParagraphStyle('senal_lbl', parent=st['label'], fontSize=6.5,
+                              leading=8, alignment=TA_CENTER)
+
+    cells = []
+    for label, value in items:
+        inner = Table([
+            [Paragraph(str(value), value_st)],
+            [Paragraph(label.upper(), label_st)],
+        ], colWidths=[cell_w])
+        inner.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), LIGHT_BG),
+            ('BOX', (0,0), (-1,-1), 0.5, CARD_BR),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('LEFTPADDING', (0,0), (-1,-1), 4),
+            ('RIGHTPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (0,0), 5),
+            ('BOTTOMPADDING', (0,0), (0,0), 1),
+            ('TOPPADDING', (0,1), (0,1), 0),
+            ('BOTTOMPADDING', (0,1), (0,1), 5),
+        ]))
+        cells.append(inner)
+
+    # Intercalar separadores entre celdas
+    row = []
+    col_widths = []
+    for i, c in enumerate(cells):
+        if i > 0:
+            row.append('')
+            col_widths.append(gap)
+        row.append(c)
+        col_widths.append(cell_w)
+
+    outer = Table([row], colWidths=col_widths)
+    outer.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+    ]))
+    return outer
+
+
 def build_reles_pdf(reles):
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -402,37 +460,37 @@ def build_reles_pdf(reles):
         ]
         info_card = _card([
             _section_header('Información General', 'i', st),
-            Spacer(1, 8),
+            Spacer(1, 4),
             _info_rows(info_items, st),
         ], col_w)
 
         # ── Card: Observaciones (al lado derecho de Info General) ──
         obs_card = _card([
             _section_header('Observaciones', '✎', st),
-            Spacer(1, 8),
+            Spacer(1, 4),
             Paragraph(rele.Observaciones or 'Sin observaciones', st['obs']),
-        ], col_w)
+        ], col_w, pad=7)
 
         # ── Card: Protocolos ──
         proto_card = _card([
             _section_header('Protocolos', '⚙', st),
-            Spacer(1, 8),
+            Spacer(1, 4),
             _badges_row(protos_badges, col_w, st, per_row=2),
-        ], col_w)
+        ], col_w, pad=7)
 
         # ── Card: Interfaces de Comunicación ──
         iface_card = _card([
             _section_header('Interfaces de Comunicación', '⇄', st),
-            Spacer(1, 8),
+            Spacer(1, 4),
             _badges_row(puertos_badges, col_w, st, per_row=2),
-        ], col_w)
+        ], col_w, pad=7)
 
         # ── Columna derecha: Observaciones + Protocolos + Interfaces stacked ──
         right_col = Table([
             [obs_card],
-            [Spacer(1, 8)],
+            [Spacer(1, 5)],
             [proto_card],
-            [Spacer(1, 8)],
+            [Spacer(1, 5)],
             [iface_card],
         ], colWidths=[col_w])
         right_col.setStyle(TableStyle([
@@ -454,35 +512,72 @@ def build_reles_pdf(reles):
             ('BOTTOMPADDING', (0,0), (-1,-1), 0),
         ]))
 
+        # ── Card: Señales (ancho completo, 4 métricas en una línea) ──
+        senales_items = [
+            ('Entrada Digital',   rele.Entradas_Digitales or 0),
+            ('Salida Digital',    rele.Salidas_Digitales or 0),
+            ('Entrada Analógica', rele.Entradas_Analogicas or 0),
+            ('Contadores',        rele.Contadores or 0),
+        ]
+        senales_card = _card([
+            _section_header('Señales', '∿', st),
+            Spacer(1, 4),
+            _senales_row(senales_items, page_w - 24, st),
+        ], page_w, pad=7)
+
         # ── Card: Remota (ancho completo) ──
         rem = rele.Remota
         if rele.EsRemoto and rem:
-            niv_rem = '—'
-            if rem.Id_Ten:
-                tipo_r = rem.Id_Ten.get_Tipo_ten_display() if hasattr(rem.Id_Ten, 'get_Tipo_ten_display') else ''
-                nv_r   = rem.Id_Ten.get_Nivel_display() if hasattr(rem.Id_Ten, 'get_Nivel_display') else str(rem.Id_Ten.Nivel)
-                niv_rem = f"{tipo_r} - {nv_r}" if tipo_r else nv_r
+            # Nivel(es) de tensión: campo M2M Niveles_Ten (lo que edita el formulario)
+            niveles_rem = []
+            for nivel in rem.Niveles_Ten.all():
+                tipo_r = nivel.get_Tipo_ten_display() if hasattr(nivel, 'get_Tipo_ten_display') else ''
+                nv_r   = nivel.get_Nivel_display() if hasattr(nivel, 'get_Nivel_display') else str(nivel.Nivel)
+                niveles_rem.append(f"{tipo_r} - {nv_r}" if tipo_r else nv_r)
+            niv_rem = ', '.join(niveles_rem) if niveles_rem else '—'
             rem_protos_plain = [p.get_Tipo_display() for p in rem.Protocolos.all()]
             remota_ips_data = rele.Remota_IPs or {}
+
+            # Interfaces: usar la selección a nivel de puerto guardada en
+            # Remota_Puertos; para relés antiguos, derivar de las interfaces.
+            pares = []
+            if rele.Remota_Puertos:
+                for clave in rele.Remota_Puertos:
+                    if '_' in clave:
+                        iface_id, puerto_id = clave.split('_', 1)
+                        pares.append((iface_id, puerto_id))
+            else:
+                for iface in rem.Interfaces.all():
+                    for pt in iface.puertos.all():
+                        pares.append((str(iface.Id_Interfaz), str(pt.Id_Puerto)))
+
+            puerto_ids = [pid for _, pid in pares]
+            puertos_map = {
+                str(p.Id_Puerto): p
+                for p in PuertoComunicacion.objects.filter(Id_Puerto__in=puerto_ids)
+            }
+
             rem_ifaces_plain = []
             seen_non_eth = set()
             seen_eth_keys = set()
-            for iface in rem.Interfaces.all():
-                for pt in iface.puertos.all():
-                    label = pt.get_Tipo_display()
-                    if pt.Tipo == 'ETH':
-                        key = (iface.Id_Interfaz, pt.Id_Puerto)
-                        if key in seen_eth_keys:
-                            continue
-                        seen_eth_keys.add(key)
-                        ip_key = f'{iface.Id_Interfaz}_{pt.Id_Puerto}'
-                        ip = remota_ips_data.get(ip_key) or '0.0.0.0'
-                        rem_ifaces_plain.append((label, ip))
-                    else:
-                        if pt.Tipo in seen_non_eth:
-                            continue
-                        seen_non_eth.add(pt.Tipo)
-                        rem_ifaces_plain.append((label, None))
+            for iface_id, puerto_id in pares:
+                pt = puertos_map.get(str(puerto_id))
+                if not pt:
+                    continue
+                label = pt.get_Tipo_display()
+                if pt.Tipo == 'ETH':
+                    key = (iface_id, puerto_id)
+                    if key in seen_eth_keys:
+                        continue
+                    seen_eth_keys.add(key)
+                    ip_key = f'{iface_id}_{puerto_id}'
+                    ip = remota_ips_data.get(ip_key) or '0.0.0.0'
+                    rem_ifaces_plain.append((label, ip))
+                else:
+                    if pt.Tipo in seen_non_eth:
+                        continue
+                    seen_non_eth.add(pt.Tipo)
+                    rem_ifaces_plain.append((label, None))
 
             # 2 columnas:
             # Izquierda: Marca, Nivel de Tensión, Interfaces
@@ -511,15 +606,15 @@ def build_reles_pdf(reles):
 
             remota_card = _card([
                 _section_header('Remota Asociada', 'R', st),
-                Spacer(1, 8),
+                Spacer(1, 4),
                 info_2col,
-            ], page_w)
+            ], page_w, pad=7)
         else:
             remota_card = _card([
                 _section_header('Remota', 'R', st),
-                Spacer(1, 6),
+                Spacer(1, 4),
                 Paragraph('No tiene remota asociada', st['no_data']),
-            ], page_w)
+            ], page_w, pad=7)
 
         footer_p = Paragraph(
             f'<font color="#8c8c8c" size="6.5">Registrado el {fecha} · por {creado}</font>',
@@ -527,15 +622,24 @@ def build_reles_pdf(reles):
 
         card_block = [
             rele_hdr,
-            Spacer(1, 6),
+            Spacer(1, 5),
             main_row,
-            Spacer(1, 8),
+            Spacer(1, 5),
+            senales_card,
+            Spacer(1, 5),
             remota_card,
-            Spacer(1, 4),
+            Spacer(1, 3),
             footer_p,
-            Spacer(1, 14),
         ]
         elements.append(KeepTogether(card_block))
+
+        # Separador entre relés (no después del último)
+        if idx < len(reles):
+            elements.append(Spacer(1, 10))
+            elements.append(HRFlowable(width=page_w, thickness=1.2,
+                                       color=CARD_BR, spaceBefore=0, spaceAfter=0,
+                                       lineCap='round'))
+            elements.append(Spacer(1, 12))
 
     foot_line = Table([['']], colWidths=[page_w], rowHeights=[0.5])
     foot_line.setStyle(TableStyle([

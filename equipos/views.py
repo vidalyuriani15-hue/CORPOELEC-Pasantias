@@ -749,30 +749,38 @@ def _extract_puerto_ips(post, puertos_list):
     return ips
 
 
-def _extract_remota_ips(post, interfaces_list):
-    """Extrae {iface_id_puerto_id: ip} para interfaces ETH de la remota.
-    Si la interfaz contiene un puerto ETH y no hay IP, se guarda '0.0.0.0'.
+def _extract_remota_ips(post, puerto_keys):
+    """Extrae {iface_id_puerto_id: ip} para los puertos ETH de la remota
+    seleccionados (claves 'iface_puerto'). Si un puerto ETH está seleccionado
+    y no hay IP en el POST, se guarda '0.0.0.0' por defecto.
     """
     ips = {}
-    selected = [str(i) for i in interfaces_list]
+    selected = set(str(k) for k in puerto_keys)
 
-    # IPs explícitas del formulario
+    # IDs de puerto seleccionados (segunda parte de cada clave)
+    puerto_ids = [k.split('_', 1)[1] for k in selected if '_' in k]
+    eth_puerto_ids = set(
+        str(p) for p in PuertoComunicacion.objects.filter(
+            Id_Puerto__in=puerto_ids, Tipo='ETH'
+        ).values_list('Id_Puerto', flat=True)
+    )
+
+    # IPs explícitas del formulario (solo para claves seleccionadas)
     for key, value in post.items():
         if not key.startswith('remota_ip_'):
             continue
         rest = key[len('remota_ip_'):]
-        iface_id = rest.split('_', 1)[0]
-        if iface_id not in selected:
+        if rest not in selected:
             continue
         ips[rest] = (value or '').strip() or '0.0.0.0'
 
-    # Default 0.0.0.0 para cada puerto ETH de las interfaces seleccionadas
-    eth_puertos = PuertoComunicacion.objects.filter(
-        Id_Interfaz__in=selected, Tipo='ETH'
-    ).values_list('Id_Interfaz', 'Id_Puerto')
-    for iface_id, puerto_id in eth_puertos:
-        key = f'{iface_id}_{puerto_id}'
-        ips.setdefault(key, '0.0.0.0')
+    # Default 0.0.0.0 para cada puerto ETH seleccionado sin IP
+    for key in selected:
+        if '_' not in key:
+            continue
+        puerto_id = key.split('_', 1)[1]
+        if puerto_id in eth_puerto_ids:
+            ips.setdefault(key, '0.0.0.0')
 
     return ips
 
@@ -788,6 +796,13 @@ def reles_view(request):
         remota_data = {}
         if rele.Remota:
             remota = rele.Remota
+            # Claves de puerto seleccionadas ('iface_puerto'). Para relés antiguos
+            # sin selección a nivel de puerto, derivar de las interfaces asociadas.
+            remota_puertos_sel = list(rele.Remota_Puertos or [])
+            if not remota_puertos_sel:
+                for iface in remota.Interfaces.all():
+                    for puerto in iface.puertos.all():
+                        remota_puertos_sel.append(f'{iface.Id_Interfaz}_{puerto.Id_Puerto}')
             remota_data = {
                 'remota_id': remota.Id_Remota,
                 'remota_marca': remota.Marca,
@@ -795,7 +810,7 @@ def reles_view(request):
                 'remota_id_ten': remota.Id_Ten.Id_Ten if remota.Id_Ten else None,
                 'remota_niveles': list(remota.Niveles_Ten.values_list('Id_Ten', flat=True)),
                 'remota_protocolos': list(remota.Protocolos.values_list('Id_Protocolo', flat=True)),
-                'remota_interfaces': list(remota.Interfaces.values_list('Id_Interfaz', flat=True))
+                'remota_puertos_sel': remota_puertos_sel,
             }
         
         # Validar IDs contra la BD para evitar referencias huérfanas (D6)
@@ -854,7 +869,7 @@ def reles_view(request):
             print(f"  puertos getlist: {request.POST.getlist('puertos')}", file=sys.stderr)
             print(f"  remota_nivel_tension: {request.POST.getlist('remota_nivel_tension')}", file=sys.stderr)
             print(f"  remota_protocolos: {request.POST.getlist('remota_protocolos')}", file=sys.stderr)
-            print(f"  remota_interfaces: {request.POST.getlist('remota_interfaces')}", file=sys.stderr)
+            print(f"  remota_puerto_sel: {request.POST.getlist('remota_puerto_sel')}", file=sys.stderr)
             print("=" * 80, file=sys.stderr)
             
             try:
@@ -896,16 +911,17 @@ def reles_view(request):
                         # Update Remota's M2M fields
                         remota_niveles = request.POST.getlist('remota_nivel_tension')
                         remota_protocolos = request.POST.getlist('remota_protocolos')
-                        remota_interfaces = request.POST.getlist('remota_interfaces')
-
-                        print(f"DEBUG: Updating Remota {remota.Id_Remota} - Niveles: {remota_niveles}, Protocolos: {remota_protocolos}, Interfaces: {remota_interfaces}", file=sys.stderr)
+                        # Selección a nivel de puerto: claves 'iface_puerto'
+                        remota_puerto_keys = request.POST.getlist('remota_puerto_sel')
+                        remota_interfaces = list({k.split('_', 1)[0] for k in remota_puerto_keys if '_' in k})
 
                         remota.Niveles_Ten.set(remota_niveles)
                         remota.Protocolos.set(remota_protocolos)
                         remota.Interfaces.set(remota_interfaces)
                         remota.save()
 
-                        rele.Remota_IPs = _extract_remota_ips(request.POST, remota_interfaces)
+                        rele.Remota_Puertos = remota_puerto_keys
+                        rele.Remota_IPs = _extract_remota_ips(request.POST, remota_puerto_keys)
                     elif es_remoto:
                         # EsRemoto=True pero falta remota_id en el POST: conservar
                         # la asociación previa para no perder datos silenciosamente.
@@ -914,6 +930,7 @@ def reles_view(request):
                         # Clear remote association if unchecked
                         rele.Remota = None
                         rele.Remota_IPs = {}
+                        rele.Remota_Puertos = []
 
                     rele.save()
                     print(f"DEBUG: Rele {rele_id} saved successfully. EsRemoto={es_remoto}", file=sys.stderr)
@@ -971,16 +988,17 @@ def reles_view(request):
                         # Update Remota's M2M fields
                         remota_niveles = request.POST.getlist('remota_nivel_tension')
                         remota_protocolos = request.POST.getlist('remota_protocolos')
-                        remota_interfaces = request.POST.getlist('remota_interfaces')
-
-                        print(f"DEBUG: Updating Remota {remota.Id_Remota} - Niveles: {remota_niveles}, Protocolos: {remota_protocolos}, Interfaces: {remota_interfaces}", file=sys.stderr)
+                        # Selección a nivel de puerto: claves 'iface_puerto'
+                        remota_puerto_keys = request.POST.getlist('remota_puerto_sel')
+                        remota_interfaces = list({k.split('_', 1)[0] for k in remota_puerto_keys if '_' in k})
 
                         remota.Niveles_Ten.set(remota_niveles)
                         remota.Protocolos.set(remota_protocolos)
                         remota.Interfaces.set(remota_interfaces)
                         remota.save()
 
-                        rele.Remota_IPs = _extract_remota_ips(request.POST, remota_interfaces)
+                        rele.Remota_Puertos = remota_puerto_keys
+                        rele.Remota_IPs = _extract_remota_ips(request.POST, remota_puerto_keys)
 
                     rele.save()
                     print(f"DEBUG: Rele created. EsRemoto={es_remoto}, Remota_id={request.POST.get('remota_id')}", file=sys.stderr)
@@ -1056,33 +1074,56 @@ def rele_detalle_view(request, pk):
     # pero deduplicados por la clave (iface_id, puerto_id).
     remota_puertos_unicos = []
     if rele.Remota_id and rele.EsRemoto:
+        # Construir la lista de pares (iface_id, puerto_id) a mostrar.
+        # Se usa la selección a nivel de puerto guardada en Remota_Puertos;
+        # para relés antiguos sin ese dato, se deriva de las interfaces (compat).
+        pares = []
+        if rele.Remota_Puertos:
+            for clave in rele.Remota_Puertos:
+                if '_' in clave:
+                    iface_id, puerto_id = clave.split('_', 1)
+                    pares.append((iface_id, puerto_id))
+        else:
+            for iface in rele.Remota.Interfaces.all():
+                for puerto in iface.puertos.all():
+                    pares.append((str(iface.Id_Interfaz), str(puerto.Id_Puerto)))
+
+        # Resolver los puertos en lote
+        puerto_ids = [pid for _, pid in pares]
+        puertos_map = {
+            str(p.Id_Puerto): p
+            for p in PuertoComunicacion.objects.filter(Id_Puerto__in=puerto_ids)
+        }
+
         seen_non_eth = set()
         seen_eth_keys = set()
-        for iface in rele.Remota.Interfaces.all():
-            for puerto in iface.puertos.all():
-                if puerto.Tipo == 'ETH':
-                    key = (iface.Id_Interfaz, puerto.Id_Puerto)
-                    if key in seen_eth_keys:
-                        continue
-                    seen_eth_keys.add(key)
-                    ipkey = f'{iface.Id_Interfaz}_{puerto.Id_Puerto}'
-                    ip = (rele.Remota_IPs or {}).get(ipkey) or '0.0.0.0'
-                    remota_puertos_unicos.append({
-                        'tipo': puerto.Tipo,
-                        'tipo_display': puerto.get_Tipo_display(),
-                        'is_eth': True,
-                        'ip': ip,
-                    })
-                else:
-                    if puerto.Tipo in seen_non_eth:
-                        continue
-                    seen_non_eth.add(puerto.Tipo)
-                    remota_puertos_unicos.append({
-                        'tipo': puerto.Tipo,
-                        'tipo_display': puerto.get_Tipo_display(),
-                        'is_eth': False,
-                        'ip': None,
-                    })
+        for iface_id, puerto_id in pares:
+            puerto = puertos_map.get(str(puerto_id))
+            if not puerto:
+                continue
+            if puerto.Tipo == 'ETH':
+                key = (iface_id, puerto_id)
+                if key in seen_eth_keys:
+                    continue
+                seen_eth_keys.add(key)
+                ipkey = f'{iface_id}_{puerto_id}'
+                ip = (rele.Remota_IPs or {}).get(ipkey) or '0.0.0.0'
+                remota_puertos_unicos.append({
+                    'tipo': puerto.Tipo,
+                    'tipo_display': puerto.get_Tipo_display(),
+                    'is_eth': True,
+                    'ip': ip,
+                })
+            else:
+                if puerto.Tipo in seen_non_eth:
+                    continue
+                seen_non_eth.add(puerto.Tipo)
+                remota_puertos_unicos.append({
+                    'tipo': puerto.Tipo,
+                    'tipo_display': puerto.get_Tipo_display(),
+                    'is_eth': False,
+                    'ip': None,
+                })
 
     if request.GET.get('modal') == '1':
         return render(request, 'rele_detalle_partial.html', {

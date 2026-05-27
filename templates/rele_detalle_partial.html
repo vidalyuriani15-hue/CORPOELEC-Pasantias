@@ -132,7 +132,13 @@
       <dl class="rele-info-list">
         <div class="info-row">
           <dt>Nivel de Tensión</dt>
-          <dd>{{ rele.Remota.Id_Ten.get_Tipo_ten_display }} - {{ rele.Remota.Id_Ten.get_Nivel_display }}</dd>
+          <dd>
+            {% for nivel in rele.Remota.Niveles_Ten.all %}
+              {{ nivel.get_Tipo_ten_display }} - {{ nivel.get_Nivel_display }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              <span class="no-data">— Ninguno —</span>
+            {% endfor %}
+          </dd>
         </div>
         <div class="info-row">
           <dt>Marca</dt>
