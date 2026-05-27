@@ -226,6 +226,28 @@
             </div>
 
             <div class="form-group" style="grid-column: 1 / -1;">
+                <label class="form-label">Señales</label>
+                <div class="senales-grid">
+                    <div class="senal-item">
+                        <label>Entrada Digital</label>
+                        <input type="number" name="entradas_digitales" min="0" value="0">
+                    </div>
+                    <div class="senal-item">
+                        <label>Salida Digital</label>
+                        <input type="number" name="salidas_digitales" min="0" value="0">
+                    </div>
+                    <div class="senal-item">
+                        <label>Entrada Analógica</label>
+                        <input type="number" name="entradas_analogicas" min="0" value="0">
+                    </div>
+                    <div class="senal-item">
+                        <label>Contadores</label>
+                        <input type="number" name="contadores" min="0" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1;">
                 <label>Protocolos de TeleControl y Energía</label>
                 <div id="protocolosContainer" class="checks-grid">
                     {% for p in protocolos %}
@@ -465,6 +487,12 @@
   .form-group input[type="file"]:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
   .form-text { display:block; margin-top:4px; font-size:0.75rem; color:#6c757d; }
    .checks-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
+   .senales-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; }
+   .senal-item { display:flex; flex-direction:column; background:#f8fafc; border:1px solid #e8eaf6; border-radius:8px; padding:12px 14px; transition:border-color 0.2s ease, box-shadow 0.2s ease; }
+   .senal-item:focus-within { border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
+   .senal-item label { font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:#0D2B4D; font-weight:600; margin-bottom:6px; }
+   .senal-item input { width:100%; padding:8px 10px; border:1px solid #dee2e6; border-radius:6px; font-size:0.95rem; background:#fff; }
+   @media (max-width: 768px) { .senales-grid { grid-template-columns:repeat(2, 1fr); } }
    .puerto-item { display: flex; flex-direction: column; }
    .ip-field input.ip-input {
      width: 100%;
@@ -875,6 +903,10 @@ function marcarCheckboxesRemota(data) {
       document.querySelector('input[name="marca"]').value = data.marca;
       document.querySelector('input[name="modelo"]').value = data.modelo;
       document.querySelector('textarea[name="observaciones"]').value = data.observaciones || '';
+      document.querySelector('input[name="entradas_digitales"]').value = data.entradas_digitales || 0;
+      document.querySelector('input[name="salidas_digitales"]').value = data.salidas_digitales || 0;
+      document.querySelector('input[name="entradas_analogicas"]').value = data.entradas_analogicas || 0;
+      document.querySelector('input[name="contadores"]').value = data.contadores || 0;
       var protocolos = document.querySelectorAll('input[name="protocolos"]');
       var puertos = document.querySelectorAll('input[name="puertos"]');
       for (var i = 0; i < protocolos.length; i++) { protocolos[i].checked = false; }
@@ -940,6 +972,7 @@ function marcarCheckboxesRemota(data) {
             for (var j = 0; j < modeloSelect.options.length; j++) {
               if (modeloSelect.options[j].value == data.remota_id) {
                 modeloSelect.value = data.remota_id;
+                document.getElementById('remota_id_hidden').value = data.remota_id;
                 break;
               }
             }

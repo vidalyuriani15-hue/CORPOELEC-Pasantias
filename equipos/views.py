@@ -737,6 +737,10 @@ def reles_view(request):
             'puertos': [pid for pid in rele.Puertos.values_list('Id_Puerto', flat=True) if pid in valid_puerto_ids],
             'puertos_ips': rele.Puertos_IPs or {},
             'remota_ips': rele.Remota_IPs or {},
+            'entradas_digitales': rele.Entradas_Digitales,
+            'salidas_digitales': rele.Salidas_Digitales,
+            'entradas_analogicas': rele.Entradas_Analogicas,
+            'contadores': rele.Contadores,
         }
         data.update(remota_data)
         return JsonResponse(data)
@@ -784,6 +788,10 @@ def reles_view(request):
                     rele.Modelo = request.POST.get('modelo')
                     rele.Estado = request.POST.get('estado')
                     rele.Observaciones = request.POST.get('observaciones', '')
+                    rele.Entradas_Digitales = int(request.POST.get('entradas_digitales') or 0)
+                    rele.Salidas_Digitales = int(request.POST.get('salidas_digitales') or 0)
+                    rele.Entradas_Analogicas = int(request.POST.get('entradas_analogicas') or 0)
+                    rele.Contadores = int(request.POST.get('contadores') or 0)
                     
                     if request.FILES.get('imagen'):
                         rele.Imagen = request.FILES.get('imagen')
@@ -820,6 +828,10 @@ def reles_view(request):
                         remota.save()
 
                         rele.Remota_IPs = _extract_remota_ips(request.POST, remota_interfaces)
+                    elif es_remoto:
+                        # EsRemoto=True pero falta remota_id en el POST: conservar
+                        # la asociación previa para no perder datos silenciosamente.
+                        print(f"DEBUG: es_remoto=True sin remota_id; conservando Remota previa", file=sys.stderr)
                     else:
                         # Clear remote association if unchecked
                         rele.Remota = None
@@ -849,6 +861,10 @@ def reles_view(request):
                         Modelo=request.POST.get('modelo'),
                         Estado=request.POST.get('estado'),
                         Observaciones=request.POST.get('observaciones', ''),
+                        Entradas_Digitales=int(request.POST.get('entradas_digitales') or 0),
+                        Salidas_Digitales=int(request.POST.get('salidas_digitales') or 0),
+                        Entradas_Analogicas=int(request.POST.get('entradas_analogicas') or 0),
+                        Contadores=int(request.POST.get('contadores') or 0),
                         creado_por=request.user
                     )
                     

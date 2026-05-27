@@ -100,6 +100,31 @@
 
   <div class="rele-detalle-seccion">
     <div class="seccion-header">
+      <span class="seccion-icon"><i class="fas fa-wave-square"></i></span>
+      <h4>Señales</h4>
+    </div>
+    <div class="senales-detalle">
+      <div class="senal-detalle-item">
+        <span class="senal-detalle-label">Entrada Digital</span>
+        <span class="senal-detalle-value">{{ rele.Entradas_Digitales }}</span>
+      </div>
+      <div class="senal-detalle-item">
+        <span class="senal-detalle-label">Salida Digital</span>
+        <span class="senal-detalle-value">{{ rele.Salidas_Digitales }}</span>
+      </div>
+      <div class="senal-detalle-item">
+        <span class="senal-detalle-label">Entrada Analógica</span>
+        <span class="senal-detalle-value">{{ rele.Entradas_Analogicas }}</span>
+      </div>
+      <div class="senal-detalle-item">
+        <span class="senal-detalle-label">Contadores</span>
+        <span class="senal-detalle-value">{{ rele.Contadores }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="rele-detalle-seccion">
+    <div class="seccion-header">
       <span class="seccion-icon"><i class="fas fa-satellite-dish"></i></span>
       <h4>Remota</h4>
     </div>
@@ -385,6 +410,12 @@
     padding-bottom: 6px;
     border-bottom: 1px solid #e8eaf6;
   }
+
+  .senales-detalle { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; }
+  .senal-detalle-item { background:#f8fafc; border:1px solid #e8eaf6; border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; text-align:center; }
+  .senal-detalle-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; font-weight:600; }
+  .senal-detalle-value { font-size:1.4rem; color:#0D2B4D; font-weight:700; }
+  @media (max-width: 768px) { .senales-detalle { grid-template-columns:repeat(2, 1fr); } }
 
   .sin-remota {
     display: flex;
