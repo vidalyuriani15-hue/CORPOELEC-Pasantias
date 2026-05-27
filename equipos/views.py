@@ -43,6 +43,80 @@ def index_view(request):
     ultimos_reconectadores = list(Reconectador.objects.all().order_by('-Fecha_Reg')[:5]) if total_reconectadores > 0 else []
     ultimos_reles = list(Rele.objects.all().order_by('-Fecha_Reg')[:5]) if total_reles > 0 else []
     ultimas_subestaciones = list(Subestacion.objects.all().order_by('-Fecha_Reg')[:5]) if total_subestaciones > 0 else []
+
+    # Datos para gráfica de picos: subestaciones creadas por mes (últimos 12 meses)
+    from datetime import date, timedelta
+
+    hoy = date.today()
+    year, month = hoy.year, hoy.month
+    month -= 11
+    while month <= 0:
+        month += 12
+        year -= 1
+    inicio = date(year, month, 1)
+    inicio_dia = date(hoy.year, hoy.month, 1)
+    # Días del mes actual
+    if hoy.month == 12:
+        siguiente_mes = date(hoy.year + 1, 1, 1)
+    else:
+        siguiente_mes = date(hoy.year, hoy.month + 1, 1)
+    dias_mes = (siguiente_mes - inicio_dia).days
+
+    meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+    # Construir las etiquetas (eje X) una sola vez
+    subs_chart_labels = []
+    meses_keys = []
+    y, mo = inicio.year, inicio.month
+    for _ in range(12):
+        subs_chart_labels.append(f"{meses_es[mo - 1]} {str(y)[-2:]}")
+        meses_keys.append((y, mo))
+        mo += 1
+        if mo > 12:
+            mo = 1
+            y += 1
+
+    subs_chart_dia_labels = []
+    dias_keys = []
+    for i in range(dias_mes):
+        d = inicio_dia + timedelta(days=i)
+        subs_chart_dia_labels.append(f"{d.day:02d}")
+        dias_keys.append(d)
+
+    def build_series(model):
+        fechas = model.objects.filter(Fecha_Reg__gte=inicio).values_list('Fecha_Reg', flat=True)
+        mes = {}
+        dia = {}
+        for f in fechas:
+            if not f:
+                continue
+            mes[(f.year, f.month)] = mes.get((f.year, f.month), 0) + 1
+            if f >= inicio_dia:
+                dia[f] = dia.get(f, 0) + 1
+        return ([mes.get(k, 0) for k in meses_keys],
+                [dia.get(k, 0) for k in dias_keys])
+
+    series_config = [
+        ('subestaciones', 'Subestaciones', '#4DA6FF', Subestacion),
+        ('reles',         'Relés',          '#00CC66', Rele),
+        ('niveles',       'Niveles Tensión','#FFCC00', NivelTension),
+        ('interfaces',    'Interfaces',     '#8844CC', InterfazDeComunicacion),
+        ('protocolos',    'Protocolos',     '#FF3333', Protocolo),
+        ('remotas',       'Remotas',        '#00CCCC', Remota),
+    ]
+    chart_series = []
+    for key, label, color, model in series_config:
+        mes_data, dia_data = build_series(model)
+        chart_series.append({
+            'key': key,
+            'label': label,
+            'color': color,
+            'mes': mes_data,
+            'dia': dia_data,
+        })
+
+    import json
     context = {
         'title': 'GridGuard - Dashboard',
         'total_reconectadores': total_reconectadores,
@@ -55,6 +129,9 @@ def index_view(request):
         'ultimos_reconectadores': ultimos_reconectadores,
         'ultimos_reles': ultimos_reles,
         'ultimas_subestaciones': ultimas_subestaciones,
+        'subs_chart_labels': json.dumps(subs_chart_labels),
+        'subs_chart_dia_labels': json.dumps(subs_chart_dia_labels),
+        'chart_series': json.dumps(chart_series),
     }
     return render(request, 'index.html', context)
 

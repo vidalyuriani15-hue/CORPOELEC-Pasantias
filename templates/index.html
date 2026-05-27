@@ -88,6 +88,30 @@
   </a>
 </div>
 
+<!-- Gráfica de picos: equipos por subestación -->
+<div class="chart-section">
+  <div class="chart-header">
+    <div class="chart-title-wrap">
+      <span class="chart-icon"><i class="fas fa-chart-area"></i></span>
+      <div>
+        <h3>Registros creados</h3>
+        <p class="chart-subtitle">Actividad de creación por entidad</p>
+      </div>
+    </div>
+    <div class="chart-controls">
+      <div class="chart-switch" role="tablist">
+        <button type="button" class="switch-btn" data-range="1">Último mes</button>
+        <button type="button" class="switch-btn" data-range="6">6 meses</button>
+        <button type="button" class="switch-btn active" data-range="12">12 meses</button>
+      </div>
+    </div>
+  </div>
+  <div id="chartLegend" class="chart-legend chart-legend-grid"></div>
+  <div class="chart-canvas-wrap">
+    <canvas id="subestacionesChart"></canvas>
+  </div>
+</div>
+
 <style>
 .welcome-header {
   margin-bottom: 30px;
@@ -167,6 +191,54 @@
   margin-top: 4px;
 }
 
+.chart-section {
+  margin-top: 32px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 24px 28px;
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f2f5;
+}
+.chart-title-wrap { display: flex; align-items: center; gap: 14px; }
+.chart-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4DA6FF, #0066CC);
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 12px rgba(77,166,255,0.3);
+}
+.chart-title-wrap h3 { margin: 0; color: var(--blue-dark); font-size: 1.1rem; font-weight: 600; }
+.chart-subtitle { margin: 2px 0 0; color: #6c757d; font-size: 0.82rem; }
+.chart-legend { display: flex; gap: 18px; flex-wrap: wrap; }
+.chart-legend-grid { gap: 10px 18px; margin-bottom: 16px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #f0f2f5; }
+.legend-item.toggle { cursor: pointer; user-select: none; padding: 4px 10px; border-radius: 6px; transition: background 0.15s ease, opacity 0.15s ease; }
+.legend-item.toggle:hover { background: #fff; }
+.legend-item.toggle.disabled { opacity: 0.35; text-decoration: line-through; }
+.chart-controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.chart-switch { display: inline-flex; background: #f4f7f6; border: 1px solid #e8eaf6; border-radius: 8px; padding: 3px; gap: 2px; }
+.switch-btn { background: transparent; border: none; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; color: #6c757d; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
+.switch-btn:hover { color: #0D2B4D; }
+.switch-btn.active { background: linear-gradient(135deg, #4DA6FF, #0066CC); color: #fff; box-shadow: 0 2px 6px rgba(77,166,255,0.3); }
+.legend-item { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #495057; font-weight: 500; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.chart-canvas-wrap { position: relative; height: 340px; }
+.chart-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 10px; color: #8c8c8c; font-style: italic;
+}
+.chart-empty i { font-size: 2.4rem; opacity: 0.4; }
+
 @media (max-width: 992px) {
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -177,6 +249,125 @@
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+  .chart-canvas-wrap { height: 280px; }
 }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  var fullLabels = {{ subs_chart_labels|safe }};
+  var diaLabels = {{ subs_chart_dia_labels|safe }};
+  var series = {{ chart_series|safe }};
+  var canvas = document.getElementById('subestacionesChart');
+  if (!canvas) return;
+
+  function hexToRgba(hex, a) {
+    var h = hex.replace('#', '');
+    var r = parseInt(h.substring(0, 2), 16);
+    var g = parseInt(h.substring(2, 4), 16);
+    var b = parseInt(h.substring(4, 6), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
+  var totalGlobal = series.reduce(function(s, ser) {
+    return s + ser.mes.reduce(function(a, b) { return a + b; }, 0);
+  }, 0);
+  if (!totalGlobal) {
+    canvas.parentElement.innerHTML = '<div class="chart-empty"><i class="fas fa-chart-area"></i><span>Aún no hay registros en los últimos 12 meses</span></div>';
+    return;
+  }
+
+  var ctx = canvas.getContext('2d');
+
+  function sliceData(ser, n) {
+    if (n === 1) return ser.dia;
+    return ser.mes.slice(-n);
+  }
+  function sliceLabels(n) {
+    if (n === 1) return diaLabels;
+    return fullLabels.slice(-n);
+  }
+
+  var datasets = series.map(function(ser) {
+    return {
+      label: ser.label,
+      data: sliceData(ser, 12),
+      borderColor: ser.color,
+      backgroundColor: hexToRgba(ser.color, 0.12),
+      fill: false,
+      tension: 0,
+      pointBackgroundColor: ser.color,
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      borderWidth: 2.5
+    };
+  });
+
+  var chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: sliceLabels(12), datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0D2B4D', titleColor: '#fff', bodyColor: '#fff',
+          padding: 12, cornerRadius: 6, displayColors: true,
+          callbacks: {
+            title: function(items) { return items[0].label; },
+            label: function(item) { return ' ' + item.dataset.label + ': ' + item.parsed.y; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#495057', font: { size: 11, weight: '500' }, maxRotation: 35, minRotation: 0 }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#6c757d', font: { size: 11 }, precision: 0, stepSize: 1 },
+          grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false }
+        }
+      }
+    }
+  });
+
+  // Leyenda interactiva personalizada
+  var legendBox = document.getElementById('chartLegend');
+  if (legendBox) {
+    legendBox.innerHTML = '';
+    series.forEach(function(ser, idx) {
+      var item = document.createElement('span');
+      item.className = 'legend-item toggle';
+      item.innerHTML = '<span class="legend-dot" style="background:' + ser.color + ';"></span>' + ser.label;
+      item.addEventListener('click', function() {
+        var meta = chart.getDatasetMeta(idx);
+        meta.hidden = meta.hidden === null ? !chart.data.datasets[idx].hidden : null;
+        item.classList.toggle('disabled', meta.hidden === true);
+        chart.update();
+      });
+      legendBox.appendChild(item);
+    });
+  }
+
+  document.querySelectorAll('.chart-switch .switch-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var n = parseInt(btn.dataset.range, 10);
+      chart.data.labels = sliceLabels(n);
+      chart.data.datasets.forEach(function(ds, idx) {
+        ds.data = sliceData(series[idx], n);
+      });
+      chart.update();
+      document.querySelectorAll('.chart-switch .switch-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+})();
+</script>
 {% endblock %}
