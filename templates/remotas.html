@@ -67,7 +67,7 @@
         <td>{{ remota.Fecha_Reg|date:"d/m/Y" }}</td>
 <td class="actions-cell">
     {% if puede_actualizar %}
-    <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ remota.Id_Remota }}, '{{ remota.Marca }}', '{{ remota.Modelo }}', {{ remota.Id_Ten.Id_Ten }})">
+    <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ remota.Id_Remota }}, '{{ remota.Marca }}', '{{ remota.Modelo }}', '{{ remota.Id_Ten.Id_Ten|default_if_none:'' }}')">
         <i class="fas fa-edit"></i>
     </button>
     {% endif %}
@@ -208,7 +208,7 @@
           </div>
            <div class="form-group">
              <label>Nivel de Tensión</label>
-             <select name="id_ten" id="edit_id_ten" class="form-control" required>
+             <select name="id_ten" id="edit_id_ten" class="form-control">
                <option value="">Seleccionar</option>
                {% for tension in tensiones %}
                <option value="{{ tension.Id_Ten }}">{{ tension.get_Tipo_ten_display }} - {{ tension.get_Nivel_display }}</option>
