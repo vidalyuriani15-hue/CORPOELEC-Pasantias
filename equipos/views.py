@@ -792,6 +792,7 @@ def reles_view(request):
                 'remota_id': remota.Id_Remota,
                 'remota_marca': remota.Marca,
                 'remota_modelo': remota.Modelo,
+                'remota_id_ten': remota.Id_Ten.Id_Ten if remota.Id_Ten else None,
                 'remota_niveles': list(remota.Niveles_Ten.values_list('Id_Ten', flat=True)),
                 'remota_protocolos': list(remota.Protocolos.values_list('Id_Protocolo', flat=True)),
                 'remota_interfaces': list(remota.Interfaces.values_list('Id_Interfaz', flat=True))
@@ -803,7 +804,7 @@ def reles_view(request):
         
         data = {
             'id_sub_est': rele.Id_Sub_est.Id_Sub_est,
-            'id_ten': rele.Id_Ten.Id_Ten,
+            'id_ten': rele.Id_Ten.Id_Ten if rele.Id_Ten else None,
             'marca': rele.Marca,
             'modelo': rele.Modelo,
             'estado': rele.Estado,

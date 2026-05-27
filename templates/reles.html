@@ -909,9 +909,11 @@ function abrirModal() {
 
 function cerrarViewModal() {
    document.getElementById('viewModal').classList.remove('active');
+   document.getElementById('modalReles').classList.remove('active');
  }
 
 function openViewModal(id) {
+  document.getElementById('modalReles').classList.remove('active');
   fetch('/reles/' + id + '/detalle/?modal=1')
     .then(function(r) { return r.text(); })
     .then(function(html) {
@@ -944,6 +946,8 @@ function marcarCheckboxesRemota(data) {
 }
 
  function openReleEditModal(id) {
+   // Cerrar modal de detalles si está abierto
+   cerrarViewModal();
    // Resetear formulario primero
    document.getElementById('formReles').reset();
    fetch('/reles/?detalle=1&id=' + id)
@@ -954,7 +958,7 @@ function marcarCheckboxesRemota(data) {
       document.getElementById('inputCrear').value = '1';
       document.getElementById('inputReleId').value = id;
       document.querySelector('select[name="id_sub_est"]').value = data.id_sub_est;
-      document.querySelector('select[name="id_ten"]').value = data.id_ten;
+      document.querySelector('select[name="id_ten"]').value = data.id_ten || '';
       document.querySelector('select[name="estado"]').value = data.estado;
       document.querySelector('input[name="marca"]').value = data.marca;
       document.querySelector('input[name="modelo"]').value = data.modelo;

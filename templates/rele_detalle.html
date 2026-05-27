@@ -189,7 +189,7 @@ body {
      <div class="form-row">
        <div class="form-group">
          <label>Nivel de tensión</label>
-         <input type="text" value="{{ rele.Id_Ten.get_Tipo_ten_display }} - {{ rele.Id_Ten.get_Nivel_display }}" readonly>
+         <input type="text" value="{% if rele.Id_Ten %}{{ rele.Id_Ten.get_Tipo_ten_display }} - {{ rele.Id_Ten.get_Nivel_display }}{% else %}Sin asignar{% endif %}" readonly>
        </div>
      </div>
      <div class="form-row">
@@ -217,7 +217,7 @@ body {
             <div class="form-row">
               <div class="form-group">
                 <label>Nivel de tensión de la remota</label>
-                <input type="text" value="{{ rele.Remota.Id_Ten.get_Tipo_ten_display }} - {{ rele.Remota.Id_Ten.get_Nivel_display }}" readonly>
+                <input type="text" value="{% if rele.Remota.Id_Ten %}{{ rele.Remota.Id_Ten.get_Tipo_ten_display }} - {{ rele.Remota.Id_Ten.get_Nivel_display }}{% else %}Sin asignar{% endif %}" readonly>
               </div>
             </div>
             <div class="form-row">
