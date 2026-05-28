@@ -175,6 +175,7 @@
         <div class="form-group">
           <label class="form-label">Puertos de Comunicación</label>
           <div class="checks-anchos" id="puertos_checks">
+            {% if 'ETH' not in tipos_registrados %}
             <label class="check-card">
               <input type="checkbox" name="tipos_puerto" value="ETH">
               <span class="card-icon-wrapper"><i class="fas fa-network-wired"></i></span>
@@ -183,6 +184,8 @@
                 <span class="card-sub">Conexión de red estándar</span>
               </div>
             </label>
+            {% endif %}
+            {% if 'RS232' not in tipos_registrados %}
             <label class="check-card">
               <input type="checkbox" name="tipos_puerto" value="RS232">
               <span class="card-icon-wrapper"><i class="fas fa-plug"></i></span>
@@ -191,6 +194,8 @@
                 <span class="card-sub">Puerto serial estándar</span>
               </div>
             </label>
+            {% endif %}
+            {% if 'RS485' not in tipos_registrados %}
             <label class="check-card">
               <input type="checkbox" name="tipos_puerto" value="RS485">
               <span class="card-icon-wrapper"><i class="fas fa-exchange-alt"></i></span>
@@ -199,6 +204,8 @@
                 <span class="card-sub">Comunicación half-duplex</span>
               </div>
             </label>
+            {% endif %}
+            {% if 'USB' not in tipos_registrados %}
             <label class="check-card">
               <input type="checkbox" name="tipos_puerto" value="USB">
               <span class="card-icon-wrapper"><i class="fab fa-usb"></i></span>
@@ -207,6 +214,8 @@
                 <span class="card-sub">Puerto universal serial</span>
               </div>
             </label>
+            {% endif %}
+            {% if 'FIBRA' not in tipos_registrados %}
             <label class="check-card">
               <input type="checkbox" name="tipos_puerto" value="FIBRA">
               <span class="card-icon-wrapper"><i class="fas fa-bolt"></i></span>
@@ -215,6 +224,10 @@
                 <span class="card-sub">Transmisión por fibra óptica</span>
               </div>
             </label>
+            {% endif %}
+            {% if tipos_registrados|length >= 5 %}
+            <p style="color:#6c757d; font-style:italic; padding:10px;">Todas las opciones ya están registradas.</p>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -414,6 +427,9 @@
     document.getElementById('modalAgregar').classList.remove('active');
   }
 
+  // Tipos ya registrados en cualquier interfaz activa (inyectado desde Django)
+  const TIPOS_REGISTRADOS = [{% for t in tipos_registrados %}'{{ t }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+
   function abrirModalEditar(interfazId, puertosStr) {
     const modal = document.getElementById('modalEditar');
     const container = document.getElementById('edit_checks_container');
@@ -421,7 +437,11 @@
     inputId.value = interfazId;
     container.innerHTML = '';
     const puertosExistentes = puertosStr ? puertosStr.split(',') : [];
-    OPCIONES_PUERTOS.forEach(opcion => {
+    // Mostrar opciones que NO están registradas en otras interfaces
+    // (las propias de esta interfaz sí deben mostrarse).
+    OPCIONES_PUERTOS.filter(op =>
+      !TIPOS_REGISTRADOS.includes(op.value) || puertosExistentes.includes(op.value)
+    ).forEach(opcion => {
       const label = document.createElement('label');
       label.className = 'check-card';
       const checked = puertosExistentes.includes(opcion.value) ? 'checked' : '';

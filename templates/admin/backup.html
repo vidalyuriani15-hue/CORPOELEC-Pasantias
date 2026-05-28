@@ -33,7 +33,6 @@
             <option value="">— Seleccione tipo —</option>
             <option value="full">Copia Completa (BD + Archivos)</option>
             <option value="db">Solo Base de Datos</option>
-            <option value="media">Solo Archivos Multimedia</option>
           </select>
         </div>
 
@@ -56,16 +55,6 @@
             </div>
           </div>
         </div>
-        <div class="backup-type-info" id="info-media" style="display:none;">
-          <div class="info-card info-card--orange">
-            <span class="info-icon">&#128247;</span>
-            <div>
-              <strong>Solo Multimedia</strong>
-              <p>Comprime los archivos de imágenes y adjuntos sin incluir la base de datos.</p>
-            </div>
-          </div>
-        </div>
-
         <button type="submit" class="btn btn-primary" id="btn-generar" disabled>
           <span id="btn-text">Generar Copia</span>
           <span id="btn-loading" style="display:none;">Generando...</span>
@@ -229,7 +218,7 @@ code {
 (function() {
   var sel = document.getElementById('backup_type');
   var btn = document.getElementById('btn-generar');
-  var infos = ['full', 'db', 'media'];
+  var infos = ['full', 'db'];
 
   sel.addEventListener('change', function() {
     var val = this.value;

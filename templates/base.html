@@ -602,7 +602,7 @@
        display: none;
      }
  
-     /* Área de contenido principal */
+     /* Área de contenido principal: se adapta al ancho del sidebar */
      .main-content {
        flex: 1;
        margin-left: 260px;
@@ -610,13 +610,9 @@
        flex-direction: column;
        transition: margin-left 0.3s ease;
      }
- 
+
      .main-content.expanded {
        margin-left: 90px;
-     }
-     
-     .main-content.expanded {
-       margin-left: 80px;
      }
      
      /* Barra de navegación superior */
@@ -1157,6 +1153,64 @@
     gap: 10px;
   }
 
+  /* === Modal de Confirmar Eliminación: estilo único compartido === */
+  /* Aislado con !important para que el CSS local de cada página no lo deforme. */
+  #confirmDeleteModal .modal-dialog {
+    max-width: 450px !important;
+    width: 90% !important;
+    margin: 0 !important;
+  }
+  #confirmDeleteModal .modal-content {
+    background: #fff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2) !important;
+    overflow: hidden !important;
+  }
+  #confirmDeleteModal .modal-header {
+    padding: 20px 25px !important;
+    border-bottom: 1px solid var(--gray-300) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: #fff !important;
+  }
+  #confirmDeleteModal .modal-header h5 {
+    margin: 0 !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    color: var(--red-accent) !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  #confirmDeleteModal .modal-body {
+    text-align: center !important;
+    padding: 30px 25px !important;
+    background: #fff !important;
+  }
+  #confirmDeleteModal .modal-footer {
+    padding: 18px 25px !important;
+    background: #f8f9fa !important;
+    display: flex !important;
+    justify-content: center !important;
+    gap: 15px !important;
+  }
+  #confirmDeleteModal .modal-footer .btn {
+    padding: 10px 24px !important;
+    border-radius: 6px !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    border: none !important;
+    cursor: pointer !important;
+  }
+  #confirmDeleteModal .close {
+    background: none !important;
+    border: none !important;
+    font-size: 1.5rem !important;
+    color: var(--gray-600) !important;
+    cursor: pointer !important;
+    line-height: 1 !important;
+  }
+
   .btn-secondary {
     background: var(--gray-300);
     color: var(--gray-800);
@@ -1294,11 +1348,11 @@
     .main-content.expanded {
       margin-left: 90px;
     }
-    
+
     .sidebar-brand {
       cursor: pointer;
     }
-    
+
     .sidebar-brand-text {
       transition: opacity 0.3s ease;
     }
@@ -1484,11 +1538,7 @@
      .main-content.expanded {
        margin-left: 90px;
      }
-    
-    .main-content.expanded {
-      margin-left: 80px;
-    }
-    
+
     /* Navbar */
     .navbar {
       background: var(--white);
@@ -2055,11 +2105,7 @@
         mainContent.classList.toggle('expanded');
         // Ajustar footer según estado del sidebar
         if (footer) {
-          if (sidebar.classList.contains('collapsed')) {
-            footer.style.left = '90px';
-          } else {
-            footer.style.left = '260px';
-          }
+          footer.style.left = sidebar.classList.contains('collapsed') ? '90px' : '260px';
         }
       }
       // Close dropdowns when sidebar collapses/expands

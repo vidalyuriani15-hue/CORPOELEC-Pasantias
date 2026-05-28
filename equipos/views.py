@@ -300,6 +300,10 @@ def subestaciones_view(request):
             coordenadas = request.POST.get('coordenadas')
             try:
                 sub = Subestacion.objects.get(Id_Sub_est=sub_id)
+                # Validación de duplicado por nombre (case-insensitive, excluye el propio)
+                if Subestacion.objects.filter(Nombre__iexact=(nombre or '').strip()).exclude(Id_Sub_est=sub_id).exists():
+                    messages.error(request, 'Ya existe otra subestación con ese nombre.')
+                    return redirect('subestaciones')
                 sub.Nombre = nombre
                 sub.Id_Ten = NivelTension.objects.get(Id_Ten=id_ten_id)
                 sub.Ubicación = ubicacion
@@ -322,6 +326,10 @@ def subestaciones_view(request):
             coordenadas = request.POST.get('coordenadas')
             
             if nombre and id_ten_id:
+                # Validación de duplicado por nombre (case-insensitive)
+                if Subestacion.objects.filter(Nombre__iexact=nombre.strip()).exists():
+                    messages.error(request, 'Ya existe una subestación con ese nombre.')
+                    return redirect('subestaciones')
                 try:
                     id_ten = NivelTension.objects.get(Id_Ten=id_ten_id)
                     sub = Subestacion.objects.create(
@@ -363,16 +371,20 @@ def tensiones_view(request):
                 return redirect('tensiones')
             tipo_ten = request.POST.get('tipo_ten')
             nivel = request.POST.get('nivel')
-            if tipo_ten and nivel:
-                ten = NivelTension.objects.create(
-                    Tipo_ten=tipo_ten,
-                    Nivel=nivel,
-                    creado_por=request.user
-                )
-                registrar_evento(request, 'CREACION', f'Nivel de tension creado: {ten.get_Tipo_ten_display()} {ten.get_Nivel_display()}')
-                messages.success(request, 'Nivel de tensión creado correctamente.')
-            else:
+            if not (tipo_ten and nivel):
                 messages.error(request, 'Datos incompletos.')
+                return redirect('tensiones')
+            # Validación de duplicado: misma combinación Tipo + Nivel
+            if NivelTension.objects.filter(Tipo_ten=tipo_ten, Nivel=nivel).exists():
+                messages.error(request, 'Ya existe un nivel de tensión con esa combinación de tipo y nivel.')
+                return redirect('tensiones')
+            ten = NivelTension.objects.create(
+                Tipo_ten=tipo_ten,
+                Nivel=nivel,
+                creado_por=request.user
+            )
+            registrar_evento(request, 'CREACION', f'Nivel de tension creado: {ten.get_Tipo_ten_display()} {ten.get_Nivel_display()}')
+            messages.success(request, 'Nivel de tensión creado correctamente.')
             return redirect('tensiones')
         elif request.POST.get('editar'):
             if not puede_actualizar(request):
@@ -383,6 +395,10 @@ def tensiones_view(request):
             nivel = request.POST.get('nivel')
             try:
                 ten = NivelTension.objects.get(Id_Ten=ten_id)
+                # Validación de duplicado (excluye el propio registro)
+                if NivelTension.objects.filter(Tipo_ten=tipo_ten, Nivel=nivel).exclude(Id_Ten=ten_id).exists():
+                    messages.error(request, 'Ya existe otro nivel de tensión con esa combinación de tipo y nivel.')
+                    return redirect('tensiones')
                 ten.Tipo_ten = tipo_ten
                 ten.Nivel = nivel
                 ten.save()
@@ -434,7 +450,12 @@ def interfaces_view(request):
             iface_id = request.POST.get('interfaz_id')
             try:
                 iface = InterfazDeComunicacion.objects.get(Id_Interfaz=iface_id)
-                
+
+                # Capturar tipos de puertos/protocolos hijos antes de eliminar
+                tipos_puerto = [p.get_Tipo_display() for p in iface.puertos.all()]
+                tipos_proto = [p.get_Tipo_display() for p in iface.protocolos.all()]
+                tipos_display = tipos_puerto + tipos_proto
+
                 with transaction.atomic():
                     # Limpiar relaciones M2M de Relés antes de desactivar
                     reles_afectados = Rele.objects.filter(
@@ -443,17 +464,21 @@ def interfaces_view(request):
                     for rele in reles_afectados:
                         rele.Puertos.remove(*rele.Puertos.filter(Id_Interfaz=iface_id).values_list('Id_Puerto', flat=True))
                         rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=iface_id).values_list('Id_Protocolo', flat=True))
-                    
+
                     # Limpiar relaciones M2M de Remotas
                     remotas_afectadas = Remota.objects.filter(Interfaces=iface).distinct()
                     for remota in remotas_afectadas:
                         remota.Interfaces.remove(iface_id)
                         remota.Protocolos.remove(*remota.Protocolos.filter(Id_Interfaz=iface_id).values_list('Id_Protocolo', flat=True))
-                    
-                    # Eliminación lógica: marcar como inactivo
+
+                    # Eliminación lógica: marcar como inactivo (y sus puertos/protocolos hijos)
                     iface.Activo = False
                     iface.save()
-                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Comunicación Eliminado: {iface.get_Tipo_Interfaz_display()}')
+                    Protocolo.objects.filter(Id_Interfaz=iface).update(Activo=False)
+                    etiqueta = ', '.join(tipos_display) if tipos_display else 'sin tipos'
+                    noun = 'Interfaz de Comunicación eliminada' if len(tipos_display) <= 1 \
+                        else 'Interfaces de Comunicación eliminadas'
+                    registrar_evento(request, 'ELIMINACION', f'{noun}: {etiqueta}')
                     messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
@@ -464,6 +489,14 @@ def interfaces_view(request):
                 return redirect('interfaces')
             iface_id = request.POST.get('interfaz_id')
             tipos_puerto = request.POST.getlist('tipos_puerto')
+            # Validación: ningún tipo puede estar registrado en OTRA interfaz activa
+            ya_registrados = set(PuertoComunicacion.objects.filter(
+                Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
+            ).exclude(Id_Interfaz=iface_id).values_list('Tipo', flat=True))
+            conflictos = [t for t in tipos_puerto if t in ya_registrados]
+            if conflictos:
+                messages.error(request, f'Estos puertos ya están registrados en otra interfaz: {", ".join(conflictos)}')
+                return redirect('interfaces')
             try:
                 with transaction.atomic():
                     iface = InterfazDeComunicacion.objects.select_for_update().get(Id_Interfaz=iface_id)
@@ -494,6 +527,14 @@ def interfaces_view(request):
                 return redirect('interfaces')
             tipos_puerto = request.POST.getlist('tipos_puerto')
             if tipos_puerto:
+                # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
+                ya_registrados = set(PuertoComunicacion.objects.filter(
+                    Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
+                ).values_list('Tipo', flat=True))
+                conflictos = [t for t in tipos_puerto if t in ya_registrados]
+                if conflictos:
+                    messages.error(request, f'Estos puertos ya están registrados: {", ".join(conflictos)}')
+                    return redirect('interfaces')
                 iface = InterfazDeComunicacion.objects.create(
                     Puertos_C=len(tipos_puerto),
                     Tipo_Interfaz='PUERTOS',
@@ -512,7 +553,11 @@ def interfaces_view(request):
                     messages.error(request, f'Error de validación: {str(e)}')
                     iface.delete()
                     return redirect('interfaces')
-                registrar_evento(request, 'CREACION', 'Interfaz de Puertos creada')
+                tipos_display = [p.get_Tipo_display() for p in iface.puertos.all()]
+                etiqueta = ', '.join(tipos_display) if tipos_display else 'sin tipos'
+                noun = 'Interfaz de Comunicación creada' if len(tipos_display) <= 1 \
+                    else 'Interfaces de Comunicación creadas'
+                registrar_evento(request, 'CREACION', f'{noun}: {etiqueta}')
                 messages.success(request, 'Interfaz creada correctamente')
                 return redirect('interfaces')
     
@@ -520,13 +565,19 @@ def interfaces_view(request):
     paginator = Paginator(interfaces_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     puertos_tipos = PuertoComunicacion.TIPO_CHOICES
-    
+
+    # Tipos de puerto ya registrados en cualquier interfaz activa (para ocultar opciones)
+    tipos_registrados = list(PuertoComunicacion.objects.filter(
+        Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
+    ).values_list('Tipo', flat=True).distinct())
+
     context = {
         'title': 'Interfaz de Comunicacion',
         'page_obj': page_obj,
         'puertos_tipos': puertos_tipos,
+        'tipos_registrados': tipos_registrados,
         'is_admin': request.user.is_superuser,
         'puede_crear': puede_crear(request),
         'puede_actualizar': puede_actualizar(request),
@@ -545,6 +596,14 @@ def protocolo_view(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
                 return redirect('protocolo')
             tipos_protocolo = request.POST.getlist('tipos_protocolo')
+            # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
+            ya_registrados = set(Protocolo.objects.filter(
+                Activo=True, Id_Interfaz__Activo=True
+            ).values_list('Tipo', flat=True))
+            conflictos = [t for t in tipos_protocolo if t in ya_registrados]
+            if conflictos:
+                messages.error(request, f'Estos protocolos ya están registrados: {", ".join(conflictos)}')
+                return redirect('protocolo')
             with transaction.atomic():
                 interfaz = InterfazDeComunicacion.objects.create(
                     Puertos_C=0,
@@ -563,7 +622,11 @@ def protocolo_view(request):
                 except Exception as e:
                     messages.error(request, f'Error de validación: {str(e)}')
                     raise  # Rollback
-            registrar_evento(request, 'CREACION', f'Interfaz Creada: {interfaz.get_Tipo_Interfaz_display()}')
+            tipos_display = [p.get_Tipo_display() for p in interfaz.protocolos.all()]
+            etiqueta = ', '.join(tipos_display) if tipos_display else 'sin tipos'
+            noun = 'Protocolo de Telecontrol y Energía creado' if len(tipos_display) <= 1 \
+                else 'Protocolos de Telecontrol y Energía creados'
+            registrar_evento(request, 'CREACION', f'{noun}: {etiqueta}')
             messages.success(request, 'Interfaz creada correctamente')
         
         # Editar interfaz/protocolos
@@ -572,11 +635,19 @@ def protocolo_view(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
                 return redirect('protocolo')
             interfaz_id = request.POST.get('interfaz_id')
+            tipos_protocolo = request.POST.getlist('tipos_protocolo')
+            # Validación: ningún tipo puede estar registrado en OTRA interfaz activa
+            ya_registrados = set(Protocolo.objects.filter(
+                Activo=True, Id_Interfaz__Activo=True
+            ).exclude(Id_Interfaz=interfaz_id).values_list('Tipo', flat=True))
+            conflictos = [t for t in tipos_protocolo if t in ya_registrados]
+            if conflictos:
+                messages.error(request, f'Estos protocolos ya están registrados en otra interfaz: {", ".join(conflictos)}')
+                return redirect('protocolo')
             try:
                 with transaction.atomic():
                     interfaz = InterfazDeComunicacion.objects.select_for_update().get(Id_Interfaz=interfaz_id)
                     Protocolo.objects.filter(Id_Interfaz=interfaz).delete()
-                    tipos_protocolo = request.POST.getlist('tipos_protocolo')
                     for tipo in tipos_protocolo:
                         Protocolo.objects.create(
                             Id_Interfaz=interfaz,
@@ -606,6 +677,9 @@ def protocolo_view(request):
             try:
                 interfaz = InterfazDeComunicacion.objects.get(Id_Interfaz=interfaz_id)
                 
+                # Capturar los tipos de protocolos antes de eliminar para registrar evento
+                tipos_display = [p.get_Tipo_display() for p in interfaz.protocolos.all()]
+
                 with transaction.atomic():
                     # Limpiar relaciones M2M de Relés
                     reles_afectados = Rele.objects.filter(
@@ -614,17 +688,21 @@ def protocolo_view(request):
                     for rele in reles_afectados:
                         rele.Puertos.remove(*rele.Puertos.filter(Id_Interfaz=interfaz_id).values_list('Id_Puerto', flat=True))
                         rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=interfaz_id).values_list('Id_Protocolo', flat=True))
-                    
+
                     # Limpiar relaciones M2M de Remotas
                     remotas_afectadas = Remota.objects.filter(Interfaces=interfaz).distinct()
                     for remota in remotas_afectadas:
                         remota.Interfaces.remove(interfaz_id)
                         remota.Protocolos.remove(*remota.Protocolos.filter(Id_Interfaz=interfaz_id).values_list('Id_Protocolo', flat=True))
-                    
-                    # Eliminación lógica
+
+                    # Eliminación lógica de la interfaz y de sus protocolos hijos
                     interfaz.Activo = False
                     interfaz.save()
-                registrar_evento(request, 'ELIMINACION', f'Interfaz de Protocolos eliminada: {interfaz.get_Tipo_Interfaz_display()}')
+                    Protocolo.objects.filter(Id_Interfaz=interfaz).update(Activo=False)
+                etiqueta = ', '.join(tipos_display) if tipos_display else 'sin tipos'
+                noun = 'Protocolo de Telecontrol y Energía eliminado' if len(tipos_display) <= 1 \
+                    else 'Protocolos de Telecontrol y Energía eliminados'
+                registrar_evento(request, 'ELIMINACION', f'{noun}: {etiqueta}')
                 messages.success(request, 'Protocolos de Telecontrol y Energía eliminados correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
@@ -633,10 +711,16 @@ def protocolo_view(request):
     paginator = Paginator(interfaces, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
+    # Tipos de protocolo ya registrados en cualquier interfaz activa
+    tipos_registrados = list(Protocolo.objects.filter(
+        Activo=True, Id_Interfaz__Activo=True
+    ).values_list('Tipo', flat=True).distinct())
+
     context = {
         'title': 'Protocolos',
         'page_obj': page_obj,
+        'tipos_registrados': tipos_registrados,
         'is_admin': request.user.is_superuser,
         'puede_crear': puede_crear(request),
         'puede_actualizar': puede_actualizar(request),
@@ -672,6 +756,16 @@ def remotas_view(request):
             marca = request.POST.get('marca')
             modelo = request.POST.get('modelo')
             id_ten_id = request.POST.get('id_ten')
+            # Validación: marca+modelo+nivel no puede coincidir con otra remota
+            # (marca+modelo pueden repetirse si el nivel es distinto)
+            marca_n = (marca or '').strip()
+            modelo_n = (modelo or '').strip()
+            duplicada = Remota.objects.filter(
+                Marca__iexact=marca_n, Modelo__iexact=modelo_n, Id_Ten_id=id_ten_id or None
+            ).exclude(Id_Remota=remota_id).exists()
+            if duplicada:
+                messages.error(request, 'Ya existe otra remota con la misma marca, modelo y nivel de tensión.')
+                return redirect('remotas')
             try:
                 with transaction.atomic():
                     remota = Remota.objects.select_for_update().get(Id_Remota=remota_id)
@@ -692,6 +786,15 @@ def remotas_view(request):
             if marca and modelo:
                 if not puede_crear(request):
                     messages.error(request, 'No tiene permisos para realizar esta acción.')
+                    return redirect('remotas')
+                # Validación: marca+modelo pueden repetirse, pero no junto con el mismo nivel
+                marca_n = marca.strip()
+                modelo_n = modelo.strip()
+                duplicada = Remota.objects.filter(
+                    Marca__iexact=marca_n, Modelo__iexact=modelo_n, Id_Ten_id=id_ten_id or None
+                ).exists()
+                if duplicada:
+                    messages.error(request, 'Ya existe una remota con la misma marca, modelo y nivel de tensión.')
                     return redirect('remotas')
                 id_ten = NivelTension.objects.get(Id_Ten=id_ten_id) if id_ten_id else None
                 remota = Remota.objects.create(
@@ -847,9 +950,9 @@ def reles_view(request):
             try:
                 with transaction.atomic():
                     rele = Rele.objects.select_for_update().get(Id_relé=rele_id)
-                    rele_ident = f'{rele.Marca} {rele.Modelo} (ID {rele_id})'
+                    sub_nombre = rele.Id_Sub_est.Nombre if rele.Id_Sub_est else 'sin subestación'
                     rele.delete()
-                    registrar_evento(request, 'ELIMINACION', f'Relé eliminado: {rele_ident}')
+                    registrar_evento(request, 'ELIMINACION', f'Relé eliminado: {sub_nombre}')
                     messages.success(request, 'Relé eliminado correctamente.', extra_tags='deleted')
             except Rele.DoesNotExist:
                 messages.error(request, 'Relé no encontrado.')
@@ -1021,9 +1124,13 @@ def reles_view(request):
         subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
         tensiones = list(NivelTension.objects.all().order_by('Nivel'))
         
-        # Protocolos únicos por tipo (solo activos)
+        # Protocolos únicos por tipo: solo activos y con interfaz padre activa.
+        # Los protocolos sin interfaz (Id_Interfaz=None) se consideran huérfanos.
         protocolos_dict = {}
-        for p in Protocolo.objects.filter(Activo=True).order_by('Tipo'):
+        protocolos_qs = Protocolo.objects.filter(
+            Activo=True, Id_Interfaz__isnull=False, Id_Interfaz__Activo=True
+        ).order_by('Tipo')
+        for p in protocolos_qs:
             if p.Tipo not in protocolos_dict:
                 protocolos_dict[p.Tipo] = p
         protocolos = list(protocolos_dict.values())

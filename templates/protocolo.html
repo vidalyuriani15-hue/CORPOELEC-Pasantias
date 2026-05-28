@@ -175,6 +175,7 @@
           <div class="form-group">
             <label class="form-label">Protocolos Soportados</label>
 <div class="checks-anchos" id="protocolos_checks">
+               {% if '104' not in tipos_registrados %}
                <label class="check-card">
                  <input type="checkbox" name="tipos_protocolo" value="104">
                  <span class="card-icon-wrapper">
@@ -185,6 +186,8 @@
                    <span class="card-sub">Protocolo estándar SCADA IEC</span>
                  </div>
                </label>
+               {% endif %}
+               {% if 'DNP' not in tipos_registrados %}
                <label class="check-card">
                  <input type="checkbox" name="tipos_protocolo" value="DNP">
                  <span class="card-icon-wrapper">
@@ -195,6 +198,8 @@
                    <span class="card-sub">Distributed Network Protocol</span>
                  </div>
                </label>
+               {% endif %}
+               {% if 'GOOSE' not in tipos_registrados %}
                <label class="check-card">
                  <input type="checkbox" name="tipos_protocolo" value="GOOSE">
                  <span class="card-icon-wrapper">
@@ -205,6 +210,8 @@
                    <span class="card-sub">Generic Object Oriented Substation</span>
                  </div>
                </label>
+               {% endif %}
+               {% if '101' not in tipos_registrados %}
                <label class="check-card">
                  <input type="checkbox" name="tipos_protocolo" value="101">
                  <span class="card-icon-wrapper">
@@ -215,6 +222,8 @@
                    <span class="card-sub">Protocolo telemando IEC</span>
                  </div>
                </label>
+               {% endif %}
+               {% if 'MODBUS' not in tipos_registrados %}
                <label class="check-card">
                  <input type="checkbox" name="tipos_protocolo" value="MODBUS">
                  <span class="card-icon-wrapper">
@@ -225,6 +234,10 @@
                    <span class="card-sub">Protocolo industrial estándar</span>
                  </div>
                </label>
+               {% endif %}
+               {% if tipos_registrados|length >= 5 %}
+               <p style="color:#6c757d; font-style:italic; padding:10px;">Todos los protocolos ya están registrados.</p>
+               {% endif %}
              </div>
            </div>
          </div>
@@ -424,6 +437,9 @@ function resetearCheckboxes(containerId) {
       document.getElementById('modalAgregar').classList.remove('active');
     }
 
+    // Tipos ya registrados en cualquier interfaz activa
+    const TIPOS_REGISTRADOS_PROTO = [{% for t in tipos_registrados %}'{{ t }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+
     function abrirModalEditar(interfazId, protocolosStr) {
       const modal = document.getElementById('modalEditar');
       const container = document.getElementById('edit_checks_container');
@@ -431,7 +447,10 @@ function resetearCheckboxes(containerId) {
       inputId.value = interfazId;
       container.innerHTML = '';
       const protocolosExistentes = protocolosStr ? protocolosStr.split(',') : [];
-      OPCIONES_PROTOCOLOS.forEach(opcion => {
+      // Mostrar solo opciones no registradas en otras interfaces (las propias sí)
+      OPCIONES_PROTOCOLOS.filter(op =>
+        !TIPOS_REGISTRADOS_PROTO.includes(op.value) || protocolosExistentes.includes(op.value)
+      ).forEach(opcion => {
         const label = document.createElement('label');
         label.className = 'check-card';
         const checked = protocolosExistentes.includes(opcion.value) ? 'checked' : '';
