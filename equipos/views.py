@@ -1359,7 +1359,10 @@ def exportar_tensiones_pdf(request):
     cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
     data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in ['Tipo', 'Nivel (kV)', 'Creado Por', 'Fecha Registro']]]
     for tension in tensiones:
-        creado_por = tension.creado_por.get_full_name() if tension.creado_por else 'Sistema'
+        if tension.creado_por:
+            creado_por = tension.creado_por.get_full_name() or tension.creado_por.username
+        else:
+            creado_por = 'Sistema'
         fecha_reg  = tension.Fecha_Reg.strftime('%d/%m/%Y') if tension.Fecha_Reg else ''
         data.append([Paragraph(tension.get_Tipo_ten_display(), cell_st),
                      Paragraph(tension.get_Nivel_display(), cell_st),
