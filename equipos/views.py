@@ -19,15 +19,29 @@ from django.conf import settings
 
 @login_required(login_url='/login/')
 def get_user_permisos(request, user_id):
-    """API para obtener permisos de un usuario"""
+    """API para obtener datos completos de un usuario para edición"""
     if not request.user.is_superuser:
         return JsonResponse({'error': 'No autorizado'}, status=403)
     try:
-        usuario_perfil = Usuario.objects.get(Id_user_id=user_id)
+        user = User.objects.get(id=user_id)
+        usuario_perfil, _ = Usuario.objects.get_or_create(Id_user=user)
         permisos = usuario_perfil.permisos
-    except Usuario.DoesNotExist:
-        permisos = {'crear': False, 'actualizar': False, 'eliminar': False}
-    return JsonResponse(permisos)
+        data = {
+            'id': user.id,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+            'is_superuser': user.is_superuser,
+            'permisos': {
+                'crear': permisos.get('crear', False) if permisos else False,
+                'actualizar': permisos.get('actualizar', False) if permisos else False,
+                'eliminar': permisos.get('eliminar', False) if permisos else False,
+            }
+        }
+    except User.DoesNotExist:
+        data = {'error': 'Usuario no encontrado'}
+    return JsonResponse(data)
 
 @login_required(login_url='/login/')
 def index_view(request):
@@ -215,11 +229,11 @@ def usuarios_view(request):
             first_name = request.POST.get('first_name', '')
             last_name = request.POST.get('last_name', '')
             email = request.POST.get('email', '')
-            is_superuser = request.POST.get('is_superuser') is not None
+            is_superuser = request.POST.get('is_superuser') == 'on'
             permisos = {
-                'crear': request.POST.get('permiso_crear') is not None,
-                'actualizar': request.POST.get('permiso_actualizar') is not None,
-                'eliminar': request.POST.get('permiso_eliminar') is not None,
+                'crear': request.POST.get('permiso_crear') == 'on',
+                'actualizar': request.POST.get('permiso_actualizar') == 'on',
+                'eliminar': request.POST.get('permiso_eliminar') == 'on',
             }
             try:
                 user = User.objects.create_user(
@@ -246,18 +260,30 @@ def usuarios_view(request):
             return redirect('admin_usuarios')
         elif request.POST.get('editar'):
             user_id = request.POST.get('user_id')
+            username = request.POST.get('username')
+            first_name = request.POST.get('first_name', '')
+            last_name = request.POST.get('last_name', '')
+            email = request.POST.get('email', '')
+            is_superuser = request.POST.get('is_superuser') == 'on'
             permisos = {
-                'crear': request.POST.get('permiso_crear') is not None,
-                'actualizar': request.POST.get('permiso_actualizar') is not None,
-                'eliminar': request.POST.get('permiso_eliminar') is not None,
+                'crear': request.POST.get('permiso_crear') == 'on',
+                'actualizar': request.POST.get('permiso_actualizar') == 'on',
+                'eliminar': request.POST.get('permiso_eliminar') == 'on',
             }
             try:
                 user = User.objects.get(id=user_id)
+                user.username = username
+                user.first_name = first_name
+                user.last_name = last_name
+                user.email = email
+                user.is_superuser = is_superuser
+                user.is_staff = is_superuser
+                user.save()
                 usuario_perfil, created = Usuario.objects.get_or_create(Id_user=user)
                 usuario_perfil.permisos = permisos
                 usuario_perfil.save()
-                registrar_evento(request, 'ACTUALIZACION', f'Permisos actualizados para: {user.username}')
-                messages.success(request, 'Permisos actualizados correctamente.', extra_tags='updated')
+                registrar_evento(request, 'ACTUALIZACION', f'Usuario actualizado: {user.username}')
+                messages.success(request, 'Usuario actualizado correctamente.', extra_tags='updated')
             except User.DoesNotExist:
                 messages.error(request, 'Usuario no encontrado.')
             return redirect('admin_usuarios')
@@ -270,7 +296,7 @@ def usuarios_view(request):
     }
     return render(request, 'admin/usuarios.html', context)
 
-@no_cache
+    @no_cache
 @login_required(login_url='/login/')
 def subestaciones_view(request):
     """Vista de subestaciones"""
