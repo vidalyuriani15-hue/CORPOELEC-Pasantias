@@ -125,9 +125,10 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 24px;
   margin-top: 10px;
+  width: 100%;
 }
 
 .dashboard-card {
@@ -143,6 +144,7 @@
   height: 100px;
   outline: none !important;
   border: none;
+  min-width: 0;
 }
 
 .dashboard-card:hover {

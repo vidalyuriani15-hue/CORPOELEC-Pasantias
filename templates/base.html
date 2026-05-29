@@ -611,6 +611,7 @@
        margin-left: 260px;
        display: flex;
        flex-direction: column;
+       min-height: 100vh;
        transition: margin-left 0.3s ease;
      }
 
@@ -776,6 +777,8 @@
      .content-area {
        flex: 1;
        padding: 30px;
+       min-width: 0;
+       overflow-x: hidden;
      }
 
      /* Sección de bienvenida */
@@ -1535,6 +1538,7 @@
        margin-left: 260px;
        display: flex;
        flex-direction: column;
+       min-height: 100vh;
        transition: margin-left 0.3s ease;
      }
 
@@ -2094,17 +2098,12 @@
       const sidebar = document.getElementById('sidebar');
       const mainContent = document.getElementById('mainContent');
       const backdrop = document.getElementById('sidebarBackdrop');
-      const footer = document.querySelector('.footer');
       if (window.innerWidth <= 768) {
         sidebar.classList.toggle('active');
         backdrop.classList.toggle('active');
       } else {
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('expanded');
-        // Ajustar footer según estado del sidebar
-        if (footer) {
-          footer.style.left = sidebar.classList.contains('collapsed') ? '90px' : '260px';
-        }
       }
       // Close dropdowns when sidebar collapses/expands
       if (!sidebar.classList.contains('collapsed') && window.innerWidth > 768) {
