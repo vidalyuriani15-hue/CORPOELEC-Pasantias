@@ -296,7 +296,8 @@ def usuarios_view(request):
     }
     return render(request, 'admin/usuarios.html', context)
 
-    @no_cache
+
+@no_cache
 @login_required(login_url='/login/')
 def subestaciones_view(request):
     """Vista de subestaciones"""
@@ -1321,7 +1322,7 @@ def exportar_tensiones_pdf(request):
     """Exporta todas las tensiones a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
@@ -1331,7 +1332,7 @@ def exportar_tensiones_pdf(request):
 
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
                             rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
@@ -1364,7 +1365,7 @@ def exportar_tensiones_pdf(request):
                         ParagraphStyle('date', parent=styles['Normal'],
                                        fontSize=8, leading=10, alignment=2,
                                        textColor=colors.HexColor('#555555')))
-    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[1.8*inch, 3.2*inch, 2.1*inch])
     hdr.setStyle(TableStyle([
         ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
@@ -1378,8 +1379,8 @@ def exportar_tensiones_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
     tensiones = NivelTension.objects.all().order_by('Nivel')
-    _pw = landscape(letter)[0] - 50
-    _ratios = [1.8, 1.5, 3.0, 1.8]
+    _pw = letter[0] - 50
+    _ratios = [1.5, 1.5, 1.8, 1.2]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
     hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
     cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
@@ -1430,11 +1431,12 @@ def exportar_tensiones_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="tensiones.pdf"'
     return response
 
+@login_required(login_url='/login/')
 def exportar_interfaces_pdf(request):
     """Exporta todas las interfaces a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
@@ -1443,7 +1445,7 @@ def exportar_interfaces_pdf(request):
 
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
                             rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
@@ -1476,7 +1478,7 @@ def exportar_interfaces_pdf(request):
                         ParagraphStyle('date', parent=styles['Normal'],
                                        fontSize=8, leading=10, alignment=2,
                                        textColor=colors.HexColor('#555555')))
-    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[1.8*inch, 3.2*inch, 2.1*inch])
     hdr.setStyle(TableStyle([
         ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
@@ -1491,8 +1493,8 @@ def exportar_interfaces_pdf(request):
 
     interfaces = InterfazDeComunicacion.objects.filter(Activo=True).prefetch_related('puertos').all().order_by('Id_Interfaz')
     interfaces = [i for i in interfaces if i.puertos.exists()]
-    _pw = landscape(letter)[0] - 50
-    _ratios = [3.5, 2.0, 1.5]
+    _pw = letter[0] - 50
+    _ratios = [2.2, 1.5, 1.3]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
     hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
     cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
@@ -1540,11 +1542,12 @@ def exportar_interfaces_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="interfaces.pdf"'
     return response
 
+@login_required(login_url='/login/')
 def exportar_protocolo_pdf(request):
     """Exporta todos los protocolos a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
@@ -1553,7 +1556,7 @@ def exportar_protocolo_pdf(request):
 
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
                             rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
@@ -1586,7 +1589,7 @@ def exportar_protocolo_pdf(request):
                         ParagraphStyle('date', parent=styles['Normal'],
                                        fontSize=8, leading=10, alignment=2,
                                        textColor=colors.HexColor('#555555')))
-    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[1.8*inch, 3.2*inch, 2.1*inch])
     hdr.setStyle(TableStyle([
         ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
@@ -1609,8 +1612,8 @@ def exportar_protocolo_pdf(request):
         if interfaz_id not in creado_por_por_interfaz:
             creado_por_por_interfaz[interfaz_id] = protocolo.creado_por.username if protocolo.creado_por else 'Sistema'
             fecha_por_interfaz[interfaz_id] = protocolo.Fecha_Reg.strftime('%d/%m/%Y') if protocolo.Fecha_Reg else ''
-    _pw = landscape(letter)[0] - 50
-    _ratios = [2.5, 2.0, 1.5]
+    _pw = letter[0] - 50
+    _ratios = [2.0, 1.5, 1.5]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
     hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
     cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
@@ -1655,11 +1658,12 @@ def exportar_protocolo_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="protocolos.pdf"'
     return response
 
+@login_required(login_url='/login/')
 def exportar_subestaciones_pdf(request):
     """Exporta todas las subestaciones a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
@@ -1668,7 +1672,7 @@ def exportar_subestaciones_pdf(request):
 
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
                             rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
@@ -1701,7 +1705,7 @@ def exportar_subestaciones_pdf(request):
                         ParagraphStyle('date', parent=styles['Normal'],
                                        fontSize=8, leading=10, alignment=2,
                                        textColor=colors.HexColor('#555555')))
-    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[1.8*inch, 3.2*inch, 2.1*inch])
     hdr.setStyle(TableStyle([
         ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
@@ -1715,8 +1719,8 @@ def exportar_subestaciones_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
     subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
-    _pw = landscape(letter)[0] - 50
-    _ratios = [1.4, 1.4, 1.8, 1.5, 1.5, 1.5]
+    _pw = letter[0] - 50
+    _ratios = [1.3, 1.3, 1.2, 1.3, 1.3, 1.3]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
     hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
     cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
@@ -1766,11 +1770,12 @@ def exportar_subestaciones_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="subestaciones.pdf"'
     return response
 
+@login_required(login_url='/login/')
 def exportar_remotas_pdf(request):
     """Exporta todas las remotas a PDF"""
     from django.contrib.staticfiles.finders import find
     from datetime import datetime
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image
@@ -1779,7 +1784,7 @@ def exportar_remotas_pdf(request):
 
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
                             rightMargin=25, leftMargin=25, topMargin=25, bottomMargin=25)
     elements = []
     styles = getSampleStyleSheet()
@@ -1812,7 +1817,7 @@ def exportar_remotas_pdf(request):
                         ParagraphStyle('date', parent=styles['Normal'],
                                        fontSize=8, leading=10, alignment=2,
                                        textColor=colors.HexColor('#555555')))
-    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.2*inch, 3.8*inch, 2.0*inch])
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[1.8*inch, 3.2*inch, 2.1*inch])
     hdr.setStyle(TableStyle([
         ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
@@ -1826,8 +1831,8 @@ def exportar_remotas_pdf(request):
     elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
     remotas = Remota.objects.select_related('Id_Ten').all().order_by('Id_Remota')
-    _pw = landscape(letter)[0] - 50
-    _ratios = [1.5, 1.5, 2.2, 1.5, 1.5]
+    _pw = letter[0] - 50
+    _ratios = [1.3, 1.3, 1.8, 1.3, 1.3]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
     hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
     cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
