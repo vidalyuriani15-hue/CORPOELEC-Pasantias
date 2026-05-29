@@ -66,34 +66,46 @@ def _styles():
 
 
 def _document_header(page_w, st):
+    base = getSampleStyleSheet()['Normal']
+
     logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
-    logo = Image(logo_path, width=0.5*inch, height=0.5*inch) if logo_path else ''
+    if logo_path:
+        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
+        logo_cell = Table(
+            [[logo_img, Paragraph('<b>CORPOELEC</b>',
+               ParagraphStyle('corp', parent=base, fontSize=13, leading=15))]],
+            colWidths=[0.8*inch, 1.4*inch])
+        logo_cell.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+    else:
+        logo_cell = Paragraph('<b>CORPOELEC</b>',
+                              ParagraphStyle('corp', parent=base, fontSize=13))
 
-    brand = Paragraph(
-        'CORPOELEC<br/><font size="6.5" color="#8c8c8c">'
-        'Corporación Eléctrica Nacional</font>', st['brand'])
+    title_p = Paragraph('<b>Relés Registrados</b>',
+                        ParagraphStyle('title', parent=base,
+                                       fontSize=14, leading=17, alignment=TA_CENTER))
+    date_p  = Paragraph(f'Reporte Generado:<br/>{datetime.now().strftime("%d/%m/%Y %H:%M")}',
+                        ParagraphStyle('date', parent=base,
+                                       fontSize=8, leading=10, alignment=TA_RIGHT,
+                                       textColor=colors.HexColor('#555555')))
 
-    title = Paragraph(
-        '<font size="13" color="#0D2B4D"><b>Relés Registrados</b></font><br/>'
-        '<font size="7.5" color="#8c8c8c">Reporte de equipos de protección</font>',
-        ParagraphStyle('title', parent=st['brand'], alignment=TA_CENTER))
-
-    fecha_p = Paragraph(
-        f'<font size="6" color="#8c8c8c">GENERADO</font><br/>'
-        f'<font size="8" color="#1a1a2e"><b>{datetime.now().strftime("%d/%m/%Y")}</b></font>'
-        f' <font size="7" color="#8c8c8c">{datetime.now().strftime("%H:%M")}</font>',
-        ParagraphStyle('fp', parent=st['small'], alignment=TA_RIGHT))
-
-    hdr = Table([[logo, brand, title, fecha_p]],
-                colWidths=[0.6*inch, 1.5*inch,
-                           page_w - 0.6*inch - 1.5*inch - 1.0*inch,
-                           1.0*inch])
+    # Anchos proporcionales (1.8 : 3.2 : 2.1, como en el PDF de remotas) que
+    # ocupan exactamente el ancho de página disponible.
+    ratios = [1.8, 3.2, 2.1]
+    col_w = [page_w * r / sum(ratios) for r in ratios]
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=col_w)
     hdr.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 2),
-        ('RIGHTPADDING',(0,0), (-1,-1), 2),
-        ('TOPPADDING', (0,0), (-1,-1), 0),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     return hdr
 

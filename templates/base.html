@@ -35,7 +35,9 @@
     body {
       font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--gray-100);  /* Fondo principal */
+      overflow-x: clip;
     }
+    html { overflow-x: clip; }
 
     /* Estilos reutilizables para formularios */
     .add-button-container {
@@ -607,16 +609,20 @@
  
      /* Área de contenido principal: se adapta al ancho del sidebar */
      .main-content {
-       flex: 1;
        margin-left: 260px;
+       width: calc(100% - 260px);
+       max-width: calc(100% - 260px);
        display: flex;
        flex-direction: column;
        min-height: 100vh;
-       transition: margin-left 0.3s ease;
+       min-width: 0;
+       transition: margin-left 0.3s ease, width 0.3s ease, max-width 0.3s ease;
      }
 
      .main-content.expanded {
        margin-left: 90px;
+       width: calc(100% - 90px);
+       max-width: calc(100% - 90px);
      }
      
      /* Barra de navegación superior */
@@ -778,7 +784,6 @@
        flex: 1;
        padding: 30px;
        min-width: 0;
-       overflow-x: hidden;
      }
 
      /* Sección de bienvenida */
@@ -1534,16 +1539,20 @@
 
      /* Main Content */
      .main-content {
-       flex: 1;
        margin-left: 260px;
+       width: calc(100% - 260px);
+       max-width: calc(100% - 260px);
        display: flex;
        flex-direction: column;
        min-height: 100vh;
-       transition: margin-left 0.3s ease;
+       min-width: 0;
+       transition: margin-left 0.3s ease, width 0.3s ease, max-width 0.3s ease;
      }
 
      .main-content.expanded {
        margin-left: 90px;
+       width: calc(100% - 90px);
+       max-width: calc(100% - 90px);
      }
 
     /* Navbar */
