@@ -336,40 +336,43 @@
     }
     
     /* Sidebar de navegación */
-    .sidebar {
-      width: 260px;
-      background: var(--blue-dark);
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      height: 100vh;
-      left: 0;
-      top: 0;
-      z-index: 100;
-      transition: width 0.3s ease;
-      overflow: hidden;
-    }
-
-    .sidebar.collapsed {
-      width: 90px;
-    }
-
-    .sidebar.collapsed .sidebar-brand {
-      justify-content: center;
-      padding: 20px 10px;
-    }
-
-    .sidebar.collapsed .sidebar-brand-text {
-      display: none;
-    }
-
-    .sidebar.collapsed .sidebar-logo {
-      width: 50px;
-      height: 50px;
-      min-width: 50px;
-      border-radius: 50%;
-      overflow: hidden;
-    }
+.sidebar {
+       width: 260px;
+       background: var(--blue-dark);
+       display: flex;
+       flex-direction: column;
+       position: fixed;
+       height: 100vh;
+       left: 0;
+       top: 0;
+       z-index: 100;
+       transition: width 0.3s ease;
+     }
+     
+     .sidebar.collapsed {
+       width: 90px;
+     }
+     
+     .sidebar.nav-open {
+       overflow: visible;
+     }
+     
+     .sidebar.collapsed .sidebar-brand {
+       justify-content: center;
+       padding: 20px 10px;
+     }
+     
+     .sidebar.collapsed .sidebar-brand-text {
+       display: none;
+     }
+     
+     .sidebar.collapsed .sidebar-logo {
+       width: 50px;
+       height: 50px;
+       min-width: 50px;
+       border-radius: 50%;
+       overflow: hidden;
+     }
 
     .sidebar.collapsed .sidebar-nav a span,
     .sidebar.collapsed .sidebar-bottom a span {
@@ -541,28 +544,28 @@
        transform: rotate(180deg);
      }
  
-     .dropdown-menu {
-       max-height: 0;
-       overflow: hidden;
-       transition: max-height 0.3s ease;
-       background: rgba(0, 0, 0, 0.2);
-     }
- 
-     .sidebar-dropdown.active .dropdown-menu {
-       max-height: 500px;
-     }
- 
-     .dropdown-menu a {
-       display: flex;
-       align-items: center;
-       gap: 15px;
-       padding: 12px 20px 12px 55px;
-       color: rgba(255, 255, 255, 0.7);
-       text-decoration: none;
-       transition: all 0.3s ease;
-     }
- 
-     .dropdown-menu a:hover {
+.dropdown-menu {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      .sidebar-dropdown.active .dropdown-menu {
+        max-height: 500px;
+      }
+
+      .dropdown-menu a {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px 20px 12px 55px;
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .dropdown-menu a:hover {
        background: rgba(255, 255, 255, 0.1);
        color: var(--white);
      }
@@ -2140,35 +2143,40 @@
       }
     }
     
-    // Sidebar Dropdowns
-    function toggleDropdown(e, menuId) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      const dropdown = document.getElementById(menuId);
-      if (!dropdown) return;
-      const parent = dropdown.parentElement;
-      const isActive = parent.classList.contains('active');
-      // Cerrar TODO OTRO dropdown abierto, pero no éste si ya lo estaba
-      document.querySelectorAll('.sidebar-dropdown.active').forEach(function(el) {
-        if (el !== parent) {           // ← no cerrar el que se quiere alternar
-          el.classList.remove('active');
-        }
-      });
-      // Alternar el dropdown actual: abrir si estaba cerrado, cerrar si estaba abierto
-      if (isActive) {
-        parent.classList.remove('active');
-      } else {
-        parent.classList.add('active');
-      }
-    }
-    
-    function closeAllDropdowns() {
-      document.querySelectorAll('.sidebar-dropdown.active').forEach(d => {
-        d.classList.remove('active');
-      });
-    }
+// Sidebar Dropdowns
+     function toggleDropdown(e, menuId) {
+       if (e) {
+         e.preventDefault();
+         e.stopPropagation();
+       }
+       const dropdown = document.getElementById(menuId);
+       if (!dropdown) return;
+       const parent = dropdown.parentElement;
+       const sidebar = document.getElementById('sidebar');
+       const isActive = parent.classList.contains('active');
+       // Cerrar TODO OTRO dropdown abierto, pero no éste si ya lo estaba
+       document.querySelectorAll('.sidebar-dropdown.active').forEach(function(el) {
+         if (el !== parent) {           // ← no cerrar el que se quiere alternar
+           el.classList.remove('active');
+         }
+       });
+       // Alternar el dropdown actual: abrir si estaba cerrado, cerrar si estaba abierto
+       if (isActive) {
+         parent.classList.remove('active');
+         sidebar.classList.remove('nav-open');
+       } else {
+         parent.classList.add('active');
+         sidebar.classList.add('nav-open');
+       }
+     }
+     
+     function closeAllDropdowns() {
+       const sidebar = document.getElementById('sidebar');
+       document.querySelectorAll('.sidebar-dropdown.active').forEach(d => {
+         d.classList.remove('active');
+       });
+       if (sidebar) sidebar.classList.remove('nav-open');
+     }
     
     // Modal Confirmación Eliminación
     let formToSubmit = null;

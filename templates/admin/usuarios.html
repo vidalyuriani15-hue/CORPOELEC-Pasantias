@@ -67,13 +67,13 @@
               <input type="email" name="email" placeholder="correo@ejemplo.com" class="form-control">
             </div>
 
-            <div class="form-group">
-               <label>Tipo de Usuario *</label>
-               <select name="user_type" required class="form-control">
-                 <option value="usuario">Usuario</option>
-                 <option value="admin">Administrador</option>
-               </select>
-             </div>
+<div class='form-group'>
+                <label>Tipo de Usuario *</label>
+                <select name='is_superuser' required class='form-control'>
+                  <option value='off'>Usuario</option>
+                  <option value='on'>Administrador</option>
+                </select>
+              </div>
 
 <div class="permisos-panel">
                <label class="permisos-title">Permisos de Acceso</label>
@@ -105,48 +105,77 @@
     </div>
   </div>
 
-  <!-- Modal Editar Permisos -->
-  <div id="modalEditarPermisos" class="modal">
-    <div class="modal-dialog" style="max-width: 500px;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Editar Permisos de Usuario</h5>
-          <button type="button" class="close" onclick="cerrarModalEditar()">&times;</button>
-        </div>
-        <form method="post" id="formEditarPermisos">
-          {% csrf_token %}
-          <input type="hidden" name="editar" value="1">
-          <input type="hidden" name="user_id" id="edit_user_id">
-<div class="modal-body" style="padding:25px 25px 20px;">
-             <div class="permisos-panel">
-               <label class="permisos-title">Permisos de Acceso</label>
-               <div class="permisos-options">
-                 <label class="permiso-card">
-                   <input type="checkbox" name="permiso_crear" class="permiso-checkbox-input" id="edit_permiso_crear">
-                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
-                   <span class="permiso-text"><strong>Crear:</strong> Registrar información</span>
-                 </label>
-                 <label class="permiso-card">
-                   <input type="checkbox" name="permiso_actualizar" class="permiso-checkbox-input" id="edit_permiso_actualizar">
-                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
-                   <span class="permiso-text"><strong>Actualizar:</strong> Editar información</span>
-                 </label>
-                 <label class="permiso-card">
-                   <input type="checkbox" name="permiso_eliminar" class="permiso-checkbox-input" id="edit_permiso_eliminar">
-                   <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
-                   <span class="permiso-text"><strong>Eliminar:</strong> Borrar información</span>
-                 </label>
+<!-- Modal Editar Usuario -->
+   <div id="modalEditarUsuario" class="modal">
+     <div class="modal-dialog" style="max-width: 550px;">
+       <div class="modal-content">
+         <div class="modal-header">
+           <h5 class="modal-title">Editar Usuario</h5>
+           <button type="button" class="close" onclick="cerrarModalEditar()">&times;</button>
+         </div>
+         <form method="post" id="formEditarUsuario">
+           {% csrf_token %}
+           <input type="hidden" name="editar" value="1">
+           <input type="hidden" name="user_id" id="edit_user_id">
+           <div class="modal-body" style="padding:25px 25px 20px;">
+             <div class="form-row">
+               <div class="form-group">
+                 <label>Usuario *</label>
+                 <input type="text" name="username" required id="edit_username" placeholder="Nombre de usuario" class="form-control">
                </div>
              </div>
+             <div class="form-row">
+               <div class="form-group">
+                 <label>Nombre</label>
+                 <input type="text" name="first_name" id="edit_first_name" placeholder="Nombre" class="form-control">
+               </div>
+               <div class="form-group">
+                 <label>Apellido</label>
+                 <input type="text" name="last_name" id="edit_last_name" placeholder="Apellido" class="form-control">
+               </div>
+             </div>
+             <div class="form-group">
+               <label>Email</label>
+               <input type="email" name="email" id="edit_email" placeholder="correo@ejemplo.com" class="form-control">
+             </div>
+
+             <div class="form-group">
+                <label>Tipo de Usuario *</label>
+                <select name="is_superuser" id="edit_is_superuser" required class="form-control">
+                  <option value="off">Usuario</option>
+                  <option value="on">Administrador</option>
+                </select>
+              </div>
+
+<div class="permisos-panel">
+                <label class="permisos-title">Permisos de Acceso</label>
+                <div class="permisos-options">
+                  <label class="permiso-card">
+                    <input type="checkbox" name="permiso_crear" class="permiso-checkbox-input" id="edit_permiso_crear">
+                    <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                    <span class="permiso-text"><strong>Crear:</strong> Registrar información</span>
+                  </label>
+                  <label class="permiso-card">
+                    <input type="checkbox" name="permiso_actualizar" class="permiso-checkbox-input" id="edit_permiso_actualizar">
+                    <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                    <span class="permiso-text"><strong>Actualizar:</strong> Editar información</span>
+                  </label>
+                  <label class="permiso-card">
+                    <input type="checkbox" name="permiso_eliminar" class="permiso-checkbox-input" id="edit_permiso_eliminar">
+                    <span class="permiso-icon"><i class="fas fa-microchip"></i></span>
+                    <span class="permiso-text"><strong>Eliminar:</strong> Borrar información</span>
+                  </label>
+                </div>
+              </div>
            </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="cerrarModalEditar()">Cancelar</button>
-            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Cambios</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+           <div class="modal-footer">
+             <button type="button" class="btn btn-secondary" onclick="cerrarModalEditar()">Cancelar</button>
+             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Cambios</button>
+           </div>
+         </form>
+       </div>
+     </div>
+   </div>
 
   <table class="data-table">
     <thead>
@@ -196,13 +225,13 @@
           </div>
           {% endwith %}
         </td>
-        <td class="actions-cell">
-          {% if u != request.user and puede_actualizar %}
-          <button type="button" class="btn-icon btn-edit" title="Editar Permisos" onclick="abrirModalEditar({{ u.id }})">
-            <i class="fas fa-edit"></i>
-          </button>
-          {% endif %}
-          {% if u != request.user and puede_eliminar %}
+<td class="actions-cell">
+           {% if u != request.user and puede_actualizar %}
+           <button type="button" class="btn-icon btn-edit" title="Editar Usuario" onclick="abrirModalEditar({{ u.id }})">
+             <i class="fas fa-edit"></i>
+           </button>
+           {% endif %}
+           {% if u != request.user and puede_eliminar %}
           <form method="post" style="display:inline;" onsubmit="return confirmarEliminacion(this);">
             {% csrf_token %}
             <input type="hidden" name="eliminar" value="1">
@@ -232,19 +261,29 @@ function cerrarModal() {
   document.getElementById('modalCrearUsuario').classList.remove('active');
 }
 function abrirModalEditar(userId) {
-  fetch(`/admin/get-permisos/${userId}/`)
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById('edit_user_id').value = userId;
-      document.getElementById('edit_permiso_crear').checked = data.crear || false;
-      document.getElementById('edit_permiso_actualizar').checked = data.actualizar || false;
-      document.getElementById('edit_permiso_eliminar').checked = data.eliminar || false;
-      document.getElementById('modalEditarPermisos').classList.add('active');
-    });
-}
+   fetch(`/admin/get-permisos/${userId}/`)
+     .then(response => response.json())
+     .then(data => {
+       document.getElementById('edit_user_id').value = data.id;
+       document.getElementById('edit_username').value = data.username || '';
+       document.getElementById('edit_first_name').value = data.first_name || '';
+       document.getElementById('edit_last_name').value = data.last_name || '';
+       document.getElementById('edit_email').value = data.email || '';
+       document.getElementById('edit_is_superuser').value = data.is_superuser ? 'on' : 'off';
+       document.getElementById('edit_permiso_crear').checked = data.permisos?.crear || false;
+       document.getElementById('edit_permiso_actualizar').checked = data.permisos?.actualizar || false;
+       document.getElementById('edit_permiso_eliminar').checked = data.permisos?.eliminar || false;
+       // Actualizar clases de los cards de permisos
+       var cards = document.querySelectorAll('#modalEditarUsuario .permiso-card');
+       if (cards[0]) cards[0].classList.toggle('selected', data.permisos?.crear || false);
+       if (cards[1]) cards[1].classList.toggle('selected', data.permisos?.actualizar || false);
+       if (cards[2]) cards[2].classList.toggle('selected', data.permisos?.eliminar || false);
+       document.getElementById('modalEditarUsuario').classList.add('active');
+     });
+ }
 function cerrarModalEditar() {
-  document.getElementById('modalEditarPermisos').classList.remove('active');
-}
+   document.getElementById('modalEditarUsuario').classList.remove('active');
+ }
 
 // Handle permiso card selection
 document.addEventListener('DOMContentLoaded', function() {
@@ -266,15 +305,15 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('modalCrearUsuario').addEventListener('click', function(e) {
   if (e.target === this) this.classList.remove('active');
 });
-document.getElementById('modalEditarPermisos').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('active');
-});
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    document.getElementById('modalCrearUsuario').classList.remove('active');
-    document.getElementById('modalEditarPermisos').classList.remove('active');
-  }
-});
+document.getElementById('modalEditarUsuario').addEventListener('click', function(e) {
+   if (e.target === this) this.classList.remove('active');
+ });
+ document.addEventListener('keydown', function(e) {
+   if (e.key === 'Escape') {
+     document.getElementById('modalCrearUsuario').classList.remove('active');
+     document.getElementById('modalEditarUsuario').classList.remove('active');
+   }
+ });
 </script>
 {% endblock %}
 
@@ -352,11 +391,11 @@ document.addEventListener('keydown', function(e) {
 }
 
 .permiso-checkbox-input {
-  position:absolute;s
-  opacity:0;
-  width:0;
-  height:0;
-}
+   position:absolute;
+   opacity:0;
+   width:0;
+   height:0;
+ }
 
 .permiso-card.selected .permiso-icon {
   color:#4DA6FF;
