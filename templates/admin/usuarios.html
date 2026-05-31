@@ -77,6 +77,9 @@
 
 <div class="permisos-panel">
                <label class="permisos-title">Permisos de Acceso</label>
+               <p class="permisos-hint" style="margin: 0 0 10px; color: #6c757d; font-size: 0.82rem; font-style: italic;">
+                 Si no marca ninguna opción, el usuario solo podrá visualizar la información.
+               </p>
                <div class="permisos-options">
                  <label class="permiso-card">
                    <input type="checkbox" name="permiso_crear" class="permiso-checkbox-input" id="crear-create">
@@ -149,6 +152,9 @@
 
 <div class="permisos-panel">
                 <label class="permisos-title">Permisos de Acceso</label>
+                <p class="permisos-hint" style="margin: 0 0 10px; color: #6c757d; font-size: 0.82rem; font-style: italic;">
+                  Si no marca ninguna opción, el usuario solo podrá visualizar la información.
+                </p>
                 <div class="permisos-options">
                   <label class="permiso-card">
                     <input type="checkbox" name="permiso_crear" class="permiso-checkbox-input" id="edit_permiso_crear">
@@ -254,11 +260,21 @@
 </div>
 
 <script>
+function resetCrearForm() {
+  var f = document.getElementById('formCrearUsuario');
+  if (f) f.reset();
+  // Limpiar selección visual de las tarjetas de permisos
+  document.querySelectorAll('#modalCrearUsuario .permiso-card').forEach(function(c) {
+    c.classList.remove('selected');
+  });
+}
 function abrirModal() {
+  resetCrearForm();
   document.getElementById('modalCrearUsuario').classList.add('active');
 }
 function cerrarModal() {
   document.getElementById('modalCrearUsuario').classList.remove('active');
+  resetCrearForm();
 }
 function abrirModalEditar(userId) {
    fetch(`/admin/get-permisos/${userId}/`)
@@ -303,7 +319,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.getElementById('modalCrearUsuario').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('active');
+  if (e.target === this) {
+    this.classList.remove('active');
+    resetCrearForm();
+  }
 });
 document.getElementById('modalEditarUsuario').addEventListener('click', function(e) {
    if (e.target === this) this.classList.remove('active');
@@ -312,6 +331,7 @@ document.getElementById('modalEditarUsuario').addEventListener('click', function
    if (e.key === 'Escape') {
      document.getElementById('modalCrearUsuario').classList.remove('active');
      document.getElementById('modalEditarUsuario').classList.remove('active');
+     resetCrearForm();
    }
  });
 </script>

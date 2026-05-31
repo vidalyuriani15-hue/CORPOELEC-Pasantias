@@ -164,9 +164,14 @@ def perfil_view(request):
     """Vista de perfil de usuario"""
     if request.method == 'POST':
         user = request.user
+        nuevo_email = (request.POST.get('email', user.email) or '').strip()
+        # Validación: el correo no puede coincidir con el de otro usuario
+        if nuevo_email and User.objects.filter(email__iexact=nuevo_email).exclude(id=user.id).exists():
+            messages.error(request, 'Ya existe otro usuario con ese correo electrónico.')
+            return redirect('perfil')
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name = request.POST.get('last_name', user.last_name)
-        user.email = request.POST.get('email', user.email)
+        user.email = nuevo_email or user.email
         user.save()
         messages.success(request, 'Perfil actualizado correctamente.', extra_tags='updated')
         return redirect('perfil')
@@ -235,6 +240,15 @@ def usuarios_view(request):
                 'actualizar': request.POST.get('permiso_actualizar') == 'on',
                 'eliminar': request.POST.get('permiso_eliminar') == 'on',
             }
+            # Validación: el correo no puede repetirse (si se proporcionó)
+            email_n = (email or '').strip()
+            if email_n and User.objects.filter(email__iexact=email_n).exists():
+                messages.error(request, 'Ya existe un usuario con ese correo electrónico.')
+                return redirect('admin_usuarios')
+            # Validación: el nombre de usuario no puede repetirse
+            if username and User.objects.filter(username__iexact=username).exists():
+                messages.error(request, 'Ya existe un usuario con ese nombre de usuario.')
+                return redirect('admin_usuarios')
             try:
                 user = User.objects.create_user(
                     username=username,
@@ -270,6 +284,15 @@ def usuarios_view(request):
                 'actualizar': request.POST.get('permiso_actualizar') == 'on',
                 'eliminar': request.POST.get('permiso_eliminar') == 'on',
             }
+            # Validación: el correo no puede repetirse en otro usuario
+            email_n = (email or '').strip()
+            if email_n and User.objects.filter(email__iexact=email_n).exclude(id=user_id).exists():
+                messages.error(request, 'Ya existe otro usuario con ese correo electrónico.')
+                return redirect('admin_usuarios')
+            # Validación: el nombre de usuario no puede repetirse en otro usuario
+            if username and User.objects.filter(username__iexact=username).exclude(id=user_id).exists():
+                messages.error(request, 'Ya existe otro usuario con ese nombre de usuario.')
+                return redirect('admin_usuarios')
             try:
                 user = User.objects.get(id=user_id)
                 user.username = username
@@ -322,7 +345,7 @@ def subestaciones_view(request):
                 return redirect('subestaciones')
             sub_id = request.POST.get('sub_id')
             nombre = request.POST.get('nombre')
-            id_ten_id = request.POST.get('id_ten')
+            niveles_ids = request.POST.getlist('niveles_ten')
             ubicacion = request.POST.get('ubicacion')
             coordenadas = request.POST.get('coordenadas')
             try:
@@ -331,48 +354,58 @@ def subestaciones_view(request):
                 if Subestacion.objects.filter(Nombre__iexact=(nombre or '').strip()).exclude(Id_Sub_est=sub_id).exists():
                     messages.error(request, 'Ya existe otra subestación con ese nombre.')
                     return redirect('subestaciones')
+                if not niveles_ids:
+                    messages.error(request, 'Debe seleccionar al menos un nivel de tensión.')
+                    return redirect('subestaciones')
+                niveles = list(NivelTension.objects.filter(Id_Ten__in=niveles_ids))
+                if not niveles:
+                    messages.error(request, 'Nivel de tension no valido.')
+                    return redirect('subestaciones')
                 sub.Nombre = nombre
-                sub.Id_Ten = NivelTension.objects.get(Id_Ten=id_ten_id)
+                sub.Id_Ten = niveles[0]  # Primer nivel como principal (legacy)
                 sub.Ubicación = ubicacion
                 sub.Coordenadas = coordenadas
                 sub.save()
+                sub.Niveles_Ten.set(niveles)
                 registrar_evento(request, 'ACTUALIZACION', f'Subestacion actualizada: {sub.Nombre}')
                 messages.success(request, 'Subestacion actualizada correctamente.', extra_tags='updated')
             except Subestacion.DoesNotExist:
                 messages.error(request, 'Subestacion no encontrada.')
-            except NivelTension.DoesNotExist:
-                messages.error(request, 'Nivel de tension no valido.')
             return redirect('subestaciones')
         else:
             if not puede_crear(request):
                 messages.error(request, 'No tiene permisos para crear subestaciones.')
                 return redirect('subestaciones')
             nombre = request.POST.get('nombre')
-            id_ten_id = request.POST.get('id_ten')
+            niveles_ids = request.POST.getlist('niveles_ten')
             ubicacion = request.POST.get('ubicacion')
             coordenadas = request.POST.get('coordenadas')
-            
-            if nombre and id_ten_id:
+
+            if nombre and niveles_ids:
                 # Validación de duplicado por nombre (case-insensitive)
                 if Subestacion.objects.filter(Nombre__iexact=nombre.strip()).exists():
                     messages.error(request, 'Ya existe una subestación con ese nombre.')
                     return redirect('subestaciones')
-                try:
-                    id_ten = NivelTension.objects.get(Id_Ten=id_ten_id)
-                    sub = Subestacion.objects.create(
-                        Nombre=nombre,
-                        Id_Ten=id_ten,
-                        Ubicación=ubicacion,
-                        Coordenadas=coordenadas,
-                        creado_por=request.user
-                    )
-                    registrar_evento(request, 'CREACION', f'Subestacion creada: {sub.Nombre}')
-                    messages.success(request, 'Subestacion creada correctamente.')
-                except NivelTension.DoesNotExist:
+                niveles = list(NivelTension.objects.filter(Id_Ten__in=niveles_ids))
+                if not niveles:
                     messages.error(request, 'Nivel de tension no valido.')
+                    return redirect('subestaciones')
+                sub = Subestacion.objects.create(
+                    Nombre=nombre,
+                    Id_Ten=niveles[0],  # Primer nivel como principal (legacy)
+                    Ubicación=ubicacion,
+                    Coordenadas=coordenadas,
+                    creado_por=request.user
+                )
+                sub.Niveles_Ten.set(niveles)
+                registrar_evento(request, 'CREACION', f'Subestacion creada: {sub.Nombre}')
+                messages.success(request, 'Subestacion creada correctamente.')
+                return redirect('subestaciones')
+            else:
+                messages.error(request, 'Debe indicar el nombre y al menos un nivel de tensión.')
                 return redirect('subestaciones')
     
-    subestaciones_list = Subestacion.objects.all().order_by('Nombre')
+    subestaciones_list = Subestacion.objects.prefetch_related('Niveles_Ten').all().order_by('-Fecha_Reg', '-Id_Sub_est')
     paginator = Paginator(subestaciones_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -383,7 +416,10 @@ def subestaciones_view(request):
         'title': 'Subestaciones',
         'page_obj': page_obj,
         'tensiones': tensiones,
-        'is_admin': request.user.is_superuser
+        'is_admin': request.user.is_superuser,
+        'puede_crear': puede_crear(request),
+        'puede_actualizar': puede_actualizar(request),
+        'puede_eliminar': puede_eliminar(request),
     }
     return render(request, 'subestaciones.html', context)
 
@@ -398,6 +434,12 @@ def tensiones_view(request):
                 return redirect('tensiones')
             tipo_ten = request.POST.get('tipo_ten')
             nivel = request.POST.get('nivel')
+            # "Otro" (nivel personalizado): solo disponible para administradores.
+            if nivel == '__otro__':
+                if not request.user.is_superuser:
+                    messages.error(request, 'Solo el administrador puede agregar un nivel personalizado.')
+                    return redirect('tensiones')
+                nivel = (request.POST.get('nivel_otro') or '').strip()
             if not (tipo_ten and nivel):
                 messages.error(request, 'Datos incompletos.')
                 return redirect('tensiones')
@@ -420,6 +462,15 @@ def tensiones_view(request):
             ten_id = request.POST.get('ten_id')
             tipo_ten = request.POST.get('tipo_ten')
             nivel = request.POST.get('nivel')
+            # "Otro" (nivel personalizado): solo disponible para administradores.
+            if nivel == '__otro__':
+                if not request.user.is_superuser:
+                    messages.error(request, 'Solo el administrador puede agregar un nivel personalizado.')
+                    return redirect('tensiones')
+                nivel = (request.POST.get('nivel_otro') or '').strip()
+            if not (tipo_ten and nivel):
+                messages.error(request, 'Datos incompletos.')
+                return redirect('tensiones')
             try:
                 ten = NivelTension.objects.get(Id_Ten=ten_id)
                 # Validación de duplicado (excluye el propio registro)
@@ -449,7 +500,7 @@ def tensiones_view(request):
                 messages.error(request, 'Nivel de tensión no encontrado.')
             return redirect('tensiones')
     
-    tensiones = NivelTension.objects.all().order_by('Nivel')
+    tensiones = NivelTension.objects.all().order_by('-Fecha_Reg', '-Id_Ten')
     paginator = Paginator(tensiones, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -462,6 +513,9 @@ def tensiones_view(request):
         'nivel_choices': NivelTension.NIVEL_CHOICES,
         'nivel_choices_simple': [(v, v) for v, _ in NivelTension.NIVEL_CHOICES],
         'is_admin': request.user.is_superuser,
+        'puede_crear': puede_crear(request),
+        'puede_actualizar': puede_actualizar(request),
+        'puede_eliminar': puede_eliminar(request),
     }
     return render(request, 'tensiones.html', context)
 
@@ -516,6 +570,15 @@ def interfaces_view(request):
                 return redirect('interfaces')
             iface_id = request.POST.get('interfaz_id')
             tipos_puerto = request.POST.getlist('tipos_puerto')
+            # "Otro" (tipo personalizado): solo administradores.
+            descripciones = {}
+            iconos = {}
+            if request.user.is_superuser:
+                otro = (request.POST.get('tipo_otro') or '').strip().upper()
+                if otro and otro not in tipos_puerto:
+                    tipos_puerto.append(otro)
+                    descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
+                    iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
             # Validación: ningún tipo puede estar registrado en OTRA interfaz activa
             ya_registrados = set(PuertoComunicacion.objects.filter(
                 Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
@@ -532,6 +595,8 @@ def interfaces_view(request):
                         PuertoComunicacion.objects.create(
                             Id_Interfaz=iface,
                             Tipo=tipo,
+                            Descripcion=descripciones.get(tipo, ''),
+                            Icono=iconos.get(tipo, ''),
                             creado_por=request.user
                         )
                     iface.Puertos_C = len(tipos_puerto)
@@ -553,6 +618,15 @@ def interfaces_view(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
                 return redirect('interfaces')
             tipos_puerto = request.POST.getlist('tipos_puerto')
+            # "Otro" (tipo personalizado): solo administradores.
+            descripciones = {}
+            iconos = {}
+            if request.user.is_superuser:
+                otro = (request.POST.get('tipo_otro') or '').strip().upper()
+                if otro and otro not in tipos_puerto:
+                    tipos_puerto.append(otro)
+                    descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
+                    iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
             if tipos_puerto:
                 # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
                 ya_registrados = set(PuertoComunicacion.objects.filter(
@@ -571,6 +645,8 @@ def interfaces_view(request):
                     PuertoComunicacion.objects.create(
                         Id_Interfaz=iface,
                         Tipo=tipo,
+                        Descripcion=descripciones.get(tipo, ''),
+                        Icono=iconos.get(tipo, ''),
                         creado_por=request.user
                     )
                 # Validar consistencia
@@ -588,7 +664,7 @@ def interfaces_view(request):
                 messages.success(request, 'Interfaz creada correctamente')
                 return redirect('interfaces')
     
-    interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).prefetch_related('puertos').order_by('Id_Interfaz')
+    interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).prefetch_related('puertos').order_by('-Fecha_Reg', '-Id_Interfaz')
     paginator = Paginator(interfaces_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -623,6 +699,15 @@ def protocolo_view(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
                 return redirect('protocolo')
             tipos_protocolo = request.POST.getlist('tipos_protocolo')
+            # "Otro" (protocolo personalizado): solo administradores.
+            descripciones = {}
+            iconos = {}
+            if request.user.is_superuser:
+                otro = (request.POST.get('tipo_otro') or '').strip().upper()
+                if otro and otro not in tipos_protocolo:
+                    tipos_protocolo.append(otro)
+                    descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
+                    iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
             # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
             ya_registrados = set(Protocolo.objects.filter(
                 Activo=True, Id_Interfaz__Activo=True
@@ -641,6 +726,8 @@ def protocolo_view(request):
                     Protocolo.objects.create(
                         Id_Interfaz=interfaz,
                         Tipo=tipo,
+                        Descripcion=descripciones.get(tipo, ''),
+                        Icono=iconos.get(tipo, ''),
                         creado_por=request.user
                     )
                 # Validar consistencia
@@ -663,6 +750,15 @@ def protocolo_view(request):
                 return redirect('protocolo')
             interfaz_id = request.POST.get('interfaz_id')
             tipos_protocolo = request.POST.getlist('tipos_protocolo')
+            # "Otro" (protocolo personalizado): solo administradores.
+            descripciones = {}
+            iconos = {}
+            if request.user.is_superuser:
+                otro = (request.POST.get('tipo_otro') or '').strip().upper()
+                if otro and otro not in tipos_protocolo:
+                    tipos_protocolo.append(otro)
+                    descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
+                    iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
             # Validación: ningún tipo puede estar registrado en OTRA interfaz activa
             ya_registrados = set(Protocolo.objects.filter(
                 Activo=True, Id_Interfaz__Activo=True
@@ -679,6 +775,8 @@ def protocolo_view(request):
                         Protocolo.objects.create(
                             Id_Interfaz=interfaz,
                             Tipo=tipo,
+                            Descripcion=descripciones.get(tipo, ''),
+                            Icono=iconos.get(tipo, ''),
                             creado_por=request.user
                         )
                     interfaz.Puertos_C = 0
@@ -734,7 +832,7 @@ def protocolo_view(request):
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada')
     
-    interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS', Activo=True).prefetch_related('protocolos').all().order_by('Id_Interfaz')
+    interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS', Activo=True).prefetch_related('protocolos').all().order_by('-Fecha_Reg', '-Id_Interfaz')
     paginator = Paginator(interfaces, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -834,7 +932,7 @@ def remotas_view(request):
                 messages.success(request, 'Remota creada correctamente.')
                 return redirect('remotas')
     
-    remotas_list = Remota.objects.all().order_by('Id_Remota')
+    remotas_list = Remota.objects.all().order_by('-Fecha_Reg', '-Id_Remota')
     paginator = Paginator(remotas_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -1142,7 +1240,7 @@ def reles_view(request):
                 return redirect('reles')
     elif request.method == 'GET':
         # GET: mostrar lista
-        rele_list = Rele.objects.all().order_by('Id_relé')
+        rele_list = Rele.objects.all().order_by('-Fecha_Reg', '-Id_relé')
         paginator = Paginator(rele_list, 10)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -1343,11 +1441,11 @@ def exportar_tensiones_pdf(request):
 
     logo_path = find('img/logo_corpoelec.png') or find('img/logo.jpg')
     if logo_path:
-        logo_img = Image(logo_path, width=0.7*inch, height=0.7*inch)
+        logo_img = Image(logo_path, width=0.6*inch, height=0.6*inch)
         logo_cell = Table(
             [[logo_img, Paragraph('<b>CORPOELEC</b>',
-               ParagraphStyle('corp', parent=styles['Normal'], fontSize=13, leading=15))]],
-            colWidths=[0.8*inch, 1.4*inch])
+               ParagraphStyle('corp', parent=styles['Normal'], fontSize=12, leading=14))]],
+            colWidths=[0.7*inch, 1.5*inch])
         logo_cell.setStyle(TableStyle([
             ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
             ('LEFTPADDING',   (0, 0), (-1, -1), 0),
@@ -1357,7 +1455,7 @@ def exportar_tensiones_pdf(request):
         ]))
     else:
         logo_cell = Paragraph('<b>CORPOELEC</b>',
-                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=13))
+                              ParagraphStyle('corp', parent=styles['Normal'], fontSize=12))
     title_p = Paragraph('<b>Niveles de Tensión Registrados</b>',
                         ParagraphStyle('title', parent=styles['Normal'],
                                        fontSize=14, leading=17, alignment=1))
@@ -1365,7 +1463,7 @@ def exportar_tensiones_pdf(request):
                         ParagraphStyle('date', parent=styles['Normal'],
                                        fontSize=8, leading=10, alignment=2,
                                        textColor=colors.HexColor('#555555')))
-    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[1.8*inch, 3.2*inch, 2.1*inch])
+    hdr = Table([[logo_cell, title_p, date_p]], colWidths=[2.3*inch, 2.8*inch, 2.0*inch])
     hdr.setStyle(TableStyle([
         ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN',         (2, 0), (2, 0),   'RIGHT'),
@@ -1378,7 +1476,7 @@ def exportar_tensiones_pdf(request):
     elements.append(Spacer(1, 6))
     elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
-    tensiones = NivelTension.objects.all().order_by('Nivel')
+    tensiones = NivelTension.objects.all().order_by('-Fecha_Reg', '-Id_Ten')
     _pw = letter[0] - 50
     _ratios = [1.5, 1.5, 1.8, 1.2]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
@@ -1491,7 +1589,7 @@ def exportar_interfaces_pdf(request):
     elements.append(Spacer(1, 6))
     elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
-    interfaces = InterfazDeComunicacion.objects.filter(Activo=True).prefetch_related('puertos').all().order_by('Id_Interfaz')
+    interfaces = InterfazDeComunicacion.objects.filter(Activo=True).prefetch_related('puertos').all().order_by('-Fecha_Reg', '-Id_Interfaz')
     interfaces = [i for i in interfaces if i.puertos.exists()]
     _pw = letter[0] - 50
     _ratios = [2.2, 1.5, 1.3]
@@ -1606,12 +1704,18 @@ def exportar_protocolo_pdf(request):
     protocolos_por_interfaz = defaultdict(list)
     creado_por_por_interfaz = {}
     fecha_por_interfaz = {}
-    for protocolo in Protocolo.objects.filter(Id_Interfaz__isnull=False, Id_Interfaz__Activo=True).select_related('Id_Interfaz').all().order_by('Tipo'):
-        interfaz_id = protocolo.Id_Interfaz.Id_Interfaz
-        protocolos_por_interfaz[interfaz_id].append(protocolo.get_Tipo_display())
-        if interfaz_id not in creado_por_por_interfaz:
-            creado_por_por_interfaz[interfaz_id] = protocolo.creado_por.username if protocolo.creado_por else 'Sistema'
-            fecha_por_interfaz[interfaz_id] = protocolo.Fecha_Reg.strftime('%d/%m/%Y') if protocolo.Fecha_Reg else ''
+    # Iterar interfaces de PROTOCOLOS ordenadas por más recientes primero,
+    # para que el PDF coincida con la tabla de la vista.
+    interfaces_proto = InterfazDeComunicacion.objects.filter(
+        Tipo_Interfaz='PROTOCOLOS', Activo=True
+    ).prefetch_related('protocolos').order_by('-Fecha_Reg', '-Id_Interfaz')
+    for iface in interfaces_proto:
+        protos = list(iface.protocolos.all().order_by('Tipo'))
+        if not protos:
+            continue
+        protocolos_por_interfaz[iface.Id_Interfaz] = [p.get_Tipo_display() for p in protos]
+        creado_por_por_interfaz[iface.Id_Interfaz] = iface.creado_por.username if iface.creado_por else 'Sistema'
+        fecha_por_interfaz[iface.Id_Interfaz] = iface.Fecha_Reg.strftime('%d/%m/%Y') if iface.Fecha_Reg else ''
     _pw = letter[0] - 50
     _ratios = [2.0, 1.5, 1.5]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
@@ -1718,16 +1822,17 @@ def exportar_subestaciones_pdf(request):
     elements.append(Spacer(1, 6))
     elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
-    subestaciones = Subestacion.objects.select_related('Id_Ten').all().order_by('Nombre')
+    subestaciones = Subestacion.objects.select_related('Id_Ten').prefetch_related('Niveles_Ten').all().order_by('-Fecha_Reg', '-Id_Sub_est')
     _pw = letter[0] - 50
-    _ratios = [1.3, 1.3, 1.2, 1.3, 1.3, 1.3]
+    _ratios = [1.3, 1.3, 1.7, 1.2, 1.3, 1.3]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
     hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
     cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
     data = [[Paragraph(f'<b>{h}</b>', hdr_st)
-             for h in ['Nombre', 'Ubicación', 'Nivel de Tensión', 'Coordenadas', 'Creado Por', 'Fecha de Registro']]]
+             for h in ['Nombre', 'Ubicación', 'Niveles de Tensión', 'Coordenadas', 'Creado Por', 'Fecha de Registro']]]
     for sub in subestaciones:
-        nivel     = sub.Id_Ten.get_Nivel_display() if sub.Id_Ten else ''
+        niveles_list = list(sub.Niveles_Ten.all()) or ([sub.Id_Ten] if sub.Id_Ten else [])
+        nivel     = '<br/>'.join(f"{n.get_Tipo_ten_display()} - {n.get_Nivel_display()}" for n in niveles_list) or '—'
         coords    = sub.Coordenadas if sub.Coordenadas else ''
         creado_por = sub.creado_por.username if sub.creado_por else 'Sistema'
         fecha     = sub.Fecha_Reg.strftime('%d/%m/%Y') if sub.Fecha_Reg else ''
@@ -1830,7 +1935,7 @@ def exportar_remotas_pdf(request):
     elements.append(Spacer(1, 6))
     elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
-    remotas = Remota.objects.select_related('Id_Ten').all().order_by('Id_Remota')
+    remotas = Remota.objects.select_related('Id_Ten').all().order_by('-Fecha_Reg', '-Id_Remota')
     _pw = letter[0] - 50
     _ratios = [1.3, 1.3, 1.8, 1.3, 1.3]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
@@ -1887,7 +1992,7 @@ def exportar_reles_pdf(request):
              .select_related('Id_Ten', 'Id_Sub_est', 'creado_por', 'Remota', 'Remota__Id_Ten')
              .prefetch_related('Protocolos', 'Puertos',
                                'Remota__Protocolos', 'Remota__Interfaces__puertos')
-             .order_by('Id_relé'))
+             .order_by('-Fecha_Reg', '-Id_relé'))
     return build_reles_pdf(reles)
 
 
@@ -1919,7 +2024,11 @@ def registrar_evento(request, tipo, descripcion):
     """Registra un evento en la bitácora"""
     from .models import Evento
     url_name = getattr(request.resolver_match, 'url_name', '') or ''
-    vista = _VISTA_NOMBRES.get(url_name, url_name.replace('_', ' ').title() if url_name else request.path)
+    # Si no se resolvió el nombre de la URL, derivarlo del primer segmento de la
+    # ruta (p. ej. "/protocolo/" -> "protocolo") para no guardar la ruta con "/".
+    if not url_name:
+        url_name = (request.path or '').strip('/').split('/')[0]
+    vista = _VISTA_NOMBRES.get(url_name, url_name.replace('_', ' ').title() if url_name else 'Inicio')
     Evento.objects.create(
         Tipo=tipo,
         Descripcion=descripcion,

@@ -57,8 +57,8 @@
       </div>
       <div class="puertos-container">
         {% for proto in rele.Protocolos.all %}
-          <span class="puerto-badge">
-            <span class="puerto-icon"><i class="fas fa-microchip"></i></span>
+          <span class="puerto-badge"{% if proto.Descripcion %} title="{{ proto.Descripcion }}"{% endif %}>
+            <span class="puerto-icon"><i class="{{ proto.Icono|default:'fas fa-microchip' }}"></i></span>
             <span class="puerto-text">{{ proto.get_Tipo_display }}</span>
           </span>
         {% empty %}
@@ -76,11 +76,13 @@
         {% for puerto in rele.Puertos.all %}
           <span class="puerto-badge {% if puerto.Tipo == 'ETH' %}puerto-eth{% endif %}">
             <span class="puerto-icon">
-              {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>{% endif %}
-              {% if puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>{% endif %}
-              {% if puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>{% endif %}
-              {% if puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>{% endif %}
-              {% if puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>{% endif %}
+              {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>
+              {% elif puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>
+              {% elif puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>
+              {% elif puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>
+              {% elif puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>
+              {% elif puerto.Icono %}<i class="{{ puerto.Icono }}"></i>
+              {% else %}<i class="fas fa-microchip"></i>{% endif %}
             </span>
             <span class="puerto-text">
               {{ puerto.get_Tipo_display }}

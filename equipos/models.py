@@ -32,7 +32,8 @@ class NivelTension(models.Model):
 class Subestacion(models.Model):
     """Modelo para gestionar subestaciones eléctricas"""
     Id_Sub_est = models.AutoField(primary_key=True)  # Identificador único
-    Id_Ten = models.ForeignKey(NivelTension, on_delete=models.CASCADE, related_name='subestaciones')  # Nivel de tensión asociado
+    Id_Ten = models.ForeignKey(NivelTension, on_delete=models.SET_NULL, null=True, blank=True, related_name='subestaciones')  # Nivel de tensión principal (legacy / primer nivel seleccionado)
+    Niveles_Ten = models.ManyToManyField("NivelTension", blank=True, related_name='subestaciones_multiples')  # Niveles de tensión asociados (una subestación puede tener varios)
     Nombre = models.CharField(max_length=100)  # Nombre de la subestación
     Ubicación = models.CharField(max_length=200)  # Dirección o ubicación física
     Coordenadas = models.CharField(max_length=100, blank=True, verbose_name='Coordenadas')  # Coordenadas GPS (opcional)
@@ -148,7 +149,9 @@ class PuertoComunicacion(models.Model):
     ]
     Id_Puerto = models.AutoField(primary_key=True)  # Identificador único
     Id_Interfaz = models.ForeignKey(InterfazDeComunicacion, on_delete=models.SET_NULL, null=True, blank=True, related_name='puertos')  # Interface a la que pertenece - SET_NULL permite eliminar interfaz sin borrar puertos
-    Tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='ETH', verbose_name='Tipo de Puerto')  # Tipo de puerto (enumerado)
+    Tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, default='ETH', verbose_name='Tipo de Puerto')  # Tipo de puerto (enumerado o personalizado por el admin)
+    Descripcion = models.CharField(max_length=80, blank=True, default='', verbose_name='Descripción')  # Descripción breve (útil para tipos personalizados)
+    Icono = models.CharField(max_length=40, blank=True, default='', verbose_name='Ícono')  # Clase FontAwesome (para tipos personalizados)
     Estado = models.CharField(max_length=50, default='Activo', verbose_name='Estado')  # Estado operativo
     Fecha_Reg = models.DateField(auto_now_add=True)  # Fecha de registro automática
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='puertos_creados')  # Usuario que creó el registro
@@ -195,7 +198,9 @@ class Protocolo(models.Model):
     ]
     Id_Protocolo = models.AutoField(primary_key=True)  # Identificador único
     Id_Interfaz = models.ForeignKey(InterfazDeComunicacion, on_delete=models.SET_NULL, null=True, blank=True, related_name='protocolos', verbose_name='Interfaz')  # Interface asociada - SET_NULL permite eliminar interfaz sin borrar protocolos
-    Tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, verbose_name='Tipo de Protocolo')  # Tipo de protocolo (enumerado)
+    Tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, verbose_name='Tipo de Protocolo')  # Tipo de protocolo (enumerado o personalizado por el admin)
+    Descripcion = models.CharField(max_length=80, blank=True, default='', verbose_name='Descripción')  # Descripción breve (útil para tipos personalizados)
+    Icono = models.CharField(max_length=40, blank=True, default='', verbose_name='Ícono')  # Clase FontAwesome (para tipos personalizados)
     Estado = models.CharField(max_length=50, default='Activo', verbose_name='Estado')  # Estado operativo
     Fecha_Reg = models.DateField(auto_now_add=True, verbose_name='Fecha de Registro')  # Fecha de registro automática
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='protocolos_creados')  # Usuario que creó el registro
