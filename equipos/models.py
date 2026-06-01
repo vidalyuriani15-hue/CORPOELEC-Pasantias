@@ -165,6 +165,29 @@ class PuertoComunicacion(models.Model):
         """Representación legible: 'Puerto TIPO - Interfaz X'"""
         return f"Puerto {self.Tipo} - Interfaz {self.Id_Interfaz.Id_Interfaz}"
 
+
+class TipoPuertoPersonalizado(models.Model):
+    """Catálogo de tipos de puerto personalizados ("Otra") reutilizables.
+    Cuando un admin crea un tipo personalizado para un puerto, se registra aquí
+    para que quede disponible como casilla de verificación para todos los
+    usuarios, incluso si la interfaz original que lo introdujo se elimina.
+    """
+    Tipo = models.CharField(max_length=30, unique=True, verbose_name='Tipo')
+    Descripcion = models.CharField(max_length=80, blank=True, default='', verbose_name='Descripción')
+    Icono = models.CharField(max_length=40, blank=True, default='', verbose_name='Ícono')
+    Activo = models.BooleanField(default=True, verbose_name='Activo')
+    Fecha_Reg = models.DateField(auto_now_add=True)
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tipos_puerto_personalizados')
+
+    class Meta:
+        verbose_name = 'Tipo de Puerto Personalizado'
+        verbose_name_plural = 'Tipos de Puerto Personalizados'
+        ordering = ['Tipo']
+
+    def __str__(self):
+        return self.Tipo
+
+
 class Remota(models.Model):
     """Modelo para gestionar remotas de protección eléctrica"""
     Id_Remota = models.AutoField(primary_key=True)  # Identificador único

@@ -229,6 +229,19 @@
               </div>
             </label>
             {% endif %}
+            {# Tipos personalizados (OTRA) del catálogo — disponibles para todos #}
+            {% for tp in tipos_personalizados %}
+              {% if tp.Tipo not in tipos_registrados %}
+              <label class="check-card">
+                <input type="checkbox" name="tipos_puerto" value="{{ tp.Tipo }}">
+                <span class="card-icon-wrapper"><i class="{{ tp.Icono|default:'fas fa-microchip' }}"></i></span>
+                <div class="card-text-content">
+                  <span class="card-title">{{ tp.Tipo }}</span>
+                  <span class="card-sub">{{ tp.Descripcion|default:'Tipo personalizado' }}</span>
+                </div>
+              </label>
+              {% endif %}
+            {% endfor %}
             {% if is_admin %}
             <label class="check-card" id="card_otro">
               <input type="checkbox" id="check_otro" onchange="toggleTipoOtro()">
@@ -238,9 +251,6 @@
                 <span class="card-sub">Especificar un tipo nuevo</span>
               </div>
             </label>
-            {% endif %}
-            {% if tipos_registrados|length >= 5 and not is_admin %}
-            <p style="color:#6c757d; font-style:italic; padding:10px;">Todas las opciones ya están registradas.</p>
             {% endif %}
           </div>
           {% if is_admin %}
@@ -463,7 +473,10 @@
     { value: 'RS232', icon: 'fas fa-plug', title: 'RS232', sub: 'Puerto serial estándar' },
     { value: 'RS485', icon: 'fas fa-exchange-alt', title: 'RS485', sub: 'Comunicación half-duplex' },
     { value: 'USB', icon: 'fab fa-usb', title: 'USB', sub: 'Puerto universal serial' },
-    { value: 'FIBRA', icon: 'fas fa-bolt', title: 'Fibra Óptica', sub: 'Transmisión por fibra óptica' }
+    { value: 'FIBRA', icon: 'fas fa-bolt', title: 'Fibra Óptica', sub: 'Transmisión por fibra óptica' },
+    // Tipos OTRA persistentes del catálogo (inyectados desde Django)
+    {% for tp in tipos_personalizados %}{ value: '{{ tp.Tipo|escapejs }}', icon: '{{ tp.Icono|default:"fas fa-microchip"|escapejs }}', title: '{{ tp.Tipo|escapejs }}', sub: '{{ tp.Descripcion|default:"Tipo personalizado"|escapejs }}' }{% if not forloop.last %},{% endif %}
+    {% endfor %}
   ];
 
   // Íconos predeterminados que el admin puede elegir para un tipo personalizado.

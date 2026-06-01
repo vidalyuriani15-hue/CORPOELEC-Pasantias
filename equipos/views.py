@@ -579,6 +579,15 @@ def interfaces_view(request):
                     tipos_puerto.append(otro)
                     descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
                     iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
+            # Heredar descripción/ícono del catálogo personalizado para los tipos
+            # OTRA seleccionados desde checkboxes (sin re-introducir el nombre).
+            _stock = {c[0] for c in PuertoComunicacion.TIPO_CHOICES}
+            for tipo in tipos_puerto:
+                if tipo not in _stock and tipo not in descripciones:
+                    tp = TipoPuertoPersonalizado.objects.filter(Tipo=tipo).first()
+                    if tp:
+                        descripciones[tipo] = tp.Descripcion
+                        iconos[tipo] = tp.Icono
             # Validación: ningún tipo puede estar registrado en OTRA interfaz activa
             ya_registrados = set(PuertoComunicacion.objects.filter(
                 Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
@@ -599,6 +608,17 @@ def interfaces_view(request):
                             Icono=iconos.get(tipo, ''),
                             creado_por=request.user
                         )
+                        # Registrar en catálogo de tipos OTRA si no es estándar
+                        if tipo not in _stock:
+                            TipoPuertoPersonalizado.objects.update_or_create(
+                                Tipo=tipo,
+                                defaults={
+                                    'Descripcion': descripciones.get(tipo, ''),
+                                    'Icono': iconos.get(tipo, ''),
+                                    'Activo': True,
+                                    'creado_por': request.user,
+                                },
+                            )
                     iface.Puertos_C = len(tipos_puerto)
                     iface.Tipo_Interfaz = 'PUERTOS'
                     iface.save()
@@ -627,6 +647,14 @@ def interfaces_view(request):
                     tipos_puerto.append(otro)
                     descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
                     iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
+            # Heredar metadatos del catálogo para tipos OTRA seleccionados
+            _stock = {c[0] for c in PuertoComunicacion.TIPO_CHOICES}
+            for tipo in tipos_puerto:
+                if tipo not in _stock and tipo not in descripciones:
+                    tp = TipoPuertoPersonalizado.objects.filter(Tipo=tipo).first()
+                    if tp:
+                        descripciones[tipo] = tp.Descripcion
+                        iconos[tipo] = tp.Icono
             if tipos_puerto:
                 # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
                 ya_registrados = set(PuertoComunicacion.objects.filter(
@@ -649,6 +677,17 @@ def interfaces_view(request):
                         Icono=iconos.get(tipo, ''),
                         creado_por=request.user
                     )
+                    # Registrar en catálogo de tipos OTRA si no es estándar
+                    if tipo not in _stock:
+                        TipoPuertoPersonalizado.objects.update_or_create(
+                            Tipo=tipo,
+                            defaults={
+                                'Descripcion': descripciones.get(tipo, ''),
+                                'Icono': iconos.get(tipo, ''),
+                                'Activo': True,
+                                'creado_por': request.user,
+                            },
+                        )
                 # Validar consistencia
                 try:
                     iface.full_clean()
@@ -676,11 +715,15 @@ def interfaces_view(request):
         Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
     ).values_list('Tipo', flat=True).distinct())
 
+    # Catálogo de tipos OTRA personalizados (persistente, disponible para todos)
+    tipos_personalizados = TipoPuertoPersonalizado.objects.filter(Activo=True).order_by('Tipo')
+
     context = {
         'title': 'Interfaz de Comunicacion',
         'page_obj': page_obj,
         'puertos_tipos': puertos_tipos,
         'tipos_registrados': tipos_registrados,
+        'tipos_personalizados': tipos_personalizados,
         'is_admin': request.user.is_superuser,
         'puede_crear': puede_crear(request),
         'puede_actualizar': puede_actualizar(request),
