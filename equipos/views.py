@@ -751,6 +751,14 @@ def protocolo_view(request):
                     tipos_protocolo.append(otro)
                     descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
                     iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
+            # Heredar metadatos del catálogo para tipos OTRA seleccionados
+            _stock_proto = {c[0] for c in Protocolo.TIPO_CHOICES}
+            for tipo in tipos_protocolo:
+                if tipo not in _stock_proto and tipo not in descripciones:
+                    tp = TipoProtocoloPersonalizado.objects.filter(Tipo=tipo).first()
+                    if tp:
+                        descripciones[tipo] = tp.Descripcion
+                        iconos[tipo] = tp.Icono
             # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
             ya_registrados = set(Protocolo.objects.filter(
                 Activo=True, Id_Interfaz__Activo=True
@@ -773,6 +781,17 @@ def protocolo_view(request):
                         Icono=iconos.get(tipo, ''),
                         creado_por=request.user
                     )
+                    # Registrar en catálogo de tipos OTRA si no es estándar
+                    if tipo not in _stock_proto:
+                        TipoProtocoloPersonalizado.objects.update_or_create(
+                            Tipo=tipo,
+                            defaults={
+                                'Descripcion': descripciones.get(tipo, ''),
+                                'Icono': iconos.get(tipo, ''),
+                                'Activo': True,
+                                'creado_por': request.user,
+                            },
+                        )
                 # Validar consistencia
                 try:
                     interfaz.full_clean()
@@ -802,6 +821,14 @@ def protocolo_view(request):
                     tipos_protocolo.append(otro)
                     descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
                     iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
+            # Heredar metadatos del catálogo para tipos OTRA seleccionados
+            _stock_proto = {c[0] for c in Protocolo.TIPO_CHOICES}
+            for tipo in tipos_protocolo:
+                if tipo not in _stock_proto and tipo not in descripciones:
+                    tp = TipoProtocoloPersonalizado.objects.filter(Tipo=tipo).first()
+                    if tp:
+                        descripciones[tipo] = tp.Descripcion
+                        iconos[tipo] = tp.Icono
             # Validación: ningún tipo puede estar registrado en OTRA interfaz activa
             ya_registrados = set(Protocolo.objects.filter(
                 Activo=True, Id_Interfaz__Activo=True
@@ -822,6 +849,17 @@ def protocolo_view(request):
                             Icono=iconos.get(tipo, ''),
                             creado_por=request.user
                         )
+                        # Registrar en catálogo si no es estándar
+                        if tipo not in _stock_proto:
+                            TipoProtocoloPersonalizado.objects.update_or_create(
+                                Tipo=tipo,
+                                defaults={
+                                    'Descripcion': descripciones.get(tipo, ''),
+                                    'Icono': iconos.get(tipo, ''),
+                                    'Activo': True,
+                                    'creado_por': request.user,
+                                },
+                            )
                     interfaz.Puertos_C = 0
                     interfaz.Tipo_Interfaz = 'PROTOCOLOS'
                     interfaz.save()
@@ -885,10 +923,14 @@ def protocolo_view(request):
         Activo=True, Id_Interfaz__Activo=True
     ).values_list('Tipo', flat=True).distinct())
 
+    # Catálogo de tipos OTRA personalizados (persistente, disponible para todos)
+    tipos_personalizados = TipoProtocoloPersonalizado.objects.filter(Activo=True).order_by('Tipo')
+
     context = {
         'title': 'Protocolos',
         'page_obj': page_obj,
         'tipos_registrados': tipos_registrados,
+        'tipos_personalizados': tipos_personalizados,
         'is_admin': request.user.is_superuser,
         'puede_crear': puede_crear(request),
         'puede_actualizar': puede_actualizar(request),

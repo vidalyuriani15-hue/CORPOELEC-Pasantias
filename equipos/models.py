@@ -188,6 +188,28 @@ class TipoPuertoPersonalizado(models.Model):
         return self.Tipo
 
 
+class TipoProtocoloPersonalizado(models.Model):
+    """Catálogo de tipos de protocolo personalizados ("Otro") reutilizables.
+    Cuando un admin crea un protocolo personalizado, se registra aquí para que
+    permanezca como casilla de verificación disponible para todos los usuarios,
+    incluso si la interfaz original que lo introdujo se elimina.
+    """
+    Tipo = models.CharField(max_length=30, unique=True, verbose_name='Tipo')
+    Descripcion = models.CharField(max_length=80, blank=True, default='', verbose_name='Descripción')
+    Icono = models.CharField(max_length=40, blank=True, default='', verbose_name='Ícono')
+    Activo = models.BooleanField(default=True, verbose_name='Activo')
+    Fecha_Reg = models.DateField(auto_now_add=True)
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tipos_protocolo_personalizados')
+
+    class Meta:
+        verbose_name = 'Tipo de Protocolo Personalizado'
+        verbose_name_plural = 'Tipos de Protocolo Personalizados'
+        ordering = ['Tipo']
+
+    def __str__(self):
+        return self.Tipo
+
+
 class Remota(models.Model):
     """Modelo para gestionar remotas de protección eléctrica"""
     Id_Remota = models.AutoField(primary_key=True)  # Identificador único

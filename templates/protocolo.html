@@ -239,6 +239,19 @@
                  </div>
                </label>
                {% endif %}
+               {# Tipos personalizados (OTRA) del catálogo — disponibles para todos #}
+               {% for tp in tipos_personalizados %}
+                 {% if tp.Tipo not in tipos_registrados %}
+                 <label class="check-card">
+                   <input type="checkbox" name="tipos_protocolo" value="{{ tp.Tipo }}">
+                   <span class="card-icon-wrapper"><i class="{{ tp.Icono|default:'fas fa-microchip' }}"></i></span>
+                   <div class="card-text-content">
+                     <span class="card-title">{{ tp.Tipo }}</span>
+                     <span class="card-sub">{{ tp.Descripcion|default:'Protocolo personalizado' }}</span>
+                   </div>
+                 </label>
+                 {% endif %}
+               {% endfor %}
                {% if is_admin %}
                <label class="check-card" id="card_otro">
                  <input type="checkbox" id="check_otro" onchange="toggleTipoOtro()">
@@ -248,9 +261,6 @@
                    <span class="card-sub">Especificar un protocolo nuevo</span>
                  </div>
                </label>
-               {% endif %}
-               {% if tipos_registrados|length >= 5 and not is_admin %}
-               <p style="color:#6c757d; font-style:italic; padding:10px;">Todos los protocolos ya están registrados.</p>
                {% endif %}
              </div>
              {% if is_admin %}
@@ -467,7 +477,10 @@
      { value: 'DNP', icon: 'fas fa-plug', title: 'DNP3', sub: 'Distributed Network Protocol' },
      { value: 'GOOSE', icon: 'fas fa-exchange-alt', title: 'GOOSE', sub: 'Generic Object Oriented Substation' },
      { value: '101', icon: 'fab fa-usb', title: 'IEC 101', sub: 'Protocolo telemando IEC' },
-     { value: 'MODBUS', icon: 'fas fa-bolt', title: 'Modbus', sub: 'Protocolo industrial estándar' }
+     { value: 'MODBUS', icon: 'fas fa-bolt', title: 'Modbus', sub: 'Protocolo industrial estándar' },
+     // Tipos OTRA persistentes del catálogo (inyectados desde Django)
+     {% for tp in tipos_personalizados %}{ value: '{{ tp.Tipo|escapejs }}', icon: '{{ tp.Icono|default:"fas fa-microchip"|escapejs }}', title: '{{ tp.Tipo|escapejs }}', sub: '{{ tp.Descripcion|default:"Protocolo personalizado"|escapejs }}' }{% if not forloop.last %},{% endif %}
+     {% endfor %}
    ];
    const VALORES_ESTANDAR = OPCIONES_PROTOCOLOS.map(op => op.value);
    const IS_ADMIN = {{ is_admin|yesno:"true,false" }};
