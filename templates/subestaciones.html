@@ -38,9 +38,11 @@
     <input type="text" class="search-input" id="searchInput" placeholder="Buscar subestaciones..." onkeyup="filterTable()">
   </div>
   <div class="action-buttons">
+    {% if puede_crear %}
     <button type="button" class="btn btn-primary btn-add-top" onclick="abrirAddModal()">
       <i class="fas fa-plus"></i> Añadir
     </button>
+    {% endif %}
     <a href="{% url 'exportar_subestaciones_pdf' %}" class="btn btn-secondary btn-add-top">
       <i class="fas fa-file-pdf"></i> Exportar
     </a>
@@ -54,7 +56,7 @@
              <!-- Columnas de datos de la subestación -->
              <th>Nombre</th>
              <th>Ubicación</th>
-             <th>Nivel de Tensión</th>
+             <th>Niveles de Tensión</th>
              <th>Coordenadas</th>
              {% if is_admin %}<th>Creado Por</th>{% endif %}
              <th>Fecha de Registro</th>
@@ -66,14 +68,20 @@
         <tr>
           <td>{{ sub.Nombre }}</td>
           <td>{{ sub.Ubicación }}</td>
-            <td>{{ sub.Id_Ten.get_Tipo_ten_display }} - {{ sub.Id_Ten.get_Nivel_display }}</td>
+            <td>
+              {% for nivel in sub.Niveles_Ten.all %}
+                <span class="nivel-chip">{{ nivel.get_Tipo_ten_display }} - {{ nivel.get_Nivel_display }}</span>
+              {% empty %}
+                {% if sub.Id_Ten %}<span class="nivel-chip">{{ sub.Id_Ten.get_Tipo_ten_display }} - {{ sub.Id_Ten.get_Nivel_display }}</span>{% else %}—{% endif %}
+              {% endfor %}
+            </td>
           <!-- Muestra "—" si no hay coordenadas registradas -->
           <td>{{ sub.Coordenadas|default:"—" }}</td>
           {% if is_admin %}<td>{{ sub.creado_por.username|default:"Sistema" }}</td>{% endif %}
           <td>{{ sub.Fecha_Reg|date:"d/m/Y" }}</td>
 <td class="actions-cell">
               {% if puede_actualizar %}
-              <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ sub.Id_Sub_est }}, '{{ sub.Nombre }}', '{{ sub.Ubicación }}', {{ sub.Id_Ten.Id_Ten }}, '{{ sub.Coordenadas|default:"" }}')">
+              <button type="button" class="btn-icon btn-edit" title="Editar" onclick="openEditModal({{ sub.Id_Sub_est }}, '{{ sub.Nombre|escapejs }}', '{{ sub.Ubicación|escapejs }}', '{% for nivel in sub.Niveles_Ten.all %}{{ nivel.Id_Ten }}{% if not forloop.last %},{% endif %}{% endfor %}', '{{ sub.Coordenadas|escapejs }}')">
                 <i class="fas fa-edit"></i>
               </button>
               {% endif %}
@@ -173,13 +181,18 @@
             <input type="text" class="form-control" name="ubicacion" required placeholder="Ubicación">
           </div>
              <div class="form-group">
-               <label>Nivel de Tensión</label>
-               <select class="form-control" name="id_ten" required>
-                 <option value="">Seleccionar</option>
+               <label>Niveles de Tensión</label>
+               <div class="checks-grid">
                  {% for tension in tensiones %}
-                  <option value="{{ tension.Id_Ten }}">{{ tension.get_Tipo_ten_display }} - {{ tension.get_Nivel_display }}</option>
+                 <label class="check-card-elegant">
+                   <input type="checkbox" name="niveles_ten" value="{{ tension.Id_Ten }}">
+                   <span class="check-icon-wrapper"><i class="fas fa-bolt"></i></span>
+                   <div class="check-content">
+                     <span class="check-title">{{ tension.get_Tipo_ten_display }} - {{ tension.get_Nivel_display }}</span>
+                   </div>
+                 </label>
                  {% endfor %}
-               </select>
+               </div>
              </div>
             <div class="form-group">
               <label>Coordenadas (opcional)</label>
@@ -216,13 +229,18 @@
             <input type="text" class="form-control" name="ubicacion" id="edit_ubicacion" required placeholder="Ubicación">
           </div>
              <div class="form-group">
-               <label>Nivel de Tensión</label>
-               <select class="form-control" name="id_ten" id="edit_id_ten" required>
-                 <option value="">Seleccionar</option>
+               <label>Niveles de Tensión</label>
+               <div class="checks-grid" id="edit_niveles_grid">
                  {% for tension in tensiones %}
-                  <option value="{{ tension.Id_Ten }}">{{ tension.get_Tipo_ten_display }} - {{ tension.get_Nivel_display }}</option>
+                 <label class="check-card-elegant">
+                   <input type="checkbox" name="niveles_ten" value="{{ tension.Id_Ten }}">
+                   <span class="check-icon-wrapper"><i class="fas fa-bolt"></i></span>
+                   <div class="check-content">
+                     <span class="check-title">{{ tension.get_Tipo_ten_display }} - {{ tension.get_Nivel_display }}</span>
+                   </div>
+                 </label>
                  {% endfor %}
-               </select>
+               </div>
              </div>
             <div class="form-group">
               <label>Coordenadas (opcional)</label>
@@ -239,12 +257,16 @@
  </div>
 
   <script>
-    function openEditModal(id, nombre, ubicacion, id_ten, coordenadas) {
+    function openEditModal(id, nombre, ubicacion, niveles, coordenadas) {
       document.getElementById('edit_sub_id').value = id;
       document.getElementById('edit_nombre').value = nombre;
       document.getElementById('edit_ubicacion').value = ubicacion;
-      document.getElementById('edit_id_ten').value = id_ten;
       document.getElementById('edit_coordenadas').value = coordenadas || '';
+      // Marcar los niveles de tensión seleccionados
+      var seleccionados = (niveles ? String(niveles).split(',') : []).filter(function(v) { return v !== ''; });
+      document.querySelectorAll('#edit_niveles_grid input[name="niveles_ten"]').forEach(function(cb) {
+        cb.checked = seleccionados.indexOf(cb.value) > -1;
+      });
       document.getElementById('editModal').classList.add('active');
     }
     function closeEditModal() {
@@ -441,6 +463,88 @@
       padding-right: 36px;
     }
 
+    /* === CHECKBOXES DE NIVELES DE TENSIÓN (estilo interfaces/relés) === */
+    .checks-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .check-card-elegant {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #fff;
+      border: 2px solid #e8eaf6;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    .check-card-elegant:hover {
+      border-color: #4DA6FF;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e8f4fd 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(77, 166, 255, 0.12);
+    }
+    .check-card-elegant input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .check-card-elegant input[type="checkbox"]:checked + .check-icon-wrapper {
+      background: #4DA6FF;
+      border-color: #4DA6FF;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(77, 166, 255, 0.35);
+    }
+    .check-card-elegant input[type="checkbox"]:checked ~ .check-content .check-title {
+      color: #1a56db;
+    }
+    .check-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      background: #f8fafc;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #6B7280;
+      transition: all 0.25s ease;
+    }
+    .check-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      line-height: 1.3;
+      flex: 1;
+    }
+    .check-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #1F2937;
+      transition: color 0.2s ease;
+    }
+    @media (max-width: 768px) { .checks-grid { grid-template-columns: 1fr; } }
+
+    /* Chips de niveles en la tabla */
+    .nivel-chip {
+      display: inline-block;
+      background: #e8f4fd;
+      color: #1a56db;
+      border: 1px solid #cfe6fb;
+      border-radius: 12px;
+      padding: 2px 10px;
+      margin: 2px 3px 2px 0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
     /* === TABLE === */
     .data-table {
       width: 100%;
@@ -561,7 +665,7 @@
   }
 
   .modal-dialog {
-    max-width: 500px;
+    max-width: 760px;
     width: 90%;
     margin: 0;
   }

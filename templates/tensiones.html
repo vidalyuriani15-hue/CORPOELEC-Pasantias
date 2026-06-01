@@ -36,9 +36,11 @@
     <input type="text" class="search-input" id="searchInput" placeholder="Buscar niveles..." onkeyup="filterTable()">
   </div>
   <div class="action-buttons">
+    {% if puede_crear %}
     <button type="button" class="btn btn-primary btn-add-top" onclick="abrirAddModal()">
       <i class="fas fa-plus"></i> Añadir
     </button>
+    {% endif %}
     <a href="{% url 'exportar_tensiones_pdf' %}" class="btn btn-secondary btn-add-top">
       <i class="fas fa-file-pdf"></i> Exportar
     </a>
@@ -167,12 +169,18 @@
           </div>
            <div class="form-group">
              <label>Nivel</label>
-             <select name="nivel" id="add_nivel" class="form-control" required>
+             <select name="nivel" id="add_nivel" class="form-control" required onchange="toggleOtroNivel('add')">
                <option value="">Seleccionar nivel</option>
                {% for value, display in nivel_choices_simple %}
                <option value="{{ value }}">{{ display }}</option>
                {% endfor %}
+               {% if is_admin %}
+               <option value="__otro__">Otro (especificar)...</option>
+               {% endif %}
              </select>
+             {% if is_admin %}
+             <input type="text" name="nivel_otro" id="add_nivel_otro" class="form-control" placeholder="Especifique el nuevo nivel (ej: 69 kV)" style="margin-top:10px; display:none;">
+             {% endif %}
            </div>
         </form>
       </div>
@@ -207,11 +215,17 @@
           </div>
           <div class="form-group">
             <label>Nivel</label>
-            <select name="nivel" id="edit_nivel" class="form-control" required>
+            <select name="nivel" id="edit_nivel" class="form-control" required onchange="toggleOtroNivel('edit')">
               {% for value, display in nivel_choices %}
               <option value="{{ value }}">{{ display }}</option>
               {% endfor %}
+              {% if is_admin %}
+              <option value="__otro__">Otro (especificar)...</option>
+              {% endif %}
             </select>
+            {% if is_admin %}
+            <input type="text" name="nivel_otro" id="edit_nivel_otro" class="form-control" placeholder="Especifique el nuevo nivel (ej: 69 kV)" style="margin-top:10px; display:none;">
+            {% endif %}
           </div>
         </form>
       </div>
@@ -390,11 +404,29 @@ function openEditModal(id, tipo_ten, nivel) {
     opt2.selected = true;
     selectNivel.add(opt2);
   }
+  toggleOtroNivel('edit');
   document.getElementById('editModal').style.display = 'flex';
+}
+
+// Muestra/oculta el campo de texto para un nivel personalizado ("Otro").
+function toggleOtroNivel(prefix) {
+  var select = document.getElementById(prefix + '_nivel');
+  var input = document.getElementById(prefix + '_nivel_otro');
+  if (!select || !input) return;
+  if (select.value === '__otro__') {
+    input.style.display = 'block';
+    input.required = true;
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    input.required = false;
+    input.value = '';
+  }
 }
 
 function abrirAddModal() {
   document.getElementById('addNivelForm').reset();
+  toggleOtroNivel('add');
   document.getElementById('addModal').style.display = 'flex';
 }
 

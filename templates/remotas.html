@@ -36,9 +36,11 @@
     <input type="text" class="search-input" id="searchInput" placeholder="Buscar remotas..." onkeyup="filterTable()">
   </div>
   <div class="action-buttons">
+    {% if puede_crear %}
     <button type="button" class="btn btn-primary btn-add-top" onclick="abrirAddModal()">
       <i class="fas fa-plus"></i> Añadir
     </button>
+    {% endif %}
     <a href="{% url 'exportar_remotas_pdf' %}" class="btn btn-secondary btn-add-top">
       <i class="fas fa-file-pdf"></i> Exportar
     </a>
