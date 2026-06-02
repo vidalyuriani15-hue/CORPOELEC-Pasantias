@@ -243,10 +243,10 @@
 <style>
     .table-section { background:#f4f7f6; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
     .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:15px; }
-    .table-header h3 { margin:0; color:#0D2B4D; width:280px; }
+    .table-header h3 { margin:0; color:#0D2B4D; }
     .search-container { position:relative; display:flex; align-items:center; }
     .search-icon { position:absolute; left:12px; color:#8c8c8c; font-size:14px; pointer-events:none; }
-    .search-input { width:350px; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
+    .search-input { width:350px; max-width:100%; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
     .search-input:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
     .search-input::placeholder { color:#adb5bd; }
     .action-buttons { display:flex; gap:10px; }
@@ -260,7 +260,13 @@
    .btn-icon:hover { background:rgba(0,0,0,0.05); }
    .btn-icon.btn-edit:hover { color:#4DA6FF; background:rgba(77,166,255,0.1); }
    .btn-icon.btn-delete:hover { color:#E63946; background:rgba(230,57,70,0.1); }
-  @media (max-width:768px){ .data-table{display:block;overflow-x:auto;} }
+  @media (max-width:768px){
+    .data-table{display:block;overflow-x:auto;}
+    .table-header{flex-wrap:wrap;gap:10px;}
+    .search-container{width:100%;}
+    .search-input{width:100%;}
+    .action-buttons{width:100%;justify-content:flex-end;}
+  }
   .pagination-container { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:15px 20px; background:#fff; border-radius:8px; border:1px solid #e8e8e8; }
   .pagination-info-left { display:flex; align-items:center; }
   .pagination-text { font-size:0.9rem; color:#595959; font-weight:500; }

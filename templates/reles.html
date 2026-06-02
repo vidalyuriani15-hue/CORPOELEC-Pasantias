@@ -501,11 +501,11 @@
 {% block extra_css %}
 <style>
 .table-section { background:#f4f7f6; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
-    .table-header h3 { margin:0; color:#0D2B4D; width:280px; }
+    .table-header h3 { margin:0; color:#0D2B4D; }
     .header-actions { display:flex; align-items:center; gap:15px; }
     .search-container { position:relative; display:flex; align-items:center; }
     .search-icon { position:absolute; left:12px; color:#8c8c8c; font-size:14px; pointer-events:none; }
-    .search-input { width:350px; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
+    .search-input { width:350px; max-width:100%; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
     .action-buttons { display:flex; gap:10px; }
     .search-input:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
     .search-input::placeholder { color:#adb5bd; }
@@ -768,7 +768,17 @@
   .pagination-link.disabled { color:#d9d9d9; background:#f5f5f5; border-color:#e8e8e8; cursor:not-allowed; pointer-events:none; }
   .pagination-item.active .pagination-link { background:#1890ff; color:#fff; border-color:#1890ff; font-weight:600; }
   .pagination-prev, .pagination-next { gap:6px; }
-  @media(max-width:768px){ .form-group{ min-width:100%; } .checks-grid { grid-template-columns:1fr; } .pagination-container{ flex-direction:column; gap:15px; } .pagination-info-left, .pagination-controls-right{ justify-content:center; } .pagination-list{ flex-wrap:wrap; } }
+  @media(max-width:768px){
+    .form-group{ min-width:100%; }
+    .checks-grid { grid-template-columns:1fr; }
+    .table-header { flex-wrap:wrap; gap:10px; }
+    .search-container { width:100%; }
+    .search-input { width:100%; }
+    .action-buttons { width:100%; justify-content:flex-end; }
+    .pagination-container{ flex-direction:column; gap:15px; }
+    .pagination-info-left, .pagination-controls-right{ justify-content:center; }
+    .pagination-list{ flex-wrap:wrap; }
+  }
    .btn { padding:10px 20px; border-radius:6px; text-decoration:none; font-size:0.9rem; font-weight:400; cursor:pointer; border:none; transition:all 0.2s; }
   .btn-primary { background:#4DA6FF; color:#fff; }
   .btn-primary:hover { background:#3d8fe0; }

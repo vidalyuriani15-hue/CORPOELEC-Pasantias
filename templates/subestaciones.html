@@ -392,7 +392,6 @@
    .table-header h3 {
      margin: 0;
      color: var(--blue-dark);
-     width: 280px;
    }
 
   /* Search */
@@ -410,6 +409,7 @@
   }
    .search-input {
      width: 350px;
+     max-width: 100%;
      padding: 8px 12px 8px 36px;
      border: 1px solid #dee2e6;
      border-radius: 6px;
@@ -529,7 +529,13 @@
       color: #1F2937;
       transition: color 0.2s ease;
     }
-    @media (max-width: 768px) { .checks-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+      .checks-grid { grid-template-columns: 1fr; }
+      .table-header { flex-wrap: wrap; gap: 10px; }
+      .search-container { width: 100%; }
+      .search-input { width: 100%; }
+      .action-buttons { width: 100%; justify-content: flex-end; }
+    }
 
     /* Chips de niveles en la tabla */
     .nivel-chip {

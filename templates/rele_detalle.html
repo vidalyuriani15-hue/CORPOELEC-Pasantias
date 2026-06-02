@@ -14,6 +14,9 @@ body {
   min-height:100vh;
   padding:20px;
   overflow-x:hidden;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
 }
 .card {
   background:#fff;
@@ -168,6 +171,8 @@ body {
     body { padding:10px; }
     .card-body { padding:16px; }
     .form-group { flex-basis:100%; }
+    .card-footer { flex-direction:column; }
+    .card-footer .btn { width:100%; }
   }
   </style>
 </head>

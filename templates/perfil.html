@@ -88,8 +88,14 @@
   
   .form-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 15px;
     margin-top: 25px;
+  }
+
+  @media (max-width: 480px) {
+    .profile-form { padding: 20px 15px; }
+    .form-actions .btn { width: 100%; text-align: center; justify-content: center; }
   }
   
   .btn {

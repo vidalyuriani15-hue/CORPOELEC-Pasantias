@@ -1922,6 +1922,37 @@
       .cards-grid {
         grid-template-columns: 1fr;
       }
+
+      .content-area {
+        padding: 15px;
+      }
+
+      .navbar {
+        padding: 10px 15px;
+      }
+
+      .footer {
+        flex-direction: column;
+        text-align: center;
+        gap: 5px;
+        padding: 12px 15px;
+      }
+
+      .table-header {
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .table-header h3 {
+        width: auto !important;
+        flex: 1 1 auto;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .content-area {
+        padding: 10px;
+      }
     }
   </style>
   {% block extra_css %}{% endblock %}

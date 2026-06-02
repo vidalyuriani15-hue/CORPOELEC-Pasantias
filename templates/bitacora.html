@@ -437,6 +437,7 @@
 }
 .search-wrapper .search-input {
   width: 260px;
+  max-width: 100%;
   padding: 8px 36px;
   border: 1px solid var(--gray-300, #dee2e6);
   border-radius: 8px;
@@ -528,6 +529,12 @@
 .pagination-prev, .pagination-next { gap: 6px; }
 .pagination-prev i, .pagination-next i { font-size: 0.8rem; }
 @media (max-width: 768px) {
+  .table-header { flex-wrap: wrap; gap: 10px; }
+  .header-actions { width: 100%; }
+  .filter-form { width: 100%; }
+  .search-wrapper { flex: 1; min-width: 0; }
+  .search-wrapper .search-input { width: 100%; }
+  .filter-select { min-width: 0; width: 100%; }
   .pagination-container { flex-direction: column; gap: 15px; }
   .pagination-info-left, .pagination-controls-right { justify-content: center; }
   .pagination-list { flex-wrap: wrap; gap: 5px; }
