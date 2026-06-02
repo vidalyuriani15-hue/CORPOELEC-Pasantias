@@ -990,8 +990,11 @@
          display: block;
        }
 
-       .main-content {
+       .main-content,
+       .main-content.expanded {
          margin-left: 0;
+         width: 100%;
+         max-width: 100%;
        }
 
        .cards-grid {
@@ -1909,10 +1912,13 @@
         display: block;
       }
       
-      .main-content {
+      .main-content,
+      .main-content.expanded {
         margin-left: 0;
+        width: 100%;
+        max-width: 100%;
       }
-      
+
       .cards-grid {
         grid-template-columns: 1fr;
       }
