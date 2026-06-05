@@ -284,6 +284,9 @@
 {% block extra_css %}
 <style>
 .table-section { background:#fff; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
+.table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px; flex-wrap: wrap; }
+.table-header h3 { margin: 0; color: var(--blue-dark, #0D2B4D); flex: 0 0 auto; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; flex-wrap: wrap; }
 /* ── Badges de acción ── */
 .badge {
   display: inline-flex;
@@ -530,7 +533,7 @@
 .pagination-prev i, .pagination-next i { font-size: 0.8rem; }
 @media (max-width: 768px) {
   .table-header { flex-wrap: wrap; gap: 10px; }
-  .header-actions { width: 100%; }
+  .header-actions { width: 100%; margin-left: 0; justify-content: flex-end; }
   .filter-form { width: 100%; }
   .search-wrapper { flex: 1; min-width: 0; }
   .search-wrapper .search-input { width: 100%; }

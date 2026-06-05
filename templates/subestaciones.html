@@ -381,18 +381,26 @@
     align-items: center;
     margin-bottom: 15px;
     gap: 15px;
+    flex-wrap: wrap;
   }
 
-  .table-header-left {
+  .table-header h3 {
+    margin: 0;
+    color: var(--blue-dark);
+    flex: 0 0 auto;
+  }
+
+  .action-buttons {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
-   .table-header h3 {
-     margin: 0;
-     color: var(--blue-dark);
-   }
+  .search-container {
+    flex: 1 1 auto;
+    min-width: 250px;
+  }
 
   /* Search */
   .search-container {

@@ -323,11 +323,11 @@
     background: var(--bg-light); padding: 25px; border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px;
   }
-  .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px; }
-  .table-header h3 { margin: 0; color: var(--dark-blue); }
+  .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px; flex-wrap: wrap; }
+  .table-header h3 { margin: 0; color: var(--dark-blue); flex: 0 0 auto; }
 
   /* === BÚSQUEDA === */
-  .search-container { position: relative; display: flex; align-items: center; }
+  .search-container { position: relative; display: flex; align-items: center; flex: 1 1 auto; min-width: 250px; }
   .search-icon { position: absolute; left: 12px; color: #8c8c8c; font-size: 14px; pointer-events: none; }
   .search-input {
     width: 350px; padding: 8px 12px 8px 36px; border: 1px solid var(--border-color);
@@ -346,6 +346,8 @@
   .btn-icon:hover { background: rgba(0,0,0,0.05); }
   .btn-icon.btn-edit:hover { color: var(--primary); background: rgba(77,166,255,0.1); }
   .btn-icon.btn-delete:hover { color: #E63946; background: rgba(230,57,70,0.1); }
+
+  .action-buttons { display: flex; gap: 10px; flex: 0 0 auto; margin-left: auto; }
 
   /* === TABLA DE DATOS === */
   .data-table { width: 100%; border-collapse: collapse; }

@@ -242,14 +242,14 @@
 {% block extra_css %}
 <style>
     .table-section { background:#f4f7f6; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; }
-    .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:15px; }
-    .table-header h3 { margin:0; color:#0D2B4D; }
-    .search-container { position:relative; display:flex; align-items:center; }
+    .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:15px; flex-wrap:wrap; }
+    .table-header h3 { margin:0; color:#0D2B4D; flex:0 0 auto; }
+    .search-container { position:relative; display:flex; align-items:center; flex:1 1 auto; min-width:250px; }
     .search-icon { position:absolute; left:12px; color:#8c8c8c; font-size:14px; pointer-events:none; }
     .search-input { width:350px; max-width:100%; padding:8px 12px 8px 36px; border:1px solid #dee2e6; border-radius:6px; font-size:14px; color:#333; background:#fff; transition:border-color 0.3s ease; }
     .search-input:focus { outline:none; border-color:#4DA6FF; box-shadow:0 0 0 3px rgba(77,166,255,0.1); }
     .search-input::placeholder { color:#adb5bd; }
-    .action-buttons { display:flex; gap:10px; }
+    .action-buttons { display:flex; gap:10px; flex:0 0 auto; margin-left:auto; }
    .data-table { width:100%; border-collapse:collapse; }
    .data-table thead { background:#f4f6f9; }
    .data-table th, .data-table td { padding:12px 15px; text-align:left; border-bottom:1px solid #dee2e6; }
