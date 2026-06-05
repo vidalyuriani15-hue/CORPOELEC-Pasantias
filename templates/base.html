@@ -56,6 +56,8 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+      gap: 20px;
+      flex-wrap: wrap;
     }
 
     .table-header h3 {
@@ -65,6 +67,21 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      flex: 0 0 auto;
+    }
+
+    .search-container {
+      display: flex;
+      align-items: center;
+      flex: 1 1 auto;
+      min-width: 250px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      flex: 0 0 auto;
+      margin-left: auto;
     }
 
     /* Tamaño uniforme para los botones Añadir/Exportar de la cabecera.
@@ -2312,8 +2329,84 @@
          }, 500);
        }, 5000);
      }
+
+    // Timeout de sesión (10 minutos de inactividad)
+    const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutos en milisegundos
+    const WARNING_TIME = 60 * 1000; // Mostrar advertencia 1 minuto antes
+    let timeoutId = null;
+    let countdownId = null;
+
+    function resetSessionTimer() {
+      clearTimeout(timeoutId);
+      clearInterval(countdownId);
+      const modal = document.getElementById('sessionTimeoutModal');
+      if (modal) modal.classList.remove('active');
+      startSessionTimer();
+    }
+
+    function startSessionTimer() {
+      timeoutId = setTimeout(() => {
+        showSessionTimeoutWarning();
+      }, SESSION_TIMEOUT - WARNING_TIME);
+    }
+
+    function showSessionTimeoutWarning() {
+      const modal = document.getElementById('sessionTimeoutModal');
+      if (!modal) return;
+
+      modal.classList.add('active');
+      let remainingSeconds = WARNING_TIME / 1000;
+
+      const updateCountdown = () => {
+        const countdownEl = document.getElementById('sessionCountdown');
+        if (countdownEl) {
+          countdownEl.textContent = remainingSeconds + 's';
+        }
+        remainingSeconds--;
+
+        if (remainingSeconds < 0) {
+          clearInterval(countdownId);
+          cerrarModalTimeout();
+        }
+      };
+
+      updateCountdown();
+      countdownId = setInterval(updateCountdown, 1000);
+
+      timeoutId = setTimeout(() => {
+        cerrarModalTimeout();
+      }, WARNING_TIME);
+    }
+
+    function continuarSesion() {
+      const modal = document.getElementById('sessionTimeoutModal');
+      if (modal) modal.classList.remove('active');
+      resetSessionTimer();
+    }
+
+    function cerrarModalTimeout() {
+      const modal = document.getElementById('sessionTimeoutModal');
+      if (modal) modal.classList.remove('active');
+      clearInterval(countdownId);
+
+      const logoutUrl = document.querySelector('[href*="logout"]')?.href;
+      if (logoutUrl) {
+        window.location.href = logoutUrl;
+      } else {
+        window.location.href = '/logout/';
+      }
+    }
+
+    // Rastrear actividad del usuario
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    activityEvents.forEach(event => {
+      document.addEventListener(event, resetSessionTimer, true);
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
       setupMessageAutoHide();
+      startSessionTimer();
+
       // Si llega un mensaje por fetch / HTMX, volver a ejecutar
       new MutationObserver(function(mutations) {
         mutations.forEach(function(m) {
