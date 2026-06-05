@@ -2388,13 +2388,7 @@
       const modal = document.getElementById('sessionTimeoutModal');
       if (modal) modal.classList.remove('active');
       clearInterval(countdownId);
-
-      const logoutUrl = document.querySelector('[href*="logout"]')?.href;
-      if (logoutUrl) {
-        window.location.href = logoutUrl;
-      } else {
-        window.location.href = '/logout/';
-      }
+      window.location.href = '/cerrar-sesion/';
     }
 
     // Rastrear actividad del usuario
