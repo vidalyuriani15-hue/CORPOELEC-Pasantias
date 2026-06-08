@@ -188,10 +188,12 @@ def cambiar_clave_view(request):
     """Vista para cambiar contrasenia"""
     if request.method == 'POST':
         old_password = request.POST.get('old_password')
-        new_password = request.POST.get('new_password')
-        confirm_password = request.POST.get('confirm_password')
-        
-        if not request.user.check_password(old_password):
+        new_password = request.POST.get('new_password1')
+        confirm_password = request.POST.get('new_password2')
+
+        if not old_password or not new_password or not confirm_password:
+            messages.error(request, 'Todos los campos son requeridos.')
+        elif not request.user.check_password(old_password):
             messages.error(request, 'La contrasenia actual es incorrecta.')
         elif new_password != confirm_password:
             messages.error(request, 'Las nuevas contrasenias no coinciden.')
@@ -202,7 +204,7 @@ def cambiar_clave_view(request):
             request.user.save()
             messages.success(request, 'Contrasenia cambiada correctamente.')
             return redirect('cambiar_clave')
-    
+
     context = {
         'title': 'Cambiar Contrasenia'
     }
