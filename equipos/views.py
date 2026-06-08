@@ -334,6 +334,10 @@ def subestaciones_view(request):
             sub_id = request.POST.get('sub_id')
             try:
                 sub = Subestacion.objects.get(Id_Sub_est=sub_id)
+                puede_eliminar_sub, mensaje_error = sub.puede_ser_eliminada()
+                if not puede_eliminar_sub:
+                    messages.error(request, f'No se puede eliminar la subestación "{sub.Nombre}": {mensaje_error}')
+                    return redirect('subestaciones')
                 sub_nombre = sub.Nombre
                 sub.delete()
                 registrar_evento(request, 'ELIMINACION', f'Subestacion eliminada: {sub_nombre}')
@@ -494,6 +498,11 @@ def tensiones_view(request):
             ten_id = request.POST.get('ten_id')
             try:
                 ten = NivelTension.objects.get(Id_Ten=ten_id)
+                puede_eliminar_ten, mensaje_error = ten.puede_ser_eliminado()
+                if not puede_eliminar_ten:
+                    ten_label = f'{ten.get_Tipo_ten_display()} {ten.get_Nivel_display()}'
+                    messages.error(request, f'No se puede eliminar "{ten_label}": {mensaje_error}')
+                    return redirect('tensiones')
                 ten_label = f'{ten.get_Tipo_ten_display()} {ten.get_Nivel_display()}'
                 ten.delete()
                 registrar_evento(request, 'ELIMINACION', f'Nivel de tension eliminado: {ten_label}')

@@ -29,6 +29,31 @@ class NivelTension(models.Model):
         """Representación legible: 'Tipo - Nivel' (ej: 'Alta Tensión - 115 kV')"""
         return f"{self.get_Tipo_ten_display()} - {self.get_Nivel_display()}"
 
+    def get_dependencias(self):
+        """Retorna lista de objetos que dependen de este nivel de tensión"""
+        dependencias = []
+
+        if self.subestaciones.exists():
+            dependencias.extend([f"Subestación: {s.Nombre}" for s in self.subestaciones.all()])
+
+        if self.reles.exists():
+            dependencias.extend([f"Relé: {r.Marca} {r.Modelo}" for r in self.reles.all()])
+
+        if self.remotas.exists():
+            dependencias.extend([f"Remota: {r.Marca} {r.Modelo}" for r in self.remotas.all()])
+
+        if self.reconectadores.exists():
+            dependencias.extend([f"Reconectador: {r.Marca} {r.Modelo}" for r in self.reconectadores.all()])
+
+        return dependencias
+
+    def puede_ser_eliminado(self):
+        """Retorna (bool, mensaje)"""
+        dependencias = self.get_dependencias()
+        if dependencias:
+            return False, f"Este nivel de tensión tiene {len(dependencias)} elemento(s) asociado(s)"
+        return True, ""
+
 class Subestacion(models.Model):
     """Modelo para gestionar subestaciones eléctricas"""
     Id_Sub_est = models.AutoField(primary_key=True)  # Identificador único
@@ -48,6 +73,25 @@ class Subestacion(models.Model):
     def __str__(self):
         """Representación legible: nombre de la subestación"""
         return self.Nombre
+
+    def get_dependencias(self):
+        """Retorna lista de objetos que dependen de esta subestación"""
+        dependencias = []
+
+        if self.reles.exists():
+            dependencias.extend([f"Relé: {r.Marca} {r.Modelo}" for r in self.reles.all()])
+
+        if self.reconectadores.exists():
+            dependencias.extend([f"Reconectador: {r.Marca} {r.Modelo}" for r in self.reconectadores.all()])
+
+        return dependencias
+
+    def puede_ser_eliminada(self):
+        """Retorna (bool, mensaje)"""
+        dependencias = self.get_dependencias()
+        if dependencias:
+            return False, f"Esta subestación tiene {len(dependencias)} elemento(s) asociado(s)"
+        return True, ""
 
 class Rele(models.Model):
     """Modelo principal para gestionar relés de protección eléctrica"""
@@ -137,6 +181,28 @@ class InterfazDeComunicacion(models.Model):
             protocolos_count = self.protocolos.count()
             if puertos_count > 0 and protocolos_count > 0:
                 raise ValidationError('Una interfaz no puede tener puertos y protocolos simultáneamente.')
+
+    def get_dependencias(self):
+        """Retorna lista de objetos que dependen de esta interfaz"""
+        dependencias = []
+
+        if self.puertos.exists():
+            dependencias.extend([f"Puerto: {p.get_Tipo_display()}" for p in self.puertos.all()])
+
+        if self.protocolos.exists():
+            dependencias.extend([f"Protocolo: {p.get_Tipo_display()}" for p in self.protocolos.all()])
+
+        if self.remotas_asociadas.exists():
+            dependencias.extend([f"Remota: {r.Marca} {r.Modelo}" for r in self.remotas_asociadas.all()])
+
+        return dependencias
+
+    def puede_ser_eliminada(self):
+        """Retorna (bool, mensaje)"""
+        dependencias = self.get_dependencias()
+        if dependencias:
+            return False, f"Esta interfaz tiene {len(dependencias)} elemento(s) asociado(s)"
+        return True, ""
 
 class PuertoComunicacion(models.Model):
     """Modelo para gestionar puertos de comunicación individuales"""
@@ -231,6 +297,22 @@ class Remota(models.Model):
     def __str__(self):
         return f"{self.Marca} {self.Modelo}"
 
+    def get_dependencias(self):
+        """Retorna lista de objetos que dependen de esta remota"""
+        dependencias = []
+
+        if self.reles_asociados.exists():
+            dependencias.extend([f"Relé: {r.Marca} {r.Modelo}" for r in self.reles_asociados.all()])
+
+        return dependencias
+
+    def puede_ser_eliminada(self):
+        """Retorna (bool, mensaje)"""
+        dependencias = self.get_dependencias()
+        if dependencias:
+            return False, f"Esta remota tiene {len(dependencias)} elemento(s) asociado(s)"
+        return True, ""
+
 
 class Protocolo(models.Model):
     """Modelo para gestionar protocolos de comunicación soportados"""
@@ -260,6 +342,25 @@ class Protocolo(models.Model):
     def __str__(self):
         """Representación legible: 'TIPO - Interfaz X' (ej: 'IEC 104 - Interfaz 1')"""
         return f"{self.get_Tipo_display()} - Interfaz {self.Id_Interfaz.Id_Interfaz}"
+
+    def get_dependencias(self):
+        """Retorna lista de objetos que dependen de este protocolo"""
+        dependencias = []
+
+        if self.reles_asociados.exists():
+            dependencias.extend([f"Relé: {r.Marca} {r.Modelo}" for r in self.reles_asociados.all()])
+
+        if self.remotas_asociadas.exists():
+            dependencias.extend([f"Remota: {r.Marca} {r.Modelo}" for r in self.remotas_asociadas.all()])
+
+        return dependencias
+
+    def puede_ser_eliminado(self):
+        """Retorna (bool, mensaje)"""
+        dependencias = self.get_dependencias()
+        if dependencias:
+            return False, f"Este protocolo tiene {len(dependencias)} elemento(s) asociado(s)"
+        return True, ""
 
 
 class Reconectador(models.Model):
