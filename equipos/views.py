@@ -543,6 +543,11 @@ def interfaces_view(request):
             try:
                 iface = InterfazDeComunicacion.objects.get(Id_Interfaz=iface_id)
 
+                puede_eliminar_iface, mensaje_error = iface.puede_ser_eliminada()
+                if not puede_eliminar_iface:
+                    messages.error(request, f'No se puede eliminar la interfaz: {mensaje_error}')
+                    return redirect('interfaces')
+
                 # Capturar tipos de puertos/protocolos hijos antes de eliminar
                 tipos_puerto = [p.get_Tipo_display() for p in iface.puertos.all()]
                 tipos_proto = [p.get_Tipo_display() for p in iface.protocolos.all()]
@@ -893,7 +898,12 @@ def protocolo_view(request):
             interfaz_id = request.POST.get('interfaz_id')
             try:
                 interfaz = InterfazDeComunicacion.objects.get(Id_Interfaz=interfaz_id)
-                
+
+                puede_eliminar_iface, mensaje_error = interfaz.puede_ser_eliminada()
+                if not puede_eliminar_iface:
+                    messages.error(request, f'No se puede eliminar esta interfaz de protocolos: {mensaje_error}')
+                    return redirect('protocolo')
+
                 # Capturar los tipos de protocolos antes de eliminar para registrar evento
                 tipos_display = [p.get_Tipo_display() for p in interfaz.protocolos.all()]
 
@@ -962,6 +972,10 @@ def remotas_view(request):
             remota_id = request.POST.get('remota_id')
             try:
                 remota = Remota.objects.get(Id_Remota=remota_id)
+                puede_eliminar_remota, mensaje_error = remota.puede_ser_eliminada()
+                if not puede_eliminar_remota:
+                    messages.error(request, f'No se puede eliminar la remota "{remota.Marca} {remota.Modelo}": {mensaje_error}')
+                    return redirect('remotas')
                 marca_modelo = f'{remota.Marca} {remota.Modelo}'
                 remota.delete()
                 registrar_evento(request, 'ELIMINACION', f'Remota eliminada: {marca_modelo}')
