@@ -42,9 +42,6 @@ class NivelTension(models.Model):
         if self.remotas.exists():
             dependencias.extend([f"Remota: {r.Marca} {r.Modelo}" for r in self.remotas.all()])
 
-        if self.reconectadores.exists():
-            dependencias.extend([f"Reconectador: {r.Marca} {r.Modelo}" for r in self.reconectadores.all()])
-
         return dependencias
 
     def puede_ser_eliminado(self):
@@ -81,9 +78,6 @@ class Subestacion(models.Model):
         if self.reles.exists():
             dependencias.extend([f"Relé: {r.Marca} {r.Modelo}" for r in self.reles.all()])
 
-        if self.reconectadores.exists():
-            dependencias.extend([f"Reconectador: {r.Marca} {r.Modelo}" for r in self.reconectadores.all()])
-
         return dependencias
 
     def puede_ser_eliminada(self):
@@ -105,9 +99,8 @@ class Rele(models.Model):
     Imagen = models.ImageField(upload_to='reles/', blank=True, null=True, verbose_name='Imagen del relé')  # Imagen del relé
     Fecha_Reg = models.DateField(auto_now_add=True)  # Fecha de registro automática
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reles_creados')  # Usuario que creó el registro
-    # Relaciones muchos-a-muchos para protocolos y puertos soportados
+    # Relaciones muchos-a-muchos
     Protocolos = models.ManyToManyField("Protocolo", blank=True, related_name='reles_asociados')  # Protocolos de comunicación configurados
-    Puertos = models.ManyToManyField("PuertoComunicacion", blank=True, related_name='reles_asociados')  # Puertos de comunicación configurados
     # Relación con remota vía ForeignKey
     EsRemoto = models.BooleanField(default=False, verbose_name='¿Posee Remota?')  # Indica si tiene remota asociada
     Remota = models.ForeignKey("Remota", on_delete=models.SET_NULL, null=True, blank=True, related_name='reles_asociados', verbose_name='Remota asociada')
@@ -203,34 +196,6 @@ class InterfazDeComunicacion(models.Model):
         if dependencias:
             return False, f"Esta interfaz tiene {len(dependencias)} elemento(s) asociado(s)"
         return True, ""
-
-class PuertoComunicacion(models.Model):
-    """Modelo para gestionar puertos de comunicación individuales"""
-    TIPO_CHOICES = [
-        ('ETH', 'Ethernet'),
-        ('RS232', 'RS232'),
-        ('RS485', 'RS485'),
-        ('USB', 'USB'),
-        ('FIBRA', 'Fibra Óptica'),
-    ]
-    Id_Puerto = models.AutoField(primary_key=True)  # Identificador único
-    Id_Interfaz = models.ForeignKey(InterfazDeComunicacion, on_delete=models.SET_NULL, null=True, blank=True, related_name='puertos')  # Interface a la que pertenece - SET_NULL permite eliminar interfaz sin borrar puertos
-    Tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, default='ETH', verbose_name='Tipo de Puerto')  # Tipo de puerto (enumerado o personalizado por el admin)
-    Descripcion = models.CharField(max_length=80, blank=True, default='', verbose_name='Descripción')  # Descripción breve (útil para tipos personalizados)
-    Icono = models.CharField(max_length=40, blank=True, default='', verbose_name='Ícono')  # Clase FontAwesome (para tipos personalizados)
-    Estado = models.CharField(max_length=50, default='Activo', verbose_name='Estado')  # Estado operativo
-    Fecha_Reg = models.DateField(auto_now_add=True)  # Fecha de registro automática
-    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='puertos_creados')  # Usuario que creó el registro
-    
-    class Meta:
-        verbose_name = 'Puerto de Comunicación'
-        verbose_name_plural = 'Puertos de Comunicación'
-        ordering = ['Id_Puerto']  # Orden por ID ascendente
-    
-    def __str__(self):
-        """Representación legible: 'Puerto TIPO - Interfaz X'"""
-        return f"Puerto {self.Tipo} - Interfaz {self.Id_Interfaz.Id_Interfaz}"
-
 
 class TipoPuertoPersonalizado(models.Model):
     """Catálogo de tipos de puerto personalizados ("Otra") reutilizables.
@@ -361,29 +326,6 @@ class Protocolo(models.Model):
         if dependencias:
             return False, f"Este protocolo tiene {len(dependencias)} elemento(s) asociado(s)"
         return True, ""
-
-
-class Reconectador(models.Model):
-    """Modelo para gestionar reconectadores eléctricos"""
-    Id_reconectador = models.AutoField(primary_key=True)  # Identificador único
-    Id_Ten = models.ForeignKey(NivelTension, on_delete=models.CASCADE, related_name='reconectadores')  # Nivel de tensión asociado
-    Id_Sub_est = models.ForeignKey(Subestacion, on_delete=models.CASCADE, related_name='reconectadores')  # Subestación donde está instalado
-    Marca = models.CharField(max_length=100)  # Marca del fabricante
-    Modelo = models.CharField(max_length=100)  # Modelo específico del reconectador
-    Estado = models.CharField(max_length=50)  # Estado operativo (Activo/Inactivo/Mantenimiento)
-    Observaciones = models.TextField(blank=True)  # Notas adicionales (opcional)
-    Imagen = models.ImageField(upload_to='reconectadores/', blank=True, null=True, verbose_name='Imagen del reconectador')  # Imagen del reconectador
-    Fecha_Reg = models.DateField(auto_now_add=True)  # Fecha de registro automática
-    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reconectadores_creados')  # Usuario que creó el registro
-    
-    class Meta:
-        verbose_name = 'Reconectador'
-        verbose_name_plural = 'Reconectadores'
-        ordering = ['Id_reconectador']  # Orden por ID ascendente
-    
-    def __str__(self):
-        """Representación legible: 'Marca Modelo' (ej: 'Siemens 7SJ85')"""
-        return f"{self.Marca} {self.Modelo}"
 
 
 class Evento(models.Model):
