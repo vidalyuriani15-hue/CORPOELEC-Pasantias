@@ -15,9 +15,6 @@ from reportlab.platypus import (
     Table, TableStyle,
 )
 
-from .models import PuertoComunicacion
-
-
 # ── Paleta ─────────────────────────────────────────────────────────────────
 NAVY      = colors.HexColor('#0D2B4D')
 INK       = colors.HexColor('#1a1a2e')

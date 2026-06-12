@@ -46,7 +46,6 @@ def get_user_permisos(request, user_id):
 @login_required(login_url='/login/')
 def index_view(request):
     """Vista principal del dashboard"""
-    total_reconectadores = Reconectador.objects.count() or 0
     total_reles = Rele.objects.count() or 0
     total_subestaciones = Subestacion.objects.count() or 0
     total_remotas = Remota.objects.count() or 0
@@ -54,7 +53,6 @@ def index_view(request):
     total_protocolos = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS', Activo=True).count() or 0
     total_tensiones = NivelTension.objects.count() or 0
 
-    ultimos_reconectadores = list(Reconectador.objects.all().order_by('-Fecha_Reg')[:5]) if total_reconectadores > 0 else []
     ultimos_reles = list(Rele.objects.all().order_by('-Fecha_Reg')[:5]) if total_reles > 0 else []
     ultimas_subestaciones = list(Subestacion.objects.all().order_by('-Fecha_Reg')[:5]) if total_subestaciones > 0 else []
 
@@ -133,14 +131,12 @@ def index_view(request):
     import json
     context = {
         'title': 'GridGuard - Dashboard',
-        'total_reconectadores': total_reconectadores,
         'total_reles': total_reles,
         'total_subestaciones': total_subestaciones,
         'total_remotas': total_remotas,
         'total_interfaces': total_interfaces,
         'total_protocolos': total_protocolos,
         'total_tensiones': total_tensiones,
-        'ultimos_reconectadores': ultimos_reconectadores,
         'ultimos_reles': ultimos_reles,
         'ultimas_subestaciones': ultimas_subestaciones,
         'subs_chart_labels': json.dumps(subs_chart_labels),
@@ -559,7 +555,6 @@ def interfaces_view(request):
                         Q(Puertos__Id_Interfaz=iface_id) | Q(Protocolos__Id_Interfaz=iface_id)
                     ).distinct()
                     for rele in reles_afectados:
-                        rele.Puertos.remove(*rele.Puertos.filter(Id_Interfaz=iface_id).values_list('Id_Puerto', flat=True))
                         rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=iface_id).values_list('Id_Protocolo', flat=True))
 
                     # Limpiar relaciones M2M de Remotas
@@ -719,33 +714,8 @@ def interfaces_view(request):
                 messages.success(request, 'Interfaz creada correctamente')
                 return redirect('interfaces')
     
-    interfaces_list = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).prefetch_related('puertos').order_by('-Fecha_Reg', '-Id_Interfaz')
-    paginator = Paginator(interfaces_list, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    puertos_tipos = PuertoComunicacion.TIPO_CHOICES
-
-    # Tipos de puerto ya registrados en cualquier interfaz activa (para ocultar opciones)
-    tipos_registrados = list(PuertoComunicacion.objects.filter(
-        Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
-    ).values_list('Tipo', flat=True).distinct())
-
-    # Catálogo de tipos OTRA personalizados (persistente, disponible para todos)
-    tipos_personalizados = TipoPuertoPersonalizado.objects.filter(Activo=True).order_by('Tipo')
-
-    context = {
-        'title': 'Interfaz de Comunicacion',
-        'page_obj': page_obj,
-        'puertos_tipos': puertos_tipos,
-        'tipos_registrados': tipos_registrados,
-        'tipos_personalizados': tipos_personalizados,
-        'is_admin': request.user.is_superuser,
-        'puede_crear': puede_crear(request),
-        'puede_actualizar': puede_actualizar(request),
-        'puede_eliminar': puede_eliminar(request)
-    }
-    return render(request, 'interfaces.html', context)
+    messages.info(request, 'Las interfaces de puertos han sido consolidadas. Usa Protocolos para gestionar interfaces de comunicación.')
+    return redirect('protocolo')
 
 @login_required(login_url='/login/')
 @no_cache
@@ -913,7 +883,6 @@ def protocolo_view(request):
                         Q(Protocolos__Id_Interfaz=interfaz_id) | Q(Puertos__Id_Interfaz=interfaz_id)
                     ).distinct()
                     for rele in reles_afectados:
-                        rele.Puertos.remove(*rele.Puertos.filter(Id_Interfaz=interfaz_id).values_list('Id_Puerto', flat=True))
                         rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=interfaz_id).values_list('Id_Protocolo', flat=True))
 
                     # Limpiar relaciones M2M de Remotas
