@@ -62,28 +62,26 @@
       <tr>
         <td>
           <div class="puertos-container">
-          {% for puerto in interfaz.puertos.all %}
-              <span class="puerto-badge"{% if puerto.Descripcion %} title="{{ puerto.Descripcion }}"{% endif %}>
+          {% if interfaz.Tipo_Puerto %}
+              <span class="puerto-badge">
                 <span class="puerto-icon">
-                  {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>
-                  {% elif puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>
-                  {% elif puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>
-                  {% elif puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>
-                  {% elif puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>
-                  {% elif puerto.Icono %}<i class="{{ puerto.Icono }}"></i>
+                  {% if interfaz.Tipo_Puerto == 'ETH' %}<i class="fas fa-network-wired"></i>
+                  {% elif interfaz.Tipo_Puerto == 'RS232' %}<i class="fas fa-plug"></i>
+                  {% elif interfaz.Tipo_Puerto == 'RS485' %}<i class="fas fa-exchange-alt"></i>
+                  {% elif interfaz.Tipo_Puerto == 'USB' %}<i class="fab fa-usb"></i>
+                  {% elif interfaz.Tipo_Puerto == 'FIBRA' %}<i class="fas fa-bolt"></i>
                   {% else %}<i class="fas fa-microchip"></i>{% endif %}
                 </span>
-                <span class="puerto-text">{{ puerto.get_Tipo_display }}</span>
+                <span class="puerto-text">{{ interfaz.get_Tipo_Puerto_display }}</span>
               </span>
-          {% empty %}
-              <span class="no-data">Sin puertos</span>
-          {% endfor %}
+          {% else %}
+              <span class="no-data">Sin tipo</span>
+          {% endif %}
           </div>
         </td>
         {% if is_admin %}<td>{{ interfaz.creado_por.username|default:"Sistema" }}</td>{% endif %}
         <td><span class="fecha-text">{{ interfaz.Fecha_Reg|date:"d/m/Y" }}</span></td>
         <td class="actions-cell">
-          {% with puertos_list=interfaz.puertos.all %}
           {% if puede_actualizar %}
           <button type="button" class="btn-icon btn-edit" title="Editar" onclick="abrirModalEditar('{{ interfaz.Id_Interfaz }}')">
             <i class="fas fa-edit"></i>
@@ -102,7 +100,6 @@
           {% if not puede_actualizar and not puede_eliminar %}
           <span style="color:#adb5bd; font-size:0.8rem;">Sin permisos</span>
           {% endif %}
-          {% endwith %}
         </td>
       </tr>
       {% endfor %}
@@ -575,7 +572,7 @@
 
   // Puertos (tipo + descripción) por interfaz, para reconstruir el modal de edición.
   const PUERTOS_POR_INTERFAZ = {
-    {% for interfaz in page_obj %}'{{ interfaz.Id_Interfaz }}': [{% for p in interfaz.puertos.all %}{tipo:'{{ p.Tipo|escapejs }}', desc:'{{ p.Descripcion|escapejs }}', icono:'{{ p.Icono|escapejs }}'}{% if not forloop.last %},{% endif %}{% endfor %}]{% if not forloop.last %},{% endif %}
+    {% for interfaz in page_obj %}'{{ interfaz.Id_Interfaz }}': [{ tipo: '{{ interfaz.Tipo_Puerto|escapejs }}', desc: '', icono: '' }]{% if not forloop.last %},{% endif %}
     {% endfor %}
   };
   const VALORES_ESTANDAR = OPCIONES_PUERTOS.map(op => op.value);

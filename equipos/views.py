@@ -552,8 +552,12 @@ def tensiones_view(request):
 @login_required(login_url='/login/')
 @no_cache
 def interfaces_view(request):
-    """Vista de interfaces de comunicacion"""
+    """Vista de interfaces de comunicación de tipo PUERTOS.
+    Cada interfaz representa UN tipo de puerto físico (ETH, RS232, etc.) almacenado
+    directamente en el campo Tipo_Puerto de InterfazDeComunicacion (sin tabla PuertoComunicacion).
+    """
     if request.method == 'POST':
+        # ── ELIMINAR ──────────────────────────────────────────────────────────
         if request.POST.get('eliminar'):
             if not puede_eliminar(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
@@ -561,50 +565,31 @@ def interfaces_view(request):
             iface_id = request.POST.get('interfaz_id')
             try:
                 iface = InterfazDeComunicacion.objects.get(Id_Interfaz=iface_id)
-
                 puede_eliminar_iface, mensaje_error = iface.puede_ser_eliminada()
                 if not puede_eliminar_iface:
                     messages.error(request, f'No se puede eliminar la interfaz: {mensaje_error}')
                     return redirect('interfaces')
-
-                # Capturar tipos de puertos/protocolos hijos antes de eliminar
-                tipos_puerto = [p.get_Tipo_display() for p in iface.puertos.all()]
-                tipos_proto = [p.get_Tipo_display() for p in iface.protocolos.all()]
-                tipos_display = tipos_puerto + tipos_proto
-
+                tipo_display = iface.get_Tipo_Puerto_display() if iface.Tipo_Puerto else iface.get_Tipo_Interfaz_display()
                 with transaction.atomic():
-                    # Limpiar relaciones M2M de Relés antes de desactivar
-                    reles_afectados = Rele.objects.filter(
-                        Q(Puertos__Id_Interfaz=iface_id) | Q(Protocolos__Id_Interfaz=iface_id)
-                    ).distinct()
-                    for rele in reles_afectados:
-                        rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=iface_id).values_list('Id_Protocolo', flat=True))
-
-                    # Limpiar relaciones M2M de Remotas
+                    # Desasociar la interfaz de remotas que la tengan enlazada
                     remotas_afectadas = Remota.objects.filter(Interfaces=iface).distinct()
                     for remota in remotas_afectadas:
-                        remota.Interfaces.remove(iface_id)
-                        remota.Protocolos.remove(*remota.Protocolos.filter(Id_Interfaz=iface_id).values_list('Id_Protocolo', flat=True))
-
-                    # Eliminación lógica: marcar como inactivo (y sus puertos/protocolos hijos)
+                        remota.Interfaces.remove(iface)
                     iface.Activo = False
                     iface.save()
-                    Protocolo.objects.filter(Id_Interfaz=iface).update(Activo=False)
-                    etiqueta = ', '.join(tipos_display) if tipos_display else 'sin tipos'
-                    noun = 'Interfaz de Comunicación eliminada' if len(tipos_display) <= 1 \
-                        else 'Interfaces de Comunicación eliminadas'
-                    registrar_evento(request, 'ELIMINACION', f'{noun}: {etiqueta}')
+                    registrar_evento(request, 'ELIMINACION', f'Interfaz de Puerto eliminada: {tipo_display}')
                     messages.success(request, 'Interfaz de Comunicación eliminada correctamente.', extra_tags='deleted')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
+
+        # ── EDITAR ────────────────────────────────────────────────────────────
         elif request.POST.get('editar'):
             if not puede_actualizar(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
                 return redirect('interfaces')
             iface_id = request.POST.get('interfaz_id')
             tipos_puerto = request.POST.getlist('tipos_puerto')
-            # "Otro" (tipo personalizado): solo administradores.
             descripciones = {}
             iconos = {}
             if request.user.is_superuser:
@@ -613,19 +598,20 @@ def interfaces_view(request):
                     tipos_puerto.append(otro)
                     descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
                     iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
-            # Heredar descripción/ícono del catálogo personalizado para los tipos
-            # OTRA seleccionados desde checkboxes (sin re-introducir el nombre).
-            _stock = {c[0] for c in PuertoComunicacion.TIPO_CHOICES}
+            _stock = {c[0] for c in InterfazDeComunicacion.TIPO_PUERTO_CHOICES}
             for tipo in tipos_puerto:
                 if tipo not in _stock and tipo not in descripciones:
                     tp = TipoPuertoPersonalizado.objects.filter(Tipo=tipo).first()
                     if tp:
                         descripciones[tipo] = tp.Descripcion
                         iconos[tipo] = tp.Icono
-            # Validación: ningún tipo puede estar registrado en OTRA interfaz activa
-            ya_registrados = set(PuertoComunicacion.objects.filter(
-                Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
-            ).exclude(Id_Interfaz=iface_id).values_list('Tipo', flat=True))
+            if not tipos_puerto:
+                messages.error(request, 'Seleccione al menos un tipo de puerto.')
+                return redirect('interfaces')
+            # Validación: el tipo no puede estar ya registrado en OTRA interfaz activa
+            ya_registrados = set(InterfazDeComunicacion.objects.filter(
+                Tipo_Interfaz='PUERTOS', Activo=True
+            ).exclude(Id_Interfaz=iface_id).values_list('Tipo_Puerto', flat=True))
             conflictos = [t for t in tipos_puerto if t in ya_registrados]
             if conflictos:
                 messages.error(request, f'Estos puertos ya están registrados en otra interfaz: {", ".join(conflictos)}')
@@ -633,46 +619,33 @@ def interfaces_view(request):
             try:
                 with transaction.atomic():
                     iface = InterfazDeComunicacion.objects.select_for_update().get(Id_Interfaz=iface_id)
-                    iface.puertos.all().delete()
-                    for tipo in tipos_puerto:
-                        PuertoComunicacion.objects.create(
-                            Id_Interfaz=iface,
-                            Tipo=tipo,
-                            Descripcion=descripciones.get(tipo, ''),
-                            Icono=iconos.get(tipo, ''),
-                            creado_por=request.user
-                        )
-                        # Registrar en catálogo de tipos OTRA si no es estándar
-                        if tipo not in _stock:
-                            TipoPuertoPersonalizado.objects.update_or_create(
-                                Tipo=tipo,
-                                defaults={
-                                    'Descripcion': descripciones.get(tipo, ''),
-                                    'Icono': iconos.get(tipo, ''),
-                                    'Activo': True,
-                                    'creado_por': request.user,
-                                },
-                            )
-                    iface.Puertos_C = len(tipos_puerto)
+                    nuevo_tipo = tipos_puerto[0]
+                    iface.Tipo_Puerto = nuevo_tipo
                     iface.Tipo_Interfaz = 'PUERTOS'
+                    iface.Puertos_C = 1
                     iface.save()
-                    # Validar
-                    try:
-                        iface.full_clean()
-                    except Exception as e:
-                        messages.error(request, f'Error de validación: {str(e)}')
-                        raise  # Rollback via transaction.atomic()
+                    if nuevo_tipo not in _stock:
+                        TipoPuertoPersonalizado.objects.update_or_create(
+                            Tipo=nuevo_tipo,
+                            defaults={
+                                'Descripcion': descripciones.get(nuevo_tipo, ''),
+                                'Icono': iconos.get(nuevo_tipo, ''),
+                                'Activo': True,
+                                'creado_por': request.user,
+                            },
+                        )
                     messages.success(request, 'Interfaz actualizada correctamente.', extra_tags='updated')
-                registrar_evento(request, 'ACTUALIZACION', 'Interfaz de Puertos editada')
+                registrar_evento(request, 'ACTUALIZACION', f'Interfaz de Puerto editada: {nuevo_tipo}')
             except InterfazDeComunicacion.DoesNotExist:
                 messages.error(request, 'Interfaz no encontrada.')
             return redirect('interfaces')
+
+        # ── CREAR ─────────────────────────────────────────────────────────────
         else:
             if not puede_crear(request):
-                messages.error(request, 'No tiene permisos para realizar esta acción.')
+                messages.error(request, 'No tiene permisos para crear interfaces.')
                 return redirect('interfaces')
             tipos_puerto = request.POST.getlist('tipos_puerto')
-            # "Otro" (tipo personalizado): solo administradores.
             descripciones = {}
             iconos = {}
             if request.user.is_superuser:
@@ -681,37 +654,35 @@ def interfaces_view(request):
                     tipos_puerto.append(otro)
                     descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
                     iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
-            # Heredar metadatos del catálogo para tipos OTRA seleccionados
-            _stock = {c[0] for c in PuertoComunicacion.TIPO_CHOICES}
+            _stock = {c[0] for c in InterfazDeComunicacion.TIPO_PUERTO_CHOICES}
             for tipo in tipos_puerto:
                 if tipo not in _stock and tipo not in descripciones:
                     tp = TipoPuertoPersonalizado.objects.filter(Tipo=tipo).first()
                     if tp:
                         descripciones[tipo] = tp.Descripcion
                         iconos[tipo] = tp.Icono
-            if tipos_puerto:
-                # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
-                ya_registrados = set(PuertoComunicacion.objects.filter(
-                    Id_Interfaz__Tipo_Interfaz='PUERTOS', Id_Interfaz__Activo=True
-                ).values_list('Tipo', flat=True))
-                conflictos = [t for t in tipos_puerto if t in ya_registrados]
-                if conflictos:
-                    messages.error(request, f'Estos puertos ya están registrados: {", ".join(conflictos)}')
-                    return redirect('interfaces')
-                iface = InterfazDeComunicacion.objects.create(
-                    Puertos_C=len(tipos_puerto),
-                    Tipo_Interfaz='PUERTOS',
-                    creado_por=request.user
-                )
+            if not tipos_puerto:
+                messages.info(request, 'Seleccione al menos un tipo de puerto.')
+                return redirect('interfaces')
+            # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
+            ya_registrados = set(InterfazDeComunicacion.objects.filter(
+                Tipo_Interfaz='PUERTOS', Activo=True
+            ).values_list('Tipo_Puerto', flat=True))
+            conflictos = [t for t in tipos_puerto if t in ya_registrados]
+            if conflictos:
+                messages.error(request, f'Estos puertos ya están registrados: {", ".join(conflictos)}')
+                return redirect('interfaces')
+            tipo_display_map = dict(InterfazDeComunicacion.TIPO_PUERTO_CHOICES)
+            creados = []
+            with transaction.atomic():
                 for tipo in tipos_puerto:
-                    PuertoComunicacion.objects.create(
-                        Id_Interfaz=iface,
-                        Tipo=tipo,
-                        Descripcion=descripciones.get(tipo, ''),
-                        Icono=iconos.get(tipo, ''),
-                        creado_por=request.user
+                    InterfazDeComunicacion.objects.create(
+                        Tipo_Interfaz='PUERTOS',
+                        Tipo_Puerto=tipo,
+                        Puertos_C=1,
+                        creado_por=request.user,
                     )
-                    # Registrar en catálogo de tipos OTRA si no es estándar
+                    creados.append(tipo)
                     if tipo not in _stock:
                         TipoPuertoPersonalizado.objects.update_or_create(
                             Tipo=tipo,
@@ -722,23 +693,38 @@ def interfaces_view(request):
                                 'creado_por': request.user,
                             },
                         )
-                # Validar consistencia
-                try:
-                    iface.full_clean()
-                except Exception as e:
-                    messages.error(request, f'Error de validación: {str(e)}')
-                    iface.delete()
-                    return redirect('interfaces')
-                tipos_display = [p.get_Tipo_display() for p in iface.puertos.all()]
-                etiqueta = ', '.join(tipos_display) if tipos_display else 'sin tipos'
-                noun = 'Interfaz de Comunicación creada' if len(tipos_display) <= 1 \
-                    else 'Interfaces de Comunicación creadas'
-                registrar_evento(request, 'CREACION', f'{noun}: {etiqueta}')
-                messages.success(request, 'Interfaz creada correctamente')
-                return redirect('interfaces')
-    
-    messages.info(request, 'Las interfaces de puertos han sido consolidadas. Usa Protocolos para gestionar interfaces de comunicación.')
-    return redirect('protocolo')
+            tipos_display = [tipo_display_map.get(t, t) for t in creados]
+            etiqueta = ', '.join(tipos_display) if tipos_display else 'sin tipos'
+            noun = 'Interfaz creada' if len(creados) <= 1 else 'Interfaces creadas'
+            registrar_evento(request, 'CREACION', f'{noun}: {etiqueta}')
+            messages.success(request, 'Interfaz(es) creada(s) correctamente.')
+            return redirect('interfaces')
+
+    # ── GET ───────────────────────────────────────────────────────────────────
+    interfaces_qs = InterfazDeComunicacion.objects.filter(
+        Tipo_Interfaz='PUERTOS', Activo=True
+    ).order_by('-Fecha_Reg', '-Id_Interfaz')
+    paginator = Paginator(interfaces_qs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    tipos_registrados = list(
+        InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True)
+        .values_list('Tipo_Puerto', flat=True)
+    )
+    tipos_personalizados = TipoPuertoPersonalizado.objects.filter(Activo=True)
+
+    context = {
+        'title': 'Interfaces de Comunicación',
+        'page_obj': page_obj,
+        'tipos_registrados': tipos_registrados,
+        'tipos_personalizados': tipos_personalizados,
+        'is_admin': request.user.is_superuser,
+        'puede_crear': puede_crear(request),
+        'puede_actualizar': puede_actualizar(request),
+        'puede_eliminar': puede_eliminar(request),
+    }
+    return render(request, 'interfaces.html', context)
 
 @login_required(login_url='/login/')
 @no_cache
@@ -905,10 +891,9 @@ def protocolo_view(request):
                 tipos_display = [p.get_Tipo_display() for p in interfaz.protocolos.all()]
 
                 with transaction.atomic():
-                    # Desasociar la interfaz de todos los relés que la referencian
-                    # antes de desactivarla para no dejar M2M huérfanas
+                    # Desasociar los protocolos de esta interfaz de todos los relés
                     reles_afectados = Rele.objects.filter(
-                        Q(Protocolos__Id_Interfaz=interfaz_id) | Q(Puertos__Id_Interfaz=interfaz_id)
+                        Protocolos__Id_Interfaz=interfaz_id
                     ).distinct()
                     for rele in reles_afectados:
                         rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=interfaz_id).values_list('Id_Protocolo', flat=True))
@@ -1058,14 +1043,15 @@ def remotas_view(request):
     return render(request, 'remotas.html', context)
 
 def _extract_puerto_ips(post, puertos_list):
-    """Extrae {puerto_id: ip} para puertos ETH seleccionados.
-    Si un puerto ETH está seleccionado pero no hay IP en el POST (o está vacía),
-    se guarda '0.0.0.0' por defecto.
+    """Almacena todos los puertos seleccionados en un dict {iface_id: ip_o_None}.
+    Las claves son IDs de InterfazDeComunicacion (Tipo_Interfaz='PUERTOS').
+    Los puertos ETH reciben la IP del formulario o '0.0.0.0' por defecto.
+    Los puertos no-ETH se guardan con None para conservar la selección (sin IP).
     """
     ips = {}
     selected = [str(p) for p in puertos_list]
 
-    # IPs explícitas del formulario
+    # IPs explícitas del formulario para puertos ETH
     for key, value in post.items():
         if not key.startswith('puerto_ip_'):
             continue
@@ -1074,31 +1060,33 @@ def _extract_puerto_ips(post, puertos_list):
             continue
         ips[pid] = (value or '').strip() or '0.0.0.0'
 
-    # Asegurar default 0.0.0.0 para todos los puertos ETH seleccionados
-    eth_ids = PuertoComunicacion.objects.filter(
-        Id_Puerto__in=selected, Tipo='ETH'
-    ).values_list('Id_Puerto', flat=True)
-    for pid in eth_ids:
-        ips.setdefault(str(pid), '0.0.0.0')
+    # Determinar cuáles interfaces son ETH para asignar '0.0.0.0' por defecto
+    eth_ids = set(str(p) for p in InterfazDeComunicacion.objects.filter(
+        Id_Interfaz__in=selected, Tipo_Interfaz='PUERTOS', Tipo_Puerto='ETH'
+    ).values_list('Id_Interfaz', flat=True))
+
+    for pid in selected:
+        if pid in eth_ids:
+            ips.setdefault(pid, '0.0.0.0')
+        else:
+            # Puerto no-ETH: registrar con None para preservar la selección
+            ips.setdefault(pid, None)
 
     return ips
 
 
 def _extract_remota_ips(post, puerto_keys):
-    """Extrae {iface_id_puerto_id: ip} para los puertos ETH de la remota
-    seleccionados (claves 'iface_puerto'). Si un puerto ETH está seleccionado
-    y no hay IP en el POST, se guarda '0.0.0.0' por defecto.
+    """Extrae {iface_id: ip} para los puertos ETH de la remota seleccionados.
+    Las claves en puerto_keys son IDs de InterfazDeComunicacion (Tipo_Interfaz='PUERTOS').
+    Si un puerto ETH está seleccionado y no hay IP en el POST, se guarda '0.0.0.0'.
     """
     ips = {}
     selected = set(str(k) for k in puerto_keys)
 
-    # IDs de puerto seleccionados (segunda parte de cada clave)
-    puerto_ids = [k.split('_', 1)[1] for k in selected if '_' in k]
-    eth_puerto_ids = set(
-        str(p) for p in PuertoComunicacion.objects.filter(
-            Id_Puerto__in=puerto_ids, Tipo='ETH'
-        ).values_list('Id_Puerto', flat=True)
-    )
+    # Interfaces ETH entre las seleccionadas
+    eth_ids = set(str(p) for p in InterfazDeComunicacion.objects.filter(
+        Id_Interfaz__in=list(selected), Tipo_Interfaz='PUERTOS', Tipo_Puerto='ETH'
+    ).values_list('Id_Interfaz', flat=True))
 
     # IPs explícitas del formulario (solo para claves seleccionadas)
     for key, value in post.items():
@@ -1109,13 +1097,10 @@ def _extract_remota_ips(post, puerto_keys):
             continue
         ips[rest] = (value or '').strip() or '0.0.0.0'
 
-    # Default 0.0.0.0 para cada puerto ETH seleccionado sin IP
-    for key in selected:
-        if '_' not in key:
-            continue
-        puerto_id = key.split('_', 1)[1]
-        if puerto_id in eth_puerto_ids:
-            ips.setdefault(key, '0.0.0.0')
+    # Default 0.0.0.0 para cada interfaz ETH seleccionada sin IP
+    for iface_id in selected:
+        if iface_id in eth_ids:
+            ips.setdefault(iface_id, '0.0.0.0')
 
     return ips
 
@@ -1141,9 +1126,8 @@ def reles_view(request):
             # asociadas para mantener compatibilidad con datos anteriores.
             remota_puertos_sel = list(rele.Remota_Puertos or [])
             if not remota_puertos_sel:
-                for iface in remota.Interfaces.all():
-                    for puerto in iface.puertos.all():
-                        remota_puertos_sel.append(f'{iface.Id_Interfaz}_{puerto.Id_Puerto}')
+                for iface in remota.Interfaces.filter(Tipo_Interfaz='PUERTOS').all():
+                    remota_puertos_sel.append(str(iface.Id_Interfaz))
             remota_data = {
                 'remota_id': remota.Id_Remota,
                 'remota_marca': remota.Marca,
@@ -1156,7 +1140,9 @@ def reles_view(request):
         
         # Validar IDs contra la BD para evitar referencias huérfanas (D6)
         valid_protocolo_ids = set(Protocolo.objects.values_list('Id_Protocolo', flat=True))
-        valid_puerto_ids = set(PuertoComunicacion.objects.values_list('Id_Puerto', flat=True))
+        valid_puerto_ids = set(InterfazDeComunicacion.objects.filter(
+            Tipo_Interfaz='PUERTOS'
+        ).values_list('Id_Interfaz', flat=True))
         
         data = {
             'id_sub_est': rele.Id_Sub_est.Id_Sub_est,
@@ -1168,7 +1154,7 @@ def reles_view(request):
             'es_remoto': rele.EsRemoto,
             'imagen_url': rele.Imagen.url if rele.Imagen else None,
             'protocolos': [pid for pid in rele.Protocolos.values_list('Id_Protocolo', flat=True) if pid in valid_protocolo_ids],
-            'puertos': [pid for pid in rele.Puertos.values_list('Id_Puerto', flat=True) if pid in valid_puerto_ids],
+            'puertos': [int(pid) for pid in (rele.Puertos_IPs or {}).keys() if pid.isdigit() and int(pid) in valid_puerto_ids],
             'puertos_ips': rele.Puertos_IPs or {},
             'remota_ips': rele.Remota_IPs or {},
             'entradas_digitales': rele.Entradas_Digitales,
@@ -1200,19 +1186,6 @@ def reles_view(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
                 return redirect('reles')
             rele_id = request.POST.get('rele_id')
-            
-            # DEBUG: Log POST data
-            print("=" * 80, file=sys.stderr)
-            print(f"DEBUG EDIT Rele {rele_id} - POST DATA:", file=sys.stderr)
-            for key, value in request.POST.items():
-                print(f"  {key}: {value}", file=sys.stderr)
-            print(f"  protocolos getlist: {request.POST.getlist('protocolos')}", file=sys.stderr)
-            print(f"  puertos getlist: {request.POST.getlist('puertos')}", file=sys.stderr)
-            print(f"  remota_nivel_tension: {request.POST.getlist('remota_nivel_tension')}", file=sys.stderr)
-            print(f"  remota_protocolos: {request.POST.getlist('remota_protocolos')}", file=sys.stderr)
-            print(f"  remota_puerto_sel: {request.POST.getlist('remota_puerto_sel')}", file=sys.stderr)
-            print("=" * 80, file=sys.stderr)
-            
             try:
                 with transaction.atomic():
                     rele = Rele.objects.select_for_update().get(Id_relé=rele_id)
@@ -1233,12 +1206,8 @@ def reles_view(request):
                     # M2M assignments on Rele
                     protocolos_list = request.POST.getlist('protocolos')
                     puertos_list = request.POST.getlist('puertos')
-                    print(f"DEBUG: Assigning Protocolos to Rele: {protocolos_list}", file=sys.stderr)
-                    print(f"DEBUG: Assigning Puertos to Rele: {puertos_list}", file=sys.stderr)
                     rele.Protocolos.set(protocolos_list)
-                    rele.Puertos.set(puertos_list)
-
-                    # Persist per-puerto IPs (only for selected ETH puertos)
+                    # Puertos_IPs almacena todos los puertos seleccionados (M2M fue eliminado)
                     rele.Puertos_IPs = _extract_puerto_ips(request.POST, puertos_list)
 
                     # Handle remote association and remote M2M
@@ -1256,7 +1225,7 @@ def reles_view(request):
                         # como el puerto específico seleccionado, separados por '_'
                         remota_puerto_keys = request.POST.getlist('remota_puerto_sel')
                         # Derivar las interfaces únicas a partir de las claves de puerto
-                        remota_interfaces = list({k.split('_', 1)[0] for k in remota_puerto_keys if '_' in k})
+                        remota_interfaces = list(set(remota_puerto_keys))
 
                         remota.Niveles_Ten.set(remota_niveles)
                         remota.Protocolos.set(remota_protocolos)
@@ -1269,7 +1238,7 @@ def reles_view(request):
                         # Si el checkbox está marcado pero el formulario no envió remota_id
                         # (por ejemplo, JS aún no seleccionó una remota), conservar la
                         # asociación previa para no perder datos silenciosamente.
-                        print(f"DEBUG: es_remoto=True sin remota_id; conservando Remota previa", file=sys.stderr)
+                        pass
                     else:
                         # Relé no es remoto: limpiar toda la asociación anterior
                         rele.Remota = None
@@ -1277,11 +1246,9 @@ def reles_view(request):
                         rele.Remota_Puertos = []
 
                     rele.save()
-                    print(f"DEBUG: Rele {rele_id} saved successfully. EsRemoto={es_remoto}", file=sys.stderr)
                     registrar_evento(request, 'ACTUALIZACION', f'Relé actualizado: {rele.Id_Sub_est.Nombre}')
                     messages.success(request, 'Relé actualizado correctamente.', extra_tags='updated')
             except (Rele.DoesNotExist, Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
-                print(f"DEBUG ERROR: {str(e)}", file=sys.stderr)
                 messages.error(request, f'Error al actualizar: {str(e)}')
             return redirect('reles')
         else:
@@ -1314,11 +1281,8 @@ def reles_view(request):
                     # M2M assignments on Rele
                     protocolos_list = request.POST.getlist('protocolos')
                     puertos_list = request.POST.getlist('puertos')
-                    print(f"DEBUG: Assigning Protocolos to Rele: {protocolos_list}", file=sys.stderr)
-                    print(f"DEBUG: Assigning Puertos to Rele: {puertos_list}", file=sys.stderr)
                     rele.Protocolos.set(protocolos_list)
-                    rele.Puertos.set(puertos_list)
-
+                    # Puertos_IPs almacena todos los puertos seleccionados (M2M fue eliminado)
                     rele.Puertos_IPs = _extract_puerto_ips(request.POST, puertos_list)
 
                     # Handle remote association and remote M2M
@@ -1334,7 +1298,7 @@ def reles_view(request):
                         remota_protocolos = request.POST.getlist('remota_protocolos')
                         # Selección a nivel de puerto: claves 'iface_puerto'
                         remota_puerto_keys = request.POST.getlist('remota_puerto_sel')
-                        remota_interfaces = list({k.split('_', 1)[0] for k in remota_puerto_keys if '_' in k})
+                        remota_interfaces = list(set(remota_puerto_keys))
 
                         remota.Niveles_Ten.set(remota_niveles)
                         remota.Protocolos.set(remota_protocolos)
@@ -1345,13 +1309,10 @@ def reles_view(request):
                         rele.Remota_IPs = _extract_remota_ips(request.POST, remota_puerto_keys)
 
                     rele.save()
-                    print(f"DEBUG: Rele created. EsRemoto={es_remoto}, Remota_id={request.POST.get('remota_id')}", file=sys.stderr)
-                    
                     registrar_evento(request, 'CREACION', f'Relé creado: {sub.Nombre}')
                     messages.success(request, 'Relé creado correctamente.')
                     return redirect('reles')
             except (Subestacion.DoesNotExist, NivelTension.DoesNotExist, Remota.DoesNotExist) as e:
-                print(f"DEBUG CREATE ERROR: {str(e)}", file=sys.stderr)
                 messages.error(request, f'Error al crear: {str(e)}')
                 return redirect('reles')
     elif request.method == 'GET':
@@ -1376,13 +1337,15 @@ def reles_view(request):
                 protocolos_dict[p.Tipo] = p
         protocolos = list(protocolos_dict.values())
         
-        # Puertos únicos por tipo (solo de interfaces activas)
+        # Puertos únicos por tipo (InterfazDeComunicacion activas de tipo PUERTOS)
         puertos_dict = {}
-        for pt in PuertoComunicacion.objects.filter(Id_Interfaz__Activo=True).order_by('Tipo'):
-            if pt.Tipo not in puertos_dict:
-                puertos_dict[pt.Tipo] = pt
+        for pt in InterfazDeComunicacion.objects.filter(
+            Tipo_Interfaz='PUERTOS', Activo=True
+        ).order_by('Tipo_Puerto'):
+            if pt.Tipo_Puerto and pt.Tipo_Puerto not in puertos_dict:
+                puertos_dict[pt.Tipo_Puerto] = pt
         puertos = list(puertos_dict.values())
-        
+
         # Remotas únicas por marca+modelo (evita duplicados)
         remotas_dict = {}
         for r in Remota.objects.all().order_by('Marca', 'Modelo'):
@@ -1390,11 +1353,11 @@ def reles_view(request):
             if key not in remotas_dict:
                 remotas_dict[key] = r
         remotas = list(remotas_dict.values())
-        
+
         # Solo interfaces de tipo PUERTOS activas pueden asignarse a remotas
         interfaces_disponibles = InterfazDeComunicacion.objects.filter(
             Tipo_Interfaz='PUERTOS', Activo=True
-        ).prefetch_related('puertos').order_by('Id_Interfaz')
+        ).order_by('Id_Interfaz')
         
         context = {
             'title': 'Relés',
@@ -1417,58 +1380,45 @@ def rele_detalle_view(request, pk):
     """Vista de detalle de un relé"""
     rele = get_object_or_404(Rele, Id_relé=pk)
 
-    # Para Remota: aplanar y deduplicar puertos por Tipo.
-    # Para ETH se conservan todos los puertos distintos (mantienen su IP propia),
-    # pero deduplicados por la clave (iface_id, puerto_id).
+    # Para Remota: construir lista de puertos a mostrar desde Remota_Puertos
+    # (lista de iface_ids) o derivar de las interfaces asociadas (compatibilidad).
     remota_puertos_unicos = []
     if rele.Remota_id and rele.EsRemoto:
-        # Construir la lista de pares (iface_id, puerto_id) a mostrar.
-        # Se usa la selección a nivel de puerto guardada en Remota_Puertos;
-        # para relés antiguos sin ese dato, se deriva de las interfaces (compat).
-        pares = []
+        iface_ids = []
         if rele.Remota_Puertos:
-            for clave in rele.Remota_Puertos:
-                if '_' in clave:
-                    iface_id, puerto_id = clave.split('_', 1)
-                    pares.append((iface_id, puerto_id))
+            iface_ids = [str(k) for k in rele.Remota_Puertos]
         else:
-            for iface in rele.Remota.Interfaces.all():
-                for puerto in iface.puertos.all():
-                    pares.append((str(iface.Id_Interfaz), str(puerto.Id_Puerto)))
+            for iface in rele.Remota.Interfaces.filter(Tipo_Interfaz='PUERTOS').all():
+                iface_ids.append(str(iface.Id_Interfaz))
 
-        # Resolver los puertos en lote
-        puerto_ids = [pid for _, pid in pares]
-        puertos_map = {
-            str(p.Id_Puerto): p
-            for p in PuertoComunicacion.objects.filter(Id_Puerto__in=puerto_ids)
+        ifaces_map = {
+            str(i.Id_Interfaz): i
+            for i in InterfazDeComunicacion.objects.filter(
+                Id_Interfaz__in=iface_ids, Tipo_Interfaz='PUERTOS'
+            )
         }
 
         seen_non_eth = set()
-        seen_eth_keys = set()
-        for iface_id, puerto_id in pares:
-            puerto = puertos_map.get(str(puerto_id))
-            if not puerto:
+        for iface_id in iface_ids:
+            iface = ifaces_map.get(iface_id)
+            if not iface:
                 continue
-            if puerto.Tipo == 'ETH':
-                key = (iface_id, puerto_id)
-                if key in seen_eth_keys:
-                    continue
-                seen_eth_keys.add(key)
-                ipkey = f'{iface_id}_{puerto_id}'
-                ip = (rele.Remota_IPs or {}).get(ipkey) or '0.0.0.0'
+            tipo = iface.Tipo_Puerto
+            if tipo == 'ETH':
+                ip = (rele.Remota_IPs or {}).get(iface_id) or '0.0.0.0'
                 remota_puertos_unicos.append({
-                    'tipo': puerto.Tipo,
-                    'tipo_display': puerto.get_Tipo_display(),
+                    'tipo': tipo,
+                    'tipo_display': iface.get_Tipo_Puerto_display(),
                     'is_eth': True,
                     'ip': ip,
                 })
             else:
-                if puerto.Tipo in seen_non_eth:
+                if tipo in seen_non_eth:
                     continue
-                seen_non_eth.add(puerto.Tipo)
+                seen_non_eth.add(tipo)
                 remota_puertos_unicos.append({
-                    'tipo': puerto.Tipo,
-                    'tipo_display': puerto.get_Tipo_display(),
+                    'tipo': tipo,
+                    'tipo_display': iface.get_Tipo_Puerto_display(),
                     'is_eth': False,
                     'ip': None,
                 })
@@ -1538,7 +1488,6 @@ def api_remotas(request):
 def exportar_tensiones_pdf(request):
     """Exporta todas las tensiones a PDF"""
     from django.contrib.staticfiles.finders import find
-    from datetime import datetime
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -1652,7 +1601,6 @@ def exportar_tensiones_pdf(request):
 def exportar_interfaces_pdf(request):
     """Exporta todas las interfaces a PDF"""
     from django.contrib.staticfiles.finders import find
-    from datetime import datetime
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -1708,17 +1656,17 @@ def exportar_interfaces_pdf(request):
     elements.append(Spacer(1, 6))
     elements.append(HRFlowable(width="100%", thickness=1.2, color=RED, spaceBefore=0, spaceAfter=8))
 
-    interfaces = InterfazDeComunicacion.objects.filter(Activo=True).prefetch_related('puertos').all().order_by('-Fecha_Reg', '-Id_Interfaz')
-    interfaces = [i for i in interfaces if i.puertos.exists()]
+    interfaces = InterfazDeComunicacion.objects.filter(
+        Tipo_Interfaz='PUERTOS', Activo=True, Tipo_Puerto__gt=''
+    ).order_by('-Fecha_Reg', '-Id_Interfaz')
     _pw = letter[0] - 50
     _ratios = [2.2, 1.5, 1.3]
     col_w = [_pw * r / sum(_ratios) for r in _ratios]
     hdr_st  = ParagraphStyle('h', parent=styles['Normal'], fontSize=8, leading=10, textColor=colors.white, alignment=1)
     cell_st = ParagraphStyle('c', parent=styles['Normal'], fontSize=8, leading=10, alignment=1)
-    data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in ['Puertos', 'Creado Por', 'Fecha Registro']]]
+    data = [[Paragraph(f'<b>{h}</b>', hdr_st) for h in ['Puerto', 'Creado Por', 'Fecha Registro']]]
     for interfaz in interfaces:
-        puertos_list = [p.get_Tipo_display() for p in interfaz.puertos.all()]
-        puertos_str  = ', '.join(puertos_list) if puertos_list else 'Sin puertos'
+        puertos_str = interfaz.get_Tipo_Puerto_display() or interfaz.Tipo_Puerto or 'Sin tipo'
         creado_por   = interfaz.creado_por.username if interfaz.creado_por else 'Sistema'
         data.append([Paragraph(puertos_str, cell_st),
                      Paragraph(creado_por, cell_st),
@@ -1763,7 +1711,6 @@ def exportar_interfaces_pdf(request):
 def exportar_protocolo_pdf(request):
     """Exporta todos los protocolos a PDF"""
     from django.contrib.staticfiles.finders import find
-    from datetime import datetime
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -1885,7 +1832,6 @@ def exportar_protocolo_pdf(request):
 def exportar_subestaciones_pdf(request):
     """Exporta todas las subestaciones a PDF"""
     from django.contrib.staticfiles.finders import find
-    from datetime import datetime
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -1998,7 +1944,6 @@ def exportar_subestaciones_pdf(request):
 def exportar_remotas_pdf(request):
     """Exporta todas las remotas a PDF"""
     from django.contrib.staticfiles.finders import find
-    from datetime import datetime
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -2104,13 +2049,14 @@ def exportar_remotas_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="remotas.pdf"'
     return response
 
+@login_required(login_url='/login/')
 def exportar_reles_pdf(request):
     """Exporta todos los relés a PDF con estilo similar al modal de detalle."""
     from ._reles_pdf_helper import build_reles_pdf
     reles = (Rele.objects
              .select_related('Id_Ten', 'Id_Sub_est', 'creado_por', 'Remota', 'Remota__Id_Ten')
-             .prefetch_related('Protocolos', 'Puertos',
-                               'Remota__Protocolos', 'Remota__Interfaces__puertos')
+             .prefetch_related('Protocolos', 'Remota__Protocolos', 'Remota__Niveles_Ten',
+                               'Remota__Interfaces__puertos')
              .order_by('-Fecha_Reg', '-Id_relé'))
     return build_reles_pdf(reles)
 
@@ -2205,8 +2151,12 @@ def custom_logout(request):
     no sirva páginas protegidas desde su caché tras el logout.
     """
     from django.contrib.auth import logout
+    # Guardar referencia al usuario antes de logout() para que registrar_evento
+    # pueda asociar el evento correctamente (tras logout request.user = AnonymousUser)
+    ip = request.META.get('REMOTE_ADDR', 'desconocida')
+    user_before_logout = request.user
+    registrar_evento(request, 'LOGOUT', f'Cierre de sesión desde IP {ip}')
     logout(request)
-    registrar_evento(request, 'LOGOUT', f'Cierre de sesión desde IP {request.META.get("REMOTE_ADDR", "desconocida")}')
     response = redirect('/login/')
     # Forzar al navegador a no cachear para evitar acceso a páginas privadas con "atrás"
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
@@ -2306,7 +2256,6 @@ def bitacora_view(request):
 def exportar_bitacora_pdf(request):
     """Exporta los eventos de la bitácora a PDF (aplicando filtros si existen)"""
     from django.contrib.staticfiles.finders import find
-    from datetime import datetime
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -2580,16 +2529,18 @@ def admin_restaurar_view(request):
 
                     parent = os.path.dirname(media_root)
                     zf.extractall(parent, members=media_files)
-                else:
-                    pass
-
             os.unlink(tmp_path)
 
             # Limpiar backups temporales de BD
             if db_backup_path and os.path.exists(db_backup_path):
                 os.remove(db_backup_path)
 
-            registrar_evento(request, 'ACTUALIZACION', f'Sistema restaurado desde copia: {backup_file.name}')
+            # La BD fue reemplazada; registrar el evento en un bloque aparte para
+            # que un fallo aquí no oculte el éxito de la restauración.
+            try:
+                registrar_evento(request, 'ACTUALIZACION', f'Sistema restaurado desde copia: {backup_file.name}')
+            except Exception:
+                pass
             messages.success(request, f'✅ Sistema restaurado correctamente desde "{backup_file.name}".', extra_tags='restore-redirect')
         except zipfile.BadZipFile:
             messages.error(request, '❌ El archivo seleccionado no es un ZIP válido.')

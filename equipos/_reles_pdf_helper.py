@@ -5,6 +5,8 @@ from io import BytesIO
 from django.contrib.staticfiles.finders import find
 from django.http import FileResponse
 
+from equipos.models import InterfazDeComunicacion
+
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import letter
@@ -429,13 +431,23 @@ def build_reles_pdf(reles):
         protos_badges = [p.get_Tipo_display() for p in rele.Protocolos.all()]
         puertos_ips_data = rele.Puertos_IPs or {}
         puertos_badges = []
-        for p in rele.Puertos.all():
-            label = p.get_Tipo_display()
-            if p.Tipo == 'ETH':
-                ip = puertos_ips_data.get(str(p.Id_Puerto)) or '0.0.0.0'
-                puertos_badges.append((label, f'IP: {ip}'))
-            else:
-                puertos_badges.append(label)
+        if puertos_ips_data:
+            iface_ids = list(puertos_ips_data.keys())
+            ifaces_map = {
+                str(i.Id_Interfaz): i
+                for i in InterfazDeComunicacion.objects.filter(
+                    Id_Interfaz__in=iface_ids, Tipo_Interfaz='PUERTOS'
+                )
+            }
+            for iface_id, ip in puertos_ips_data.items():
+                iface = ifaces_map.get(str(iface_id))
+                if not iface:
+                    continue
+                label = iface.get_Tipo_Puerto_display()
+                if iface.Tipo_Puerto == 'ETH' and ip:
+                    puertos_badges.append((label, f'IP: {ip}'))
+                else:
+                    puertos_badges.append(label)
         fecha  = rele.Fecha_Reg.strftime('%d/%m/%Y') if rele.Fecha_Reg else '—'
         creado = rele.creado_por.username if rele.creado_por else 'Sistema'
         estado = rele.Estado or '—'
@@ -547,45 +559,37 @@ def build_reles_pdf(reles):
             rem_protos_plain = [p.get_Tipo_display() for p in rem.Protocolos.all()]
             remota_ips_data = rele.Remota_IPs or {}
 
-            # Interfaces: usar la selección a nivel de puerto guardada en
-            # Remota_Puertos; para relés antiguos, derivar de las interfaces.
-            pares = []
+            # Interfaces: usar Remota_Puertos (lista de iface_ids) o derivar
+            # de las interfaces asociadas para relés migrados sin ese dato.
+            iface_ids = []
             if rele.Remota_Puertos:
-                for clave in rele.Remota_Puertos:
-                    if '_' in clave:
-                        iface_id, puerto_id = clave.split('_', 1)
-                        pares.append((iface_id, puerto_id))
+                iface_ids = [str(k) for k in rele.Remota_Puertos]
             else:
-                for iface in rem.Interfaces.all():
-                    for pt in iface.puertos.all():
-                        pares.append((str(iface.Id_Interfaz), str(pt.Id_Puerto)))
+                for iface in rem.Interfaces.filter(Tipo_Interfaz='PUERTOS').all():
+                    iface_ids.append(str(iface.Id_Interfaz))
 
-            puerto_ids = [pid for _, pid in pares]
-            puertos_map = {
-                str(p.Id_Puerto): p
-                for p in PuertoComunicacion.objects.filter(Id_Puerto__in=puerto_ids)
+            ifaces_map = {
+                str(i.Id_Interfaz): i
+                for i in InterfazDeComunicacion.objects.filter(
+                    Id_Interfaz__in=iface_ids, Tipo_Interfaz='PUERTOS'
+                )
             }
 
             rem_ifaces_plain = []
             seen_non_eth = set()
-            seen_eth_keys = set()
-            for iface_id, puerto_id in pares:
-                pt = puertos_map.get(str(puerto_id))
-                if not pt:
+            for iface_id in iface_ids:
+                iface = ifaces_map.get(iface_id)
+                if not iface:
                     continue
-                label = pt.get_Tipo_display()
-                if pt.Tipo == 'ETH':
-                    key = (iface_id, puerto_id)
-                    if key in seen_eth_keys:
-                        continue
-                    seen_eth_keys.add(key)
-                    ip_key = f'{iface_id}_{puerto_id}'
-                    ip = remota_ips_data.get(ip_key) or '0.0.0.0'
+                tipo = iface.Tipo_Puerto
+                label = iface.get_Tipo_Puerto_display()
+                if tipo == 'ETH':
+                    ip = remota_ips_data.get(iface_id) or '0.0.0.0'
                     rem_ifaces_plain.append((label, ip))
                 else:
-                    if pt.Tipo in seen_non_eth:
+                    if tipo in seen_non_eth:
                         continue
-                    seen_non_eth.add(pt.Tipo)
+                    seen_non_eth.add(tipo)
                     rem_ifaces_plain.append((label, None))
 
             # 2 columnas:

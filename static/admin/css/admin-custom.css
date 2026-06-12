@@ -58,7 +58,7 @@ body {
   /* sticky para que el header quede visible al hacer scroll */
   position: sticky;
   top: 0;
-  z-index: 1000;  /* Por encima de modales Bootstrap (z-index: 1050) no aplica aquí */
+  z-index: 1049;  /* Justo por debajo de los modales Bootstrap (z-index: 1050) */
 }
 
 .header-brand .brand-link {

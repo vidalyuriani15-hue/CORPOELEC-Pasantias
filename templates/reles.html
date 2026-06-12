@@ -75,7 +75,7 @@
             {% for p in rele.Protocolos.all %}{{ p.Tipo }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
           </span><br>
           <span class="cell-text small">
-            {% for pt in rele.Puertos.all %}{{ pt.Tipo }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+            {% if rele.Puertos_IPs %}{{ rele.Puertos_IPs|length }} puerto(s){% else %}—{% endif %}
           </span>
         </td>
         <td>
@@ -293,23 +293,22 @@
                     {% for pt in puertos %}
                     <div class="puerto-item">
                       <label class="check-card-elegant">
-                        <input type="checkbox" name="puertos" value="{{ pt.Id_Puerto }}" data-tipo="{{ pt.Tipo }}" onchange="togglePuertoIp(this)">
+                        <input type="checkbox" name="puertos" value="{{ pt.Id_Interfaz }}" data-tipo="{{ pt.Tipo_Puerto }}" onchange="togglePuertoIp(this)">
                         <span class="check-icon-wrapper">
-                          {% if pt.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>
-                          {% elif pt.Tipo == 'RS232' %}<i class="fas fa-plug"></i>
-                          {% elif pt.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>
-                          {% elif pt.Tipo == 'USB' %}<i class="fab fa-usb"></i>
-                          {% elif pt.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>
-                          {% elif pt.Icono %}<i class="{{ pt.Icono }}"></i>
+                          {% if pt.Tipo_Puerto == 'ETH' %}<i class="fas fa-network-wired"></i>
+                          {% elif pt.Tipo_Puerto == 'RS232' %}<i class="fas fa-plug"></i>
+                          {% elif pt.Tipo_Puerto == 'RS485' %}<i class="fas fa-exchange-alt"></i>
+                          {% elif pt.Tipo_Puerto == 'USB' %}<i class="fab fa-usb"></i>
+                          {% elif pt.Tipo_Puerto == 'FIBRA' %}<i class="fas fa-bolt"></i>
                           {% else %}<i class="fas fa-microchip"></i>{% endif %}
                         </span>
                         <div class="check-content">
-                          <span class="check-title">{{ pt.get_Tipo_display }}</span>
+                          <span class="check-title">{{ pt.get_Tipo_Puerto_display }}</span>
                         </div>
                       </label>
-                      {% if pt.Tipo == 'ETH' %}
+                      {% if pt.Tipo_Puerto == 'ETH' %}
                       <div class="ip-field" data-ip-for="puerto" style="display:none; margin-top:6px;">
-                        <input type="text" name="puerto_ip_{{ pt.Id_Puerto }}" placeholder="Dirección IP (0.0.0.0)" class="ip-input">
+                        <input type="text" name="puerto_ip_{{ pt.Id_Interfaz }}" placeholder="Dirección IP (0.0.0.0)" class="ip-input">
                       </div>
                       {% endif %}
                     </div>
@@ -386,38 +385,35 @@
                     <label class="form-label">Interfaces de Comunicación</label>
                     <div id="remotaInterfacesContainer" class="checks-grid">
                       {% for iface in interfaces_disponibles %}
-                        {% for puerto in iface.puertos.all %}
-                          <div class="puerto-item">
-                            <label class="check-card-elegant">
-                              <input type="checkbox" name="remota_puerto_sel" value="{{ iface.Id_Interfaz }}_{{ puerto.Id_Puerto }}" data-tipo="{{ puerto.Tipo }}" data-iface="{{ iface.Id_Interfaz }}" onchange="toggleRemotaIp(this)">
-                              <span class="check-icon-wrapper">
-                                {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>
-                                {% elif puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>
-                                {% elif puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>
-                                {% elif puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>
-                                {% elif puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>
-                                {% elif puerto.Icono %}<i class="{{ puerto.Icono }}"></i>
-                                {% else %}<i class="fas fa-microchip"></i>{% endif %}
-                              </span>
-                              <div class="check-content">
-                                <span class="check-title">{{ puerto.get_Tipo_display }}</span>
-                              </div>
-                            </label>
-                            {% if puerto.Tipo == 'ETH' %}
-                            <div class="ip-field" data-ip-for="remota" style="display:none; margin-top:6px;">
-                              <input type="text" name="remota_ip_{{ iface.Id_Interfaz }}_{{ puerto.Id_Puerto }}" placeholder="Dirección IP (0.0.0.0)" class="ip-input">
-                            </div>
-                            {% endif %}
-                          </div>
-                        {% empty %}
-                          <label class="check-card-elegant disabled">
-                            <input type="checkbox" disabled>
-                            <span class="check-icon-wrapper"><i class="fas fa-times"></i></span>
+                        <div class="puerto-item">
+                          <label class="check-card-elegant">
+                            <input type="checkbox" name="remota_puerto_sel" value="{{ iface.Id_Interfaz }}" data-tipo="{{ iface.Tipo_Puerto }}" data-iface="{{ iface.Id_Interfaz }}" onchange="toggleRemotaIp(this)">
+                            <span class="check-icon-wrapper">
+                              {% if iface.Tipo_Puerto == 'ETH' %}<i class="fas fa-network-wired"></i>
+                              {% elif iface.Tipo_Puerto == 'RS232' %}<i class="fas fa-plug"></i>
+                              {% elif iface.Tipo_Puerto == 'RS485' %}<i class="fas fa-exchange-alt"></i>
+                              {% elif iface.Tipo_Puerto == 'USB' %}<i class="fab fa-usb"></i>
+                              {% elif iface.Tipo_Puerto == 'FIBRA' %}<i class="fas fa-bolt"></i>
+                              {% else %}<i class="fas fa-microchip"></i>{% endif %}
+                            </span>
                             <div class="check-content">
-                              <span class="check-title">Sin puertos</span>
+                              <span class="check-title">{{ iface.get_Tipo_Puerto_display }}</span>
                             </div>
                           </label>
-                        {% endfor %}
+                          {% if iface.Tipo_Puerto == 'ETH' %}
+                          <div class="ip-field" data-ip-for="remota" style="display:none; margin-top:6px;">
+                            <input type="text" name="remota_ip_{{ iface.Id_Interfaz }}" placeholder="Dirección IP (0.0.0.0)" class="ip-input">
+                          </div>
+                          {% endif %}
+                        </div>
+                      {% empty %}
+                        <label class="check-card-elegant disabled">
+                          <input type="checkbox" disabled>
+                          <span class="check-icon-wrapper"><i class="fas fa-times"></i></span>
+                          <div class="check-content">
+                            <span class="check-title">Sin puertos registrados</span>
+                          </div>
+                        </label>
                       {% endfor %}
                     </div>
                   </div>

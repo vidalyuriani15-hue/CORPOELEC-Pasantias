@@ -180,9 +180,10 @@ class Usuario(models.Model):
         return self.Nombre
 
 class InterfazDeComunicacion(models.Model):
-    """Contenedor que agrupa puertos físicos O protocolos de comunicación (no ambos).
+    """Interfaz de comunicación física (puerto) o lógica (protocolo).
     El tipo se determina por el campo Tipo_Interfaz:
-      - 'PUERTOS'    → tiene hijos PuertoComunicacion (ETH, RS232, RS485, etc.)
+      - 'PUERTOS'    → representa un puerto físico (ETH, RS232, RS485, etc.)
+                       El tipo específico se guarda en Tipo_Puerto.
       - 'PROTOCOLOS' → tiene hijos Protocolo (IEC 104, DNP3, Modbus, etc.)
     La eliminación es LÓGICA (Activo=False) para mantener trazabilidad histórica
     y no romper relaciones con relés o remotas que la referenciaron.
@@ -192,18 +193,32 @@ class InterfazDeComunicacion(models.Model):
         ('PROTOCOLOS', 'Protocolos de Comunicación'),
     ]
 
+    TIPO_PUERTO_CHOICES = [
+        ('ETH',   'Ethernet'),
+        ('RS232', 'RS-232'),
+        ('RS485', 'RS-485'),
+        ('USB',   'USB'),
+        ('FIBRA', 'Fibra Óptica'),
+    ]
+
     Id_Interfaz = models.AutoField(primary_key=True, serialize=False)
     Puertos_C = models.IntegerField(default=0, verbose_name='Cantidad de Puertos')  # Contador denormalizado para queries rápidas
     Fecha_Reg = models.DateField(auto_now_add=True)
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='interfaces_creadas')
     Tipo_Interfaz = models.CharField(max_length=20, choices=TIPO_INTERFAZ_CHOICES, default='PUERTOS', verbose_name='Tipo de Interfaz')
+    # Tipo_Puerto aplica solo cuando Tipo_Interfaz='PUERTOS'
+    Tipo_Puerto = models.CharField(max_length=30, choices=TIPO_PUERTO_CHOICES, blank=True, default='', verbose_name='Tipo de Puerto')
     # False = eliminada lógicamente; se filtra en todas las queries de la app
     Activo = models.BooleanField(default=True, verbose_name='Activo')
 
+    class _ActiveManager(models.Manager):
+        def get_queryset(self):
+            return super().get_queryset().filter(Activo=True)
+
     # Manager estándar (incluye inactivos) — usar en admin y migraciones
     objects = models.Manager()
-    # Manager filtrado — usar cuando solo se quieren interfaces vigentes
-    activos = models.Manager()
+    # Manager filtrado — devuelve solo interfaces con Activo=True
+    activos = _ActiveManager()
 
     class Meta:
         verbose_name = 'Interfaz de Comunicación'
@@ -211,29 +226,33 @@ class InterfazDeComunicacion(models.Model):
         ordering = ['Id_Interfaz']
 
     def __str__(self):
+        if self.Tipo_Interfaz == 'PUERTOS' and self.Tipo_Puerto:
+            return f"Puerto {self.get_Tipo_Puerto_display()} (ID {self.Id_Interfaz})"
         return f"Interfaz {self.Id_Interfaz} - {self.get_Tipo_Interfaz_display()}"
 
     def clean(self):
-        """Impide que una misma interfaz tenga puertos Y protocolos a la vez.
-        Se valida al guardar desde el formulario; la lógica de vistas garantiza
-        que esto no ocurra en operaciones normales, pero sirve como red de seguridad.
+        """PuertoComunicacion fue eliminado en migración 0037; la validación de
+        puertos ya no aplica. Solo se valida la integridad de protocolos.
         """
-        from django.core.exceptions import ValidationError
-        if self.pk:
-            puertos_count = self.puertos.count()
-            protocolos_count = self.protocolos.count()
-            if puertos_count > 0 and protocolos_count > 0:
-                raise ValidationError('Una interfaz no puede tener puertos y protocolos simultáneamente.')
+        pass
 
     def get_dependencias(self):
-        """Lista todos los objetos hijos y asociados para verificar si puede eliminarse."""
+        """Devuelve dependencias EXTERNAS que bloquean la eliminación.
+        Los protocolos hijos son propios de la interfaz y se limpian al eliminar,
+        no son una dependencia bloqueante. Solo bloquean:
+          - Relés que tienen asignado algún protocolo de esta interfaz.
+          - Remotas que tienen esta interfaz asociada.
+        """
         dependencias = []
 
-        if self.puertos.exists():
-            dependencias.extend([f"Puerto: {p.get_Tipo_display()}" for p in self.puertos.all()])
-
-        if self.protocolos.exists():
-            dependencias.extend([f"Protocolo: {p.get_Tipo_display()}" for p in self.protocolos.all()])
+        # Relés con protocolos de esta interfaz asignados (M2M Rele.Protocolos)
+        reles_con_proto = Rele.objects.filter(
+            Protocolos__Id_Interfaz=self.pk, Protocolos__Activo=True
+        ).distinct()
+        if reles_con_proto.exists():
+            for r in reles_con_proto:
+                sub = r.Id_Sub_est.Nombre if r.Id_Sub_est else 'sin subestación'
+                dependencias.append(f"Relé: {sub} ({r.Marca} {r.Modelo})")
 
         if self.remotas_asociadas.exists():
             dependencias.extend([f"Remota: {r.Marca} {r.Modelo}" for r in self.remotas_asociadas.all()])
@@ -376,7 +395,8 @@ class Protocolo(models.Model):
         ordering = ['Id_Protocolo']
 
     def __str__(self):
-        return f"{self.get_Tipo_display()} - Interfaz {self.Id_Interfaz.Id_Interfaz}"
+        iface_id = self.Id_Interfaz.Id_Interfaz if self.Id_Interfaz else 'sin interfaz'
+        return f"{self.get_Tipo_display()} - Interfaz {iface_id}"
 
     def get_dependencias(self):
         """Verifica si algún relé o remota referencia este protocolo."""
