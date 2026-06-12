@@ -1,17 +1,25 @@
+/* ============================================================
+   GRIDGUARD - ESTILOS DEL PANEL DE ADMINISTRACIÓN
+   Aplica únicamente a las plantillas bajo templates/admin/.
+   El CSS de las vistas regulares está en static/css/global.css.
+   ============================================================ */
+
+/* Variables globales — cambiar aquí actualiza colores en todo el panel */
 :root {
-  --primary: #3c8dbc;
-  --primary-dark: #2a6f97;
-  --secondary: #1a1d21;
-  --success: #28a745;
-  --danger: #dc3545;
-  --warning: #ffc107;
-  --light: #f8f9fa;
-  --dark: #343a40;
-  --border: #dee2e6;
-  --sidebar-width: 260px;
-  --admin-primary: #3c8dbc;
+  --primary: #3c8dbc;       /* Azul principal de botones y encabezados */
+  --primary-dark: #2a6f97;  /* Variante oscura para hover y gradientes */
+  --secondary: #1a1d21;     /* Color del header y sidebar */
+  --success: #28a745;       /* Verde para botón "Agregar" */
+  --danger: #dc3545;        /* Rojo para acciones destructivas */
+  --warning: #ffc107;       /* Amarillo para alertas */
+  --light: #f8f9fa;         /* Fondo claro de filas alternas y headers */
+  --dark: #343a40;          /* Texto oscuro principal */
+  --border: #dee2e6;        /* Color de bordes de tablas y separadores */
+  --sidebar-width: 260px;   /* Ancho del sidebar lateral (reservado para uso futuro) */
+  --admin-primary: #3c8dbc; /* Alias de --primary para compatibilidad */
 }
 
+/* === SIDEBAR (heredado de AdminLTE — solo sobreescritura de colores) === */
 .main-sidebar {
   background: linear-gradient(180deg, #1a1d21 0%, #2c3e50 100%);
 }
@@ -25,9 +33,10 @@
 }
 
 .nav-sidebar .nav-treeview > .nav-item > .nav-link {
-  padding-left: 40px;
+  padding-left: 40px;  /* Indentación para items de submenú */
 }
 
+/* === RESET BÁSICO === */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
@@ -37,7 +46,7 @@ body {
   line-height: 1.6;
 }
 
-/* Header Styles */
+/* === HEADER — barra superior fija con logo y usuario === */
 .admin-header {
   display: flex;
   justify-content: space-between;
@@ -46,9 +55,10 @@ body {
   height: 64px;
   background: linear-gradient(135deg, var(--secondary) 0%, #2c3e50 100%);
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  /* sticky para que el header quede visible al hacer scroll */
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 1000;  /* Por encima de modales Bootstrap (z-index: 1050) no aplica aquí */
 }
 
 .header-brand .brand-link {
@@ -86,13 +96,14 @@ body {
   background: rgba(255,255,255,0.1);
 }
 
-/* Main Layout */
+/* === LAYOUT PRINCIPAL — sidebar + contenido en fila === */
 .admin-main {
   display: flex;
+  /* Ocupa el alto restante después del header de 64px */
   min-height: calc(100vh - 64px);
 }
 
-/* Breadcrumbs */
+/* === BREADCRUMBS — ruta de navegación bajo el header === */
 .breadcrumbs {
   padding: 12px 24px;
   background: #fff;
@@ -171,15 +182,16 @@ body {
   color: var(--primary);
 }
 
-/* App Cards */
+/* === APP CARDS — tarjetas por sección del dashboard de admin === */
 .app-card {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   margin-bottom: 24px;
-  overflow: hidden;
+  overflow: hidden;  /* Evita que los bordes redondeados sean ignorados por los hijos */
 }
 
+/* Encabezado coloreado de cada tarjeta (gradiente azul institucional) */
 .app-header {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   padding: 18px 24px;
@@ -277,7 +289,7 @@ body {
   color: #fff;
 }
 
-/* No Apps Message */
+/* === ESTADO VACÍO — cuando no hay modelos/apps registrados === */
 .no-apps {
   text-align: center;
   padding: 60px 20px;
@@ -290,26 +302,29 @@ body {
   color: #dee2e6;
 }
 
-/* Responsive */
+/* === RESPONSIVE — breakpoint tablet/móvil (≤ 768px) === */
 @media (max-width: 768px) {
   .admin-header {
     padding: 0 16px;
   }
-  
+
+  /* Ocultar el texto del brand en móvil para ahorrar espacio horizontal */
   .header-brand .brand-link span {
     display: none;
   }
-  
+
   .admin-content {
     padding: 16px;
   }
-  
+
+  /* En móvil los items de modelo apilan verticalmente */
   .model-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
+  /* Botones de acción alineados a la derecha en móvil */
   .model-actions {
     width: 100%;
     justify-content: flex-end;

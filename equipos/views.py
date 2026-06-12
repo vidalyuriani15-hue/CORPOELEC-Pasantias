@@ -46,9 +46,11 @@ def get_user_permisos(request, user_id):
 @login_required(login_url='/login/')
 def index_view(request):
     """Vista principal del dashboard"""
+    # Contadores globales para las tarjetas del dashboard
     total_reles = Rele.objects.count() or 0
     total_subestaciones = Subestacion.objects.count() or 0
     total_remotas = Remota.objects.count() or 0
+    # Solo se cuentan interfaces y protocolos activos para reflejar el estado real del sistema
     total_interfaces = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PUERTOS', Activo=True).count() or 0
     total_protocolos = InterfazDeComunicacion.objects.filter(Tipo_Interfaz='PROTOCOLOS', Activo=True).count() or 0
     total_tensiones = NivelTension.objects.count() or 0
@@ -56,18 +58,19 @@ def index_view(request):
     ultimos_reles = list(Rele.objects.all().order_by('-Fecha_Reg')[:5]) if total_reles > 0 else []
     ultimas_subestaciones = list(Subestacion.objects.all().order_by('-Fecha_Reg')[:5]) if total_subestaciones > 0 else []
 
-    # Datos para gráfica de picos: subestaciones creadas por mes (últimos 12 meses)
+    # Datos para gráficas: registros creados por mes (últimos 12) y por día (mes actual)
     from datetime import date, timedelta
 
     hoy = date.today()
     year, month = hoy.year, hoy.month
+    # Retroceder 11 meses para cubrir una ventana de 12 meses incluyendo el actual
     month -= 11
     while month <= 0:
         month += 12
         year -= 1
     inicio = date(year, month, 1)
     inicio_dia = date(hoy.year, hoy.month, 1)
-    # Días del mes actual
+    # Calcular cuántos días tiene el mes actual para construir el eje X diario
     if hoy.month == 12:
         siguiente_mes = date(hoy.year + 1, 1, 1)
     else:
@@ -77,7 +80,7 @@ def index_view(request):
     meses_es = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
-    # Construir las etiquetas (eje X) una sola vez
+    # Construir las etiquetas del eje X mensual una sola vez (reutilizadas para todas las series)
     subs_chart_labels = []
     meses_keys = []
     y, mo = inicio.year, inicio.month
@@ -89,6 +92,7 @@ def index_view(request):
             mo = 1
             y += 1
 
+    # Etiquetas del eje X diario (días del mes actual en formato "01", "02", ...)
     subs_chart_dia_labels = []
     dias_keys = []
     for i in range(dias_mes):
@@ -97,6 +101,9 @@ def index_view(request):
         dias_keys.append(d)
 
     def build_series(model):
+        """Agrupa los registros del modelo por mes y por día en una sola consulta.
+        Retorna dos listas alineadas con meses_keys y dias_keys respectivamente.
+        """
         fechas = model.objects.filter(Fecha_Reg__gte=inicio).values_list('Fecha_Reg', flat=True)
         mes = {}
         dia = {}
@@ -104,11 +111,13 @@ def index_view(request):
             if not f:
                 continue
             mes[(f.year, f.month)] = mes.get((f.year, f.month), 0) + 1
+            # Solo acumular en el conteo diario si la fecha cae en el mes actual
             if f >= inicio_dia:
                 dia[f] = dia.get(f, 0) + 1
         return ([mes.get(k, 0) for k in meses_keys],
                 [dia.get(k, 0) for k in dias_keys])
 
+    # Cada entrada define una serie de la gráfica: clave JS, etiqueta, color y modelo Django
     series_config = [
         ('subestaciones', 'Subestaciones', '#4DA6FF', Subestacion),
         ('reles',         'Relés',          '#00CC66', Rele),
@@ -117,6 +126,7 @@ def index_view(request):
         ('protocolos',    'Protocolos',     '#FF3333', Protocolo),
         ('remotas',       'Remotas',        '#00CCCC', Remota),
     ]
+    # Construir las series para la gráfica consumiendo una consulta por modelo
     chart_series = []
     for key, label, color, model in series_config:
         mes_data, dia_data = build_series(model)
@@ -209,11 +219,15 @@ def cambiar_clave_view(request):
 @no_cache
 @login_required(login_url='/login/')
 def usuarios_view(request):
-    """Vista de gestion de usuarios"""
+    """Vista de gestion de usuarios — solo accesible para administradores (superusuarios).
+    Gestiona creación, edición y eliminación de usuarios del sistema, incluyendo
+    la asignación de permisos granulares (crear/actualizar/eliminar) almacenados
+    en el modelo auxiliar Usuario.
+    """
     if not request.user.is_superuser:
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('index')
-    
+
     if request.method == 'POST':
         if request.POST.get('eliminar'):
             user_id = request.POST.get('user_id')
@@ -255,8 +269,11 @@ def usuarios_view(request):
                     last_name=last_name,
                     email=email,
                     is_superuser=is_superuser,
+                    # is_staff requerido para acceder al panel de administración de Django
                     is_staff=is_superuser,
                 )
+                # get_or_create garantiza que exista el perfil extendido con los permisos
+                # granulares, incluso si el usuario fue creado desde el admin de Django
                 usuario_perfil, created = Usuario.objects.get_or_create(
                     Id_user=user,
                     defaults={'Nombre': f'{first_name} {last_name}', 'Correo': email, 'Nivel_User': 'admin' if is_superuser else 'usuario', 'permisos': permisos}
@@ -321,7 +338,10 @@ def usuarios_view(request):
 @no_cache
 @login_required(login_url='/login/')
 def subestaciones_view(request):
-    """Vista de subestaciones"""
+    """Vista de subestaciones — CRUD completo con protección de integridad referencial.
+    Antes de eliminar, consulta `puede_ser_eliminada()` en el modelo para verificar
+    que no existan relés u otros registros dependientes (protección en cascada lógica).
+    """
     if request.method == 'POST':
         if request.POST.get('eliminar'):
             if not puede_eliminar(request):
@@ -330,6 +350,7 @@ def subestaciones_view(request):
             sub_id = request.POST.get('sub_id')
             try:
                 sub = Subestacion.objects.get(Id_Sub_est=sub_id)
+                # Verificar dependencias antes de eliminar para evitar huérfanos en la BD
                 puede_eliminar_sub, mensaje_error = sub.puede_ser_eliminada()
                 if not puede_eliminar_sub:
                     messages.error(request, f'No se puede eliminar la subestación "{sub.Nombre}": {mensaje_error}')
@@ -364,10 +385,12 @@ def subestaciones_view(request):
                     messages.error(request, 'Nivel de tension no valido.')
                     return redirect('subestaciones')
                 sub.Nombre = nombre
+                # Id_Ten mantiene el primer nivel seleccionado por compatibilidad con registros antiguos
                 sub.Id_Ten = niveles[0]  # Primer nivel como principal (legacy)
                 sub.Ubicación = ubicacion
                 sub.Coordenadas = coordenadas
                 sub.save()
+                # Reemplazar toda la relación M2M con los niveles seleccionados en el formulario
                 sub.Niveles_Ten.set(niveles)
                 registrar_evento(request, 'ACTUALIZACION', f'Subestacion actualizada: {sub.Nombre}')
                 messages.success(request, 'Subestacion actualizada correctamente.', extra_tags='updated')
@@ -720,7 +743,11 @@ def interfaces_view(request):
 @login_required(login_url='/login/')
 @no_cache
 def protocolo_view(request):
-    """Vista de protocolos e interfaces"""
+    """Vista de protocolos e interfaces de comunicación de tipo PROTOCOLOS.
+    Cada "interfaz de protocolos" es un contenedor que agrupa uno o varios
+    Protocolo hijos. La eliminación es LÓGICA (Activo=False) para preservar el
+    historial y evitar romper relaciones con relés o remotas ya registrados.
+    """
     if request.method == 'POST':
         # Crear interfaz con protocolos
         if request.POST.get('crear'):
@@ -878,20 +905,21 @@ def protocolo_view(request):
                 tipos_display = [p.get_Tipo_display() for p in interfaz.protocolos.all()]
 
                 with transaction.atomic():
-                    # Limpiar relaciones M2M de Relés
+                    # Desasociar la interfaz de todos los relés que la referencian
+                    # antes de desactivarla para no dejar M2M huérfanas
                     reles_afectados = Rele.objects.filter(
                         Q(Protocolos__Id_Interfaz=interfaz_id) | Q(Puertos__Id_Interfaz=interfaz_id)
                     ).distinct()
                     for rele in reles_afectados:
                         rele.Protocolos.remove(*rele.Protocolos.filter(Id_Interfaz=interfaz_id).values_list('Id_Protocolo', flat=True))
 
-                    # Limpiar relaciones M2M de Remotas
+                    # Igual para remotas: limpiar la interfaz y sus protocolos
                     remotas_afectadas = Remota.objects.filter(Interfaces=interfaz).distinct()
                     for remota in remotas_afectadas:
                         remota.Interfaces.remove(interfaz_id)
                         remota.Protocolos.remove(*remota.Protocolos.filter(Id_Interfaz=interfaz_id).values_list('Id_Protocolo', flat=True))
 
-                    # Eliminación lógica de la interfaz y de sus protocolos hijos
+                    # Eliminación lógica: no se borra físicamente para conservar historial
                     interfaz.Activo = False
                     interfaz.save()
                     Protocolo.objects.filter(Id_Interfaz=interfaz).update(Activo=False)
@@ -1094,17 +1122,23 @@ def _extract_remota_ips(post, puerto_keys):
 
 @login_required(login_url='/login/')
 def reles_view(request):
-    """Vista de relés"""
-    # API: obtener detalle de un relé para edición
+    """Vista de relés — CRUD con soporte para relés remotos.
+    Tiene un endpoint JSON embebido (?detalle=1&id=X) que el modal de edición
+    llama via AJAX para precargar los campos del formulario sin recargar la página.
+    Los relés pueden tener una remota asociada, que a su vez tiene sus propios
+    M2M (niveles de tensión, protocolos, interfaces y puertos con IPs).
+    """
+    # Endpoint AJAX: devuelve los datos del relé en JSON para el modal de edición
     if request.GET.get('detalle') == '1' and request.GET.get('id'):
         rele = get_object_or_404(Rele, Id_relé=request.GET.get('id'))
         
-        # Datos de remota asociada (si existe)
+        # Datos de remota asociada (si existe): se incluyen en la misma respuesta JSON
         remota_data = {}
         if rele.Remota:
             remota = rele.Remota
-            # Claves de puerto seleccionadas ('iface_puerto'). Para relés antiguos
-            # sin selección a nivel de puerto, derivar de las interfaces asociadas.
+            # Remota_Puertos almacena claves 'iface_puerto' (ej: "3_7").
+            # Para relés migrados que no tienen este campo, se deriva de las interfaces
+            # asociadas para mantener compatibilidad con datos anteriores.
             remota_puertos_sel = list(rele.Remota_Puertos or [])
             if not remota_puertos_sel:
                 for iface in remota.Interfaces.all():
@@ -1215,11 +1249,13 @@ def reles_view(request):
                         remota = Remota.objects.get(Id_Remota=request.POST.get('remota_id'))
                         rele.Remota = remota
 
-                        # Update Remota's M2M fields
+                        # Actualizar los M2M de la remota desde los valores del formulario
                         remota_niveles = request.POST.getlist('remota_nivel_tension')
                         remota_protocolos = request.POST.getlist('remota_protocolos')
-                        # Selección a nivel de puerto: claves 'iface_puerto'
+                        # Las claves 'iface_puerto' permiten identificar tanto la interfaz
+                        # como el puerto específico seleccionado, separados por '_'
                         remota_puerto_keys = request.POST.getlist('remota_puerto_sel')
+                        # Derivar las interfaces únicas a partir de las claves de puerto
                         remota_interfaces = list({k.split('_', 1)[0] for k in remota_puerto_keys if '_' in k})
 
                         remota.Niveles_Ten.set(remota_niveles)
@@ -1230,11 +1266,12 @@ def reles_view(request):
                         rele.Remota_Puertos = remota_puerto_keys
                         rele.Remota_IPs = _extract_remota_ips(request.POST, remota_puerto_keys)
                     elif es_remoto:
-                        # EsRemoto=True pero falta remota_id en el POST: conservar
-                        # la asociación previa para no perder datos silenciosamente.
+                        # Si el checkbox está marcado pero el formulario no envió remota_id
+                        # (por ejemplo, JS aún no seleccionó una remota), conservar la
+                        # asociación previa para no perder datos silenciosamente.
                         print(f"DEBUG: es_remoto=True sin remota_id; conservando Remota previa", file=sys.stderr)
                     else:
-                        # Clear remote association if unchecked
+                        # Relé no es remoto: limpiar toda la asociación anterior
                         rele.Remota = None
                         rele.Remota_IPs = {}
                         rele.Remota_Puertos = []
@@ -1451,14 +1488,17 @@ def rele_detalle_view(request, pk):
 
 @login_required(login_url='/login/')
 def api_remotas(request):
-    """API para obtener datos de remotas en formato JSON"""
+    """API JSON utilizada por el formulario de relés para cargar dinámicamente
+    las opciones de remotas (marcas, modelos e interfaces) sin recargar la página.
+    Devuelve marcas únicas, modelos agrupados por marca e interfaces por remota.
+    """
     if request.method == 'GET':
         remotas = Remota.objects.all().prefetch_related('Niveles_Ten')
-        
-        # Obtener marcas únicas
+
+        # Marcas únicas para el primer select del formulario
         marcas = list(remotas.values_list('Marca', flat=True).distinct())
-        
-        # Modelos únicos por marca (evita duplicados modelo+marca)
+
+        # Modelos agrupados por marca, sin duplicados (misma marca+modelo)
         modelos_por_marca = {}
         modelos_vistos = set()
         interfaces_por_remota = {}
@@ -2100,7 +2140,12 @@ _VISTA_NOMBRES = {
 }
 
 def registrar_evento(request, tipo, descripcion):
-    """Registra un evento en la bitácora"""
+    """Registra un evento en la bitácora del sistema.
+
+    Se llama al final de cada operación CRUD exitosa para mantener trazabilidad.
+    Intenta obtener el nombre legible de la vista desde _VISTA_NOMBRES; si no está
+    registrado, lo deriva del path de la URL como fallback.
+    """
     from .models import Evento
     url_name = getattr(request.resolver_match, 'url_name', '') or ''
     # Si no se resolvió el nombre de la URL, derivarlo del primer segmento de la
@@ -2111,6 +2156,7 @@ def registrar_evento(request, tipo, descripcion):
     Evento.objects.create(
         Tipo=tipo,
         Descripcion=descripcion,
+        # Si el usuario no está autenticado (ej: evento de sistema), se guarda como None
         Usuario=request.user if request.user.is_authenticated else None,
         IP_Address=request.META.get('REMOTE_ADDR', None),
         Vista=vista,
@@ -2119,7 +2165,11 @@ def registrar_evento(request, tipo, descripcion):
 
 @no_cache
 def custom_login(request):
-    """Login con registro en bitácora (LOGIN)"""
+    """Autenticación de usuario con registro en bitácora.
+    Redirige al panel de administración si el usuario es superusuario,
+    o al dashboard principal si es usuario regular. Previene que usuarios
+    ya autenticados accedan a la pantalla de login.
+    """
     if request.user.is_authenticated:
         if request.user.is_superuser:
             return redirect('/admin/inicio/')
@@ -2150,11 +2200,15 @@ def custom_login(request):
 
 @no_cache
 def custom_logout(request):
-    """Logout con registro en bitácora (LOGOUT)"""
+    """Cierre de sesión con registro en bitácora.
+    Las cabeceras de caché se anulan explícitamente para que el navegador
+    no sirva páginas protegidas desde su caché tras el logout.
+    """
     from django.contrib.auth import logout
     logout(request)
     registrar_evento(request, 'LOGOUT', f'Cierre de sesión desde IP {request.META.get("REMOTE_ADDR", "desconocida")}')
     response = redirect('/login/')
+    # Forzar al navegador a no cachear para evitar acceso a páginas privadas con "atrás"
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response['Pragma'] = 'no-cache'
     response['Expires'] = '0'
@@ -2163,13 +2217,17 @@ def custom_logout(request):
 
 @login_required(login_url='/login/')
 def bitacora_view(request):
-    """Vista de bitácora de eventos del sistema"""
+    """Vista de bitácora de eventos del sistema con filtros combinados.
+    Excluye eventos de LOGIN/LOGOUT para mostrar solo operaciones sobre datos.
+    Admite filtro por tipo de usuario, texto libre, subestación, mes y año.
+    """
     tipo_usuario = request.GET.get('tipo_usuario', '')
     busqueda = request.GET.get('q', '')
     subestacion_filtro = request.GET.get('subestacion', '')
     mes_filtro = request.GET.get('mes', '')
     anio_filtro = request.GET.get('anio', '')
 
+    # Los eventos de login/logout se muestran en la vista de admin_eventos, no aquí
     eventos_list = Evento.objects.exclude(Tipo__in=['LOGIN', 'LOGOUT']).order_by('-Fecha_Hora')
 
     if tipo_usuario == 'admin':
@@ -2440,7 +2498,11 @@ def admin_eventos_view(request):
 
 @login_required(login_url='/login/')
 def admin_restaurar_view(request):
-    """Vista de restaurar sistema"""
+    """Vista de restauración del sistema desde una copia de seguridad ZIP.
+    El proceso es: validar archivo → hacer backup del estado actual →
+    restaurar BD y media → limpiar backup temporal.
+    Si cualquier paso falla, se revierte la BD al backup tomado antes.
+    """
     if not request.user.is_superuser:
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('index')
@@ -2479,19 +2541,20 @@ def admin_restaurar_view(request):
                     db_backup_path = db_path + '.backup'
 
                     try:
-                        # Cerrar todas las conexiones antes de reemplazar el archivo
+                        # SQLite bloquea el archivo mientras haya conexiones abiertas;
+                        # es necesario cerrarlas todas antes de sobreescribir el archivo
                         from django.db import connections
                         connections.close_all()
 
-                        # Hacer backup del archivo actual
+                        # Guardar copia de seguridad del estado actual por si la restauración falla
                         if os.path.exists(db_path):
                             shutil.copy2(db_path, db_backup_path)
 
-                        # Restaurar la base de datos
+                        # Sobreescribir la BD con el archivo del ZIP
                         with zf.open('db.sqlite3') as src, open(db_path, 'wb') as dst:
                             shutil.copyfileobj(src, dst)
 
-                        # Limpiar la caché de conexiones y resetear
+                        # Limpiar caché de Django para que los datos nuevos se reflejen inmediatamente
                         from django.core.cache import cache
                         cache.clear()
                     except Exception as db_error:
@@ -2543,11 +2606,15 @@ def admin_restaurar_view(request):
 
 
 def _get_backup_dir():
+    """Retorna la ruta a la carpeta de backups, creándola si no existe."""
     backup_dir = os.path.join(settings.BASE_DIR, 'backups')
     os.makedirs(backup_dir, exist_ok=True)
     return backup_dir
 
 def _list_backups():
+    """Lista los archivos ZIP de la carpeta de backups con metadatos (tamaño, fecha, tipo).
+    El tipo se infiere del prefijo del nombre de archivo (backup_full_, backup_db_, backup_media_).
+    """
     backup_dir = _get_backup_dir()
     backups = []
     for fname in sorted(os.listdir(backup_dir), reverse=True):
@@ -2569,7 +2636,11 @@ def _list_backups():
 
 @login_required(login_url='/login/')
 def admin_backup_view(request):
-    """Vista de copia de seguridad"""
+    """Vista de generación de copias de seguridad en formato ZIP.
+    Soporta tres tipos: 'full' (BD + media), 'db' (solo base de datos)
+    y 'media' (solo archivos multimedia). El archivo se guarda en la
+    carpeta `backups/` dentro del directorio del proyecto.
+    """
     if not request.user.is_superuser:
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('index')
@@ -2615,9 +2686,11 @@ def admin_backup_view(request):
 
 @login_required(login_url='/login/')
 def admin_backup_download(request, filename):
+    """Descarga un archivo de backup. Usa os.path.basename para evitar path traversal."""
     if not request.user.is_superuser:
         return HttpResponse(status=403)
     backup_dir = _get_backup_dir()
+    # Sanitizar el nombre para prevenir ataques de path traversal (ej: "../../etc/passwd")
     safe_name = os.path.basename(filename)
     file_path = os.path.join(backup_dir, safe_name)
     if not os.path.exists(file_path):
@@ -2629,10 +2702,12 @@ def admin_backup_download(request, filename):
 
 @login_required(login_url='/login/')
 def admin_backup_delete(request, filename):
+    """Elimina un archivo de backup. Solo acepta POST para evitar borrados accidentales por GET."""
     if not request.user.is_superuser:
         return HttpResponse(status=403)
     if request.method == 'POST':
         backup_dir = _get_backup_dir()
+        # Sanitizar el nombre para prevenir path traversal
         safe_name = os.path.basename(filename)
         file_path = os.path.join(backup_dir, safe_name)
         if os.path.exists(file_path):

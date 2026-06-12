@@ -1,7 +1,12 @@
-/* ============================================
+/* ============================================================
    GRIDGUARD - ESTILOS GLOBALES ESTANDARIZADOS
    Familia tipográfica: Open Sans / Segoe UI / Arial
-   ============================================ */
+
+   Este archivo aplica a todas las vistas del proyecto (no admin).
+   El CSS del panel de administración está en admin/css/admin-custom.css.
+   Se utiliza !important en tablas para sobreescribir los estilos de Bootstrap
+   sin necesidad de aumentar la especificidad de los selectores.
+   ============================================================ */
 
 /* === 1. REGLAS GLOBALES DE TIPOGRAFÍA === */
 body {
@@ -21,7 +26,7 @@ h1, h2, h3, .welcome-text h2 {
   line-height: 1.2;
 }
 
-/* Encabezados de tabla */
+/* Encabezados de tabla — !important necesario para sobreescribir Bootstrap table styles */
 .data-table thead th {
   font-size: 14px !important;
   font-weight: 700 !important;
@@ -170,12 +175,14 @@ textarea {
   border: 1px solid #c3e6cb;
 }
 
+/* Alerta amarilla para actualizaciones — se activa con extra_tags='updated' en messages.success() */
 .alert-updated {
   background: #fff3cd;
   color: #856404;
   border: 1px solid #ffeeba;
 }
 
+/* Alerta roja suave para eliminaciones — se activa con extra_tags='deleted' en messages.success() */
 .alert-deleted {
   background: #f8d7da;
   color: #721c24;
@@ -200,7 +207,7 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Scrollbar suave */
+/* === 10. SCROLLBAR PERSONALIZADO (solo WebKit: Chrome, Edge, Safari) === */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
