@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-06-13" agent="5" version="24.0.0" type="device">
+  <diagram id="diagram1" name="ER-GridGuard">
+    <mxGraphModel dx="2800" dy="2000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1100" background="#f5f5f5" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ===================== NivelTension ===================== -->
+        <mxCell id="h_niv" value="NivelTension" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#4A90E2;fontColor=#2C3E50;strokeColor:#2E5C8A;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="50" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_niv" value="Id_Ten (PK)&#10;Tipo_ten&#10;Nivel&#10;Fecha_Reg&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#E8F0FE;strokeColor:#4A90E2;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="200" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== TipoPuertoPersonalizado ===================== -->
+        <mxCell id="h_tpu" value="TipoPuertoPersonalizado" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#7F8C8D;fontColor:#2C3E50;strokeColor:#566573;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="220" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_tpu" value="id (PK)&#10;Tipo&#10;Descripcion&#10;Icono&#10;Activo&#10;Fecha_Reg&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#F2F3F4;strokeColor:#7F8C8D;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="30" y="250" width="200" height="136" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== TipoProtocoloPersonalizado ===================== -->
+        <mxCell id="h_tpr" value="TipoProtocoloPersonalizado" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#7F8C8D;fontColor:#2C3E50;strokeColor:#566573;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="430" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_tpr" value="id (PK)&#10;Tipo&#10;Descripcion&#10;Icono&#10;Activo&#10;Fecha_Reg&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#F2F3F4;strokeColor:#7F8C8D;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="30" y="460" width="200" height="136" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Subestacion ===================== -->
+        <mxCell id="h_sub" value="Subestacion" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#27AE60;fontColor:#2C3E50;strokeColor:#1E8449;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="275" y="50" width="210" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_sub" value="Id_Sub_est (PK)&#10;Nombre&#10;Ubicación&#10;Coordenadas&#10;Fecha_Reg&#10;Id_Ten_id (FK)&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#E8F5E9;strokeColor:#27AE60;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="275" y="80" width="210" height="136" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Sub_Niveles_Ten (M:M) ===================== -->
+        <mxCell id="h_snt" value="sub_Niveles_Ten" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fontStyle=1;fillColor:#BDC3C7;fontColor:#2C3E50;strokeColor:#95A5A6;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="275" y="260" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_snt" value="id (PK)&#10;subestacion_id (FK)&#10;niveltension_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#ECF0F1;strokeColor:#BDC3C7;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="275" y="285" width="210" height="64" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Rele ===================== -->
+        <mxCell id="h_rel" value="Rele" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#E74C3C;fontColor:#2C3E50;strokeColor:#A93226;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="535" y="50" width="220" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_rel" value="Id_relé (PK)&#10;Marca&#10;Modelo&#10;Estado&#10;Observaciones&#10;Fecha_Reg&#10;Imagen&#10;EsRemoto&#10;Puertos_IPs (JSON)&#10;Remota_IPs (JSON)&#10;Remota_Puertos (JSON)&#10;Entradas_Digitales&#10;Salidas_Digitales&#10;Entradas_Analogicas&#10;Contadores&#10;Id_Ten_id (FK)&#10;Id_Sub_est_id (FK)&#10;Remota_id (FK)&#10;creado_por_id (FK)&#10;→ Protocolos (M:M)&#10;→ Interfaces (M:M)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#FADBD8;strokeColor:#E74C3C;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="535" y="80" width="220" height="352" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Rele_Protocolos (M:M) ===================== -->
+        <mxCell id="h_rpr" value="rele_Protocolos" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fontStyle=1;fillColor:#BDC3C7;fontColor:#2C3E50;strokeColor:#95A5A6;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="535" y="450" width="220" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_rpr" value="id (PK)&#10;rele_id (FK)&#10;protocolo_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#ECF0F1;strokeColor:#BDC3C7;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="535" y="475" width="220" height="64" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Rele_Interfaces (M:M) ===================== -->
+        <mxCell id="h_rin_rel" value="rele_Interfaces" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fontStyle=1;fillColor:#BDC3C7;fontColor:#2C3E50;strokeColor:#95A5A6;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="535" y="600" width="220" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_rin_rel" value="id (PK)&#10;rele_id (FK)&#10;interfazdecomunicacion_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#ECF0F1;strokeColor:#BDC3C7;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="535" y="625" width="220" height="64" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Remota ===================== -->
+        <mxCell id="h_rem" value="Remota" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#16A085;fontColor:#2C3E50;strokeColor:#0E6655;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="805" y="50" width="215" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_rem" value="Id_Remota (PK)&#10;Marca&#10;Modelo&#10;Fecha_Reg&#10;Id_Ten_id (FK)&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#D1F2EB;strokeColor:#16A085;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="805" y="80" width="215" height="118" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Remota_Interfaces (M:M) ===================== -->
+        <mxCell id="h_rin" value="remota_Interfaces" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fontStyle=1;fillColor:#BDC3C7;fontColor:#2C3E50;strokeColor:#95A5A6;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="805" y="245" width="215" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_rin" value="id (PK)&#10;remota_id (FK)&#10;interfazdecomunicacion_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#ECF0F1;strokeColor:#BDC3C7;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="805" y="270" width="215" height="64" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Remota_Protocolos (M:M) ===================== -->
+        <mxCell id="h_rpm" value="remota_Protocolos" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fontStyle=1;fillColor:#BDC3C7;fontColor:#2C3E50;strokeColor:#95A5A6;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="805" y="385" width="215" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_rpm" value="id (PK)&#10;remota_id (FK)&#10;protocolo_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#ECF0F1;strokeColor:#BDC3C7;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="805" y="410" width="215" height="64" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Remota_Niveles_Ten (M:M) ===================== -->
+        <mxCell id="h_rnt" value="remota_Niveles_Ten" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fontStyle=1;fillColor:#BDC3C7;fontColor:#2C3E50;strokeColor:#95A5A6;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="805" y="525" width="215" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_rnt" value="id (PK)&#10;remota_id (FK)&#10;niveltension_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#ECF0F1;strokeColor:#BDC3C7;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="805" y="550" width="215" height="64" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== InterfazDeComunicacion ===================== -->
+        <mxCell id="h_int" value="InterfazDeComunicacion" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#F39C12;fontColor:#2C3E50;strokeColor:#B7770D;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="50" width="220" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_int" value="Id_Interfaz (PK)&#10;Tipo_Interfaz&#10;Tipo_Puerto&#10;Fecha_Reg&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#FEF5E7;strokeColor:#F39C12;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="80" width="220" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== Protocolo ===================== -->
+        <mxCell id="h_pro" value="Protocolo" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#8E44AD;fontColor:#2C3E50;strokeColor:#6C3483;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="230" width="220" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_pro" value="Id_Protocolo (PK)&#10;Tipo&#10;Estado&#10;Activo&#10;Fecha_Reg&#10;Id_Interfaz_id (FK)&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#F4ECF7;strokeColor:#8E44AD;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="260" width="220" height="136" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== auth_user ===================== -->
+        <mxCell id="h_usr" value="auth_user" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#2C3E50;fontColor:#2C3E50;strokeColor:#1A252F;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1355" y="50" width="210" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_usr" value="id (PK)&#10;username&#10;password&#10;email&#10;first_name&#10;last_name&#10;is_superuser&#10;is_staff&#10;is_active&#10;date_joined&#10;last_login" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#D6DBDF;strokeColor:#2C3E50;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1355" y="80" width="210" height="208" as="geometry"/>
+        </mxCell>
+
+        <!-- ===================== equipos_evento ===================== -->
+        <mxCell id="h_evt" value="equipos_evento (Bitacora)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#E67E22;fontColor:#2C3E50;strokeColor:#A04000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1355" y="335" width="210" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_evt" value="Id_Evento (PK)&#10;Tipo&#10;Descripcion&#10;Fecha_Hora&#10;IP_Address&#10;Vista&#10;Usuario_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#FDEBD0;strokeColor:#E67E22;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1355" y="365" width="210" height="136" as="geometry"/>
+        </mxCell>
+
+        <!-- ==================== RELACIONES FK 1:M ==================== -->
+
+        <!-- NivelTension → Subestacion -->
+        <mxCell id="e01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=1;endArrow=ERmany;endFill=0;strokeColor=#2E5C8A;strokeWidth=1.5;" edge="1" parent="1" source="b_niv" target="b_sub">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- NivelTension → Rele -->
+        <mxCell id="e02" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=1;endArrow=ERmany;endFill=0;strokeColor=#2E5C8A;strokeWidth=1.5;" edge="1" parent="1" source="b_niv" target="b_rel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- NivelTension → Remota -->
+        <mxCell id="e03" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=1;endArrow=ERmany;endFill=0;strokeColor=#2E5C8A;strokeWidth=1.5;" edge="1" parent="1" source="b_niv" target="b_rem">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Subestacion → Rele -->
+        <mxCell id="e04" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=1;endArrow=ERmany;endFill=0;strokeColor:#1E8449;strokeWidth=1.5;" edge="1" parent="1" source="b_sub" target="b_rel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Remota → Rele -->
+        <mxCell id="e05" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=1;endArrow=ERmany;endFill=0;strokeColor:#0E6655;strokeWidth=1.5;" edge="1" parent="1" source="b_rem" target="b_rel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- InterfazComunicacion → Protocolo -->
+        <mxCell id="e06" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=1;endArrow=ERmany;endFill=0;strokeColor=#B7770D;strokeWidth=1.5;" edge="1" parent="1" source="b_int" target="b_pro">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- auth_user → equipos_evento (1:M) -->
+        <mxCell id="e08" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=1;endArrow=ERmany;endFill=0;strokeColor:#1A252F;strokeWidth=1.5;" edge="1" parent="1" source="b_usr" target="b_evt">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
