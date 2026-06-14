@@ -383,7 +383,6 @@ class Protocolo(models.Model):
     Tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, verbose_name='Tipo de Protocolo')
     Descripcion = models.CharField(max_length=80, blank=True, default='', verbose_name='Descripción')
     Icono = models.CharField(max_length=40, blank=True, default='', verbose_name='Ícono')  # Clase CSS (ej: 'fa-network-wired')
-    Estado = models.CharField(max_length=50, default='Activo', verbose_name='Estado')
     Fecha_Reg = models.DateField(auto_now_add=True, verbose_name='Fecha de Registro')
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='protocolos_creados')
     # False = desactivado lógicamente; no aparece en formularios ni listados activos

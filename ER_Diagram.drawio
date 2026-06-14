@@ -114,8 +114,8 @@
         <mxCell id="h_pro" value="Protocolo" style="whiteSpace=wrap;html=1;rounded=0;fontSize=11;fontStyle=1;fillColor:#8E44AD;fontColor:#2C3E50;strokeColor:#6C3483;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="1075" y="230" width="220" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="b_pro" value="Id_Protocolo (PK)&#10;Tipo&#10;Estado&#10;Activo&#10;Fecha_Reg&#10;Id_Interfaz_id (FK)&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#F4ECF7;strokeColor:#8E44AD;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="1075" y="260" width="220" height="136" as="geometry"/>
+        <mxCell id="b_pro" value="Id_Protocolo (PK)&#10;Tipo&#10;Descripcion&#10;Icono&#10;Activo&#10;Fecha_Reg&#10;Id_Interfaz_id (FK)&#10;creado_por_id (FK)" style="whiteSpace=wrap;html=1;rounded=0;fontSize=10;fillColor:#F4ECF7;strokeColor:#8E44AD;strokeWidth=1;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="260" width="220" height="154" as="geometry"/>
         </mxCell>
 
         <!-- ===================== auth_user ===================== -->
