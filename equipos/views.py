@@ -2056,7 +2056,7 @@ def exportar_reles_pdf(request):
     reles = (Rele.objects
              .select_related('Id_Ten', 'Id_Sub_est', 'creado_por', 'Remota', 'Remota__Id_Ten')
              .prefetch_related('Protocolos', 'Remota__Protocolos', 'Remota__Niveles_Ten',
-                               'Remota__Interfaces__puertos')
+                               'Remota__Interfaces')
              .order_by('-Fecha_Reg', '-Id_relé'))
     return build_reles_pdf(reles)
 
