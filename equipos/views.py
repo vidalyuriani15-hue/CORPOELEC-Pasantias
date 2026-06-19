@@ -729,19 +729,18 @@ def interfaces_view(request):
 @login_required(login_url='/login/')
 @no_cache
 def protocolo_view(request):
-    """Vista de protocolos e interfaces de comunicación de tipo PROTOCOLOS.
-    Cada "interfaz de protocolos" es un contenedor que agrupa uno o varios
-    Protocolo hijos. La eliminación es LÓGICA (Activo=False) para preservar el
-    historial y evitar romper relaciones con relés o remotas ya registrados.
+    """Vista de protocolos de comunicación.
+    Cada tipo seleccionado genera su propio registro InterfazDeComunicacion + Protocolo
+    (igual que interfaces de puertos: un registro por tipo).
+    La eliminación es LÓGICA (Activo=False) para preservar historial.
     """
     if request.method == 'POST':
-        # Crear interfaz con protocolos
+        # ── CREAR ─────────────────────────────────────────────────────────────
         if request.POST.get('crear'):
             if not puede_crear(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
                 return redirect('protocolo')
             tipos_protocolo = request.POST.getlist('tipos_protocolo')
-            # "Otro" (protocolo personalizado): solo administradores.
             descripciones = {}
             iconos = {}
             if request.user.is_superuser:
@@ -750,7 +749,9 @@ def protocolo_view(request):
                     tipos_protocolo.append(otro)
                     descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
                     iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
-            # Heredar metadatos del catálogo para tipos OTRA seleccionados
+            if not tipos_protocolo:
+                messages.info(request, 'Seleccione al menos un tipo de protocolo.')
+                return redirect('protocolo')
             _stock_proto = {c[0] for c in Protocolo.TIPO_CHOICES}
             for tipo in tipos_protocolo:
                 if tipo not in _stock_proto and tipo not in descripciones:
@@ -758,7 +759,6 @@ def protocolo_view(request):
                     if tp:
                         descripciones[tipo] = tp.Descripcion
                         iconos[tipo] = tp.Icono
-            # Validación: ningún tipo puede estar ya registrado en otra interfaz activa
             ya_registrados = set(Protocolo.objects.filter(
                 Activo=True, Id_Interfaz__Activo=True
             ).values_list('Tipo', flat=True))
@@ -766,13 +766,15 @@ def protocolo_view(request):
             if conflictos:
                 messages.error(request, f'Estos protocolos ya están registrados: {", ".join(conflictos)}')
                 return redirect('protocolo')
+            tipo_display_map = dict(Protocolo.TIPO_CHOICES)
+            creados = []
             with transaction.atomic():
-                interfaz = InterfazDeComunicacion.objects.create(
-                    Puertos_C=0,
-                    Tipo_Interfaz='PROTOCOLOS',
-                    creado_por=request.user
-                )
                 for tipo in tipos_protocolo:
+                    interfaz = InterfazDeComunicacion.objects.create(
+                        Puertos_C=0,
+                        Tipo_Interfaz='PROTOCOLOS',
+                        creado_por=request.user
+                    )
                     Protocolo.objects.create(
                         Id_Interfaz=interfaz,
                         Tipo=tipo,
@@ -780,7 +782,7 @@ def protocolo_view(request):
                         Icono=iconos.get(tipo, ''),
                         creado_por=request.user
                     )
-                    # Registrar en catálogo de tipos OTRA si no es estándar
+                    creados.append(tipo)
                     if tipo not in _stock_proto:
                         TipoProtocoloPersonalizado.objects.update_or_create(
                             Tipo=tipo,
@@ -791,27 +793,19 @@ def protocolo_view(request):
                                 'creado_por': request.user,
                             },
                         )
-                # Validar consistencia
-                try:
-                    interfaz.full_clean()
-                except Exception as e:
-                    messages.error(request, f'Error de validación: {str(e)}')
-                    raise  # Rollback
-            tipos_display = [p.get_Tipo_display() for p in interfaz.protocolos.all()]
-            etiqueta = ', '.join(tipos_display) if tipos_display else 'sin tipos'
-            noun = 'Protocolo de Telecontrol y Energía creado' if len(tipos_display) <= 1 \
-                else 'Protocolos de Telecontrol y Energía creados'
+            tipos_display = [tipo_display_map.get(t, t) for t in creados]
+            etiqueta = ', '.join(tipos_display)
+            noun = 'Protocolo creado' if len(creados) == 1 else 'Protocolos creados'
             registrar_evento(request, 'CREACION', f'{noun}: {etiqueta}')
-            messages.success(request, 'Interfaz creada correctamente')
-        
-        # Editar interfaz/protocolos
+            messages.success(request, 'Protocolo(s) creado(s) correctamente.')
+
+        # ── EDITAR ────────────────────────────────────────────────────────────
         elif request.POST.get('editar'):
             if not puede_actualizar(request):
                 messages.error(request, 'No tiene permisos para realizar esta acción.')
                 return redirect('protocolo')
             interfaz_id = request.POST.get('interfaz_id')
             tipos_protocolo = request.POST.getlist('tipos_protocolo')
-            # "Otro" (protocolo personalizado): solo administradores.
             descripciones = {}
             iconos = {}
             if request.user.is_superuser:
@@ -820,58 +814,50 @@ def protocolo_view(request):
                     tipos_protocolo.append(otro)
                     descripciones[otro] = (request.POST.get('tipo_otro_desc') or '').strip()
                     iconos[otro] = (request.POST.get('tipo_otro_icono') or '').strip()
-            # Heredar metadatos del catálogo para tipos OTRA seleccionados
+            if not tipos_protocolo:
+                messages.error(request, 'Seleccione al menos un tipo de protocolo.')
+                return redirect('protocolo')
+            nuevo_tipo = tipos_protocolo[0]
             _stock_proto = {c[0] for c in Protocolo.TIPO_CHOICES}
-            for tipo in tipos_protocolo:
-                if tipo not in _stock_proto and tipo not in descripciones:
-                    tp = TipoProtocoloPersonalizado.objects.filter(Tipo=tipo).first()
-                    if tp:
-                        descripciones[tipo] = tp.Descripcion
-                        iconos[tipo] = tp.Icono
-            # Validación: ningún tipo puede estar registrado en OTRA interfaz activa
+            if nuevo_tipo not in _stock_proto and nuevo_tipo not in descripciones:
+                tp = TipoProtocoloPersonalizado.objects.filter(Tipo=nuevo_tipo).first()
+                if tp:
+                    descripciones[nuevo_tipo] = tp.Descripcion
+                    iconos[nuevo_tipo] = tp.Icono
             ya_registrados = set(Protocolo.objects.filter(
                 Activo=True, Id_Interfaz__Activo=True
             ).exclude(Id_Interfaz=interfaz_id).values_list('Tipo', flat=True))
-            conflictos = [t for t in tipos_protocolo if t in ya_registrados]
-            if conflictos:
-                messages.error(request, f'Estos protocolos ya están registrados en otra interfaz: {", ".join(conflictos)}')
+            if nuevo_tipo in ya_registrados:
+                messages.error(request, f'El protocolo {nuevo_tipo} ya está registrado en otra entrada.')
                 return redirect('protocolo')
             try:
                 with transaction.atomic():
                     interfaz = InterfazDeComunicacion.objects.select_for_update().get(Id_Interfaz=interfaz_id)
                     Protocolo.objects.filter(Id_Interfaz=interfaz).delete()
-                    for tipo in tipos_protocolo:
-                        Protocolo.objects.create(
-                            Id_Interfaz=interfaz,
-                            Tipo=tipo,
-                            Descripcion=descripciones.get(tipo, ''),
-                            Icono=iconos.get(tipo, ''),
-                            creado_por=request.user
+                    Protocolo.objects.create(
+                        Id_Interfaz=interfaz,
+                        Tipo=nuevo_tipo,
+                        Descripcion=descripciones.get(nuevo_tipo, ''),
+                        Icono=iconos.get(nuevo_tipo, ''),
+                        creado_por=request.user
+                    )
+                    if nuevo_tipo not in _stock_proto:
+                        TipoProtocoloPersonalizado.objects.update_or_create(
+                            Tipo=nuevo_tipo,
+                            defaults={
+                                'Descripcion': descripciones.get(nuevo_tipo, ''),
+                                'Icono': iconos.get(nuevo_tipo, ''),
+                                'Activo': True,
+                                'creado_por': request.user,
+                            },
                         )
-                        # Registrar en catálogo si no es estándar
-                        if tipo not in _stock_proto:
-                            TipoProtocoloPersonalizado.objects.update_or_create(
-                                Tipo=tipo,
-                                defaults={
-                                    'Descripcion': descripciones.get(tipo, ''),
-                                    'Icono': iconos.get(tipo, ''),
-                                    'Activo': True,
-                                    'creado_por': request.user,
-                                },
-                            )
                     interfaz.Puertos_C = 0
                     interfaz.Tipo_Interfaz = 'PROTOCOLOS'
                     interfaz.save()
-                    # Validar
-                    try:
-                        interfaz.full_clean()
-                    except Exception as e:
-                        messages.error(request, f'Error de validación: {str(e)}')
-                        raise
-                messages.success(request, 'Interfaz actualizada correctamente', extra_tags='updated')
-                registrar_evento(request, 'ACTUALIZACION', 'Interfaz de Protocolos editada')
+                messages.success(request, 'Protocolo actualizado correctamente.', extra_tags='updated')
+                registrar_evento(request, 'ACTUALIZACION', f'Protocolo editado: {nuevo_tipo}')
             except InterfazDeComunicacion.DoesNotExist:
-                messages.error(request, 'Interfaz no encontrada')
+                messages.error(request, 'Protocolo no encontrado.')
         
         # Eliminar interfaz con limpieza de dependencias (eliminación lógica)
         elif request.POST.get('eliminar'):
