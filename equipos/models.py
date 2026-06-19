@@ -254,8 +254,10 @@ class InterfazDeComunicacion(models.Model):
                 sub = r.Id_Sub_est.Nombre if r.Id_Sub_est else 'sin subestación'
                 dependencias.append(f"Relé: {sub} ({r.Marca} {r.Modelo})")
 
-        if self.remotas_asociadas.exists():
-            dependencias.extend([f"Remota: {r.Marca} {r.Modelo}" for r in self.remotas_asociadas.all()])
+        # Solo bloquea si la remota tiene al menos un relé activo; sin relés la relación es huérfana
+        remotas_con_rele = self.remotas_asociadas.filter(reles_asociados__isnull=False).distinct()
+        if remotas_con_rele.exists():
+            dependencias.extend([f"Remota: {r.Marca} {r.Modelo}" for r in remotas_con_rele])
 
         return dependencias
 
