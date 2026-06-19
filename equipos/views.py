@@ -1409,16 +1409,39 @@ def rele_detalle_view(request, pk):
                     'ip': None,
                 })
 
+    # Construir lista de puertos propios del relé desde Puertos_IPs (JSON)
+    puertos_propios = []
+    puertos_ips_data = rele.Puertos_IPs or {}
+    if puertos_ips_data:
+        ifaces_map = {
+            str(i.Id_Interfaz): i
+            for i in InterfazDeComunicacion.objects.filter(
+                Id_Interfaz__in=list(puertos_ips_data.keys()), Tipo_Interfaz='PUERTOS'
+            )
+        }
+        for iface_id, ip in puertos_ips_data.items():
+            iface = ifaces_map.get(str(iface_id))
+            if not iface:
+                continue
+            puertos_propios.append({
+                'tipo': iface.Tipo_Puerto,
+                'tipo_display': iface.get_Tipo_Puerto_display(),
+                'is_eth': iface.Tipo_Puerto == 'ETH',
+                'ip': ip,
+            })
+
     if request.GET.get('modal') == '1':
         return render(request, 'rele_detalle_partial.html', {
             'rele': rele,
             'remota_puertos_unicos': remota_puertos_unicos,
+            'puertos_propios': puertos_propios,
         })
 
     context = {
         'title': f'Detalle de Relé {rele.Id_relé}',
         'rele': rele,
         'remota_puertos_unicos': remota_puertos_unicos,
+        'puertos_propios': puertos_propios,
     }
     return render(request, 'rele_detalle.html', context)
 

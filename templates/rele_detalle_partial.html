@@ -73,23 +73,20 @@
         <h4>Interfaces de Comunicación</h4>
       </div>
       <div class="puertos-container">
-        {% for puerto in rele.Puertos.all %}
-          <span class="puerto-badge {% if puerto.Tipo == 'ETH' %}puerto-eth{% endif %}">
+        {% for puerto in puertos_propios %}
+          <span class="puerto-badge {% if puerto.is_eth %}puerto-eth{% endif %}">
             <span class="puerto-icon">
-              {% if puerto.Tipo == 'ETH' %}<i class="fas fa-network-wired"></i>
-              {% elif puerto.Tipo == 'RS232' %}<i class="fas fa-plug"></i>
-              {% elif puerto.Tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>
-              {% elif puerto.Tipo == 'USB' %}<i class="fab fa-usb"></i>
-              {% elif puerto.Tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>
-              {% elif puerto.Icono %}<i class="{{ puerto.Icono }}"></i>
+              {% if puerto.tipo == 'ETH' %}<i class="fas fa-network-wired"></i>
+              {% elif puerto.tipo == 'RS232' %}<i class="fas fa-plug"></i>
+              {% elif puerto.tipo == 'RS485' %}<i class="fas fa-exchange-alt"></i>
+              {% elif puerto.tipo == 'USB' %}<i class="fab fa-usb"></i>
+              {% elif puerto.tipo == 'FIBRA' %}<i class="fas fa-bolt"></i>
               {% else %}<i class="fas fa-microchip"></i>{% endif %}
             </span>
             <span class="puerto-text">
-              {{ puerto.get_Tipo_display }}
-              {% if puerto.Tipo == 'ETH' %}
-                {% with ip=rele.Puertos_IPs|dict_get:puerto.Id_Puerto %}
-                  <span class="ip-chip">IP: {{ ip|default:"0.0.0.0" }}</span>
-                {% endwith %}
+              {{ puerto.tipo_display }}
+              {% if puerto.is_eth %}
+                <span class="ip-chip">IP: {{ puerto.ip|default:"0.0.0.0" }}</span>
               {% endif %}
             </span>
           </span>

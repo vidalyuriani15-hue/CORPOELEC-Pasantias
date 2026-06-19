@@ -1041,9 +1041,9 @@ function marcarCheckboxesRemota(data) {
       }
       for (var i = 0; i < (data.puertos || []).length; i++) {
         var cb = document.querySelector('input[name="puertos"][value="' + data.puertos[i] + '"]');
-        if (cb) cb.checked = true;
+        if (cb) { cb.checked = true; togglePuertoIp(cb); }
       }
-      // Restaurar IPs guardadas por puerto
+      // Restaurar IPs guardadas por puerto (después de togglePuertoIp para que el campo sea visible)
       var puertosIps = data.puertos_ips || {};
       Object.keys(puertosIps).forEach(function(pid) {
         var input = document.querySelector('input[name="puerto_ip_' + pid + '"]');
